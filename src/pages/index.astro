@@ -1,0 +1,576 @@
+---
+const ctaAdhesion = "https://www.helloasso.com/associations/le-saint-domingue/adhesions/adhesion";
+const ctaDon = "https://www.helloasso.com/associations/graine-de-moutarde-fonds-de-dotation/collectes/rehabilitation-de-l-hotel-saint-domingue";
+const ctaApport = "https://www.helloasso.com/associations/le-saint-domingue/boutiques/apports-associatifs";
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- SEO de base -->
+  <title>Hôtel Saint Domingue — Foncière Citoyenne à Die</title>
+  <meta name="description" content="Participez au rachat citoyen de l'Hôtel Saint Domingue à Die (Drôme). Une foncière citoyenne pour créer du logement accessible, de l'hébergement saisonnier et des espaces de vie partagés." />
+  <meta name="keywords" content="foncière citoyenne, hôtel Saint Domingue, Die, Drôme, SCIC, collecte de fonds, logement accessible, projet citoyen, réhabilitation" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://saintdo.org/" />
+
+  <!-- Open Graph (Facebook, LinkedIn…) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://saintdo.org/" />
+  <meta property="og:title" content="Hôtel Saint Domingue — Foncière Citoyenne à Die" />
+  <meta property="og:description" content="Participez au rachat citoyen de l'Hôtel Saint Domingue à Die. Adhésion, don défiscalisé ou apport social : choisissez votre façon de soutenir ce projet d'intérêt général." />
+  <meta property="og:image" content="https://saintdo.org/schema-scic.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:locale" content="fr_FR" />
+  <meta property="og:site_name" content="Saint Domingue · Die" />
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Hôtel Saint Domingue — Foncière Citoyenne à Die" />
+  <meta name="twitter:description" content="Participez au rachat citoyen de l'Hôtel Saint Domingue à Die. Adhésion, don défiscalisé ou apport social." />
+  <meta name="twitter:image" content="https://saintdo.org/schema-scic.jpg" />
+
+  <!-- Données structurées JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "Hôtel Saint Domingue — Foncière Citoyenne",
+    "url": "https://saintdo.org",
+    "description": "Foncière citoyenne pour le rachat et la réhabilitation de l'Hôtel Saint Domingue à Die (Drôme), dans un objectif d'intérêt général.",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "44 rue Camille Buffardel",
+      "addressLocality": "Die",
+      "postalCode": "26150",
+      "addressCountry": "FR"
+    },
+    "areaServed": "Die, Drôme, France"
+  }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-inner">
+      <span class="logo">Saint Domingue</span>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <img src="/hotel.jpg" alt="Devanture de l'Hôtel Saint Domingue à Die" class="hero-bg" />
+    <div class="hero-overlay"></div>
+    <div class="hero-content">
+      <p class="hero-eyebrow">Foncière citoyenne · Die, Drôme</p>
+      <h1>On rachète un hôtel désaffecté en centre-ville pour bâtir un projet d'intérêt général</h1>
+      <p class="hero-sub">
+        L'Hôtel Saint Domingue ferme ses portes. Ensemble, nous pouvons lui offrir une seconde vie — accessible, solidaire et ancrée dans le territoire.
+      </p>
+
+      <div class="hero-cta-cards">
+        <a href={ctaAdhesion} class="hero-cta-card">
+          <span class="hero-cta-icon">🧑‍🤝‍🧑</span>
+          <span class="hero-cta-label">Adhérer à l'association</span>
+          <span class="hero-cta-arrow">→</span>
+        </a>
+        <a href={ctaDon} class="hero-cta-card">
+          <span class="hero-cta-icon">💚</span>
+          <span class="hero-cta-label">Faire un don défiscalisé</span>
+          <span class="hero-cta-sub">via HelloAsso · Graines de moutarde</span>
+          <span class="hero-cta-arrow">→</span>
+        </a>
+        <a href={ctaApport} class="hero-cta-card">
+          <span class="hero-cta-icon">📈</span>
+          <span class="hero-cta-label">Faire un apport associatif</span>
+          <span class="hero-cta-sub">→ parts sociales SCIC</span>
+          <span class="hero-cta-arrow">→</span>
+        </a>
+      </div>
+
+      <a href="#pourquoi" class="hero-link">Découvrir le projet ↓</a>
+    </div>
+  </section>
+
+  <!-- BANDEAU CONTEXTE -->
+  <div class="bandeau">
+    <div class="bandeau-inner">
+      <div class="stat">
+        <strong>44 rue Camille Buffardel</strong>
+        <span>Cœur de Die</span>
+      </div>
+      <div class="stat-sep"></div>
+      <div class="stat">
+        <strong>SCIC</strong>
+        <span>Société coopérative d'intérêt collectif</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- POURQUOI -->
+  <section id="pourquoi" class="section section-alt">
+    <div class="container two-col">
+      <div class="section-text">
+        <p class="section-label">Pourquoi ?</p>
+        <h2>"On rachète un hôtel désaffecté en centre-ville pour bâtir un projet d'intérêt général"</h2>
+        <p>
+          L'hôtel Saint Domingue, situé en plein centre de Die, a cessé son activité en octobre 2024. Le bâtiment de 1 000 m² habitables n'est plus aux normes pour être exploité en l'état.
+        </p>
+        <p>
+          Afin d'éviter sa vente à des fins spéculatives et grâce à des propriétaires qui partagent les mêmes valeurs, une association regroupant des citoyennes et citoyens engagés est créée pour le racheter, et imaginer tous ensemble une seconde vie à cet établissement historique de Die.
+        </p>
+        <p class="highlight-text">Il nous faut maintenant votre contribution pour concrétiser le projet !</p>
+      </div>
+      <div class="section-visual">
+        <div class="card-info">
+          <div class="card-icon">🏨</div>
+          <h3>Un bâtiment historique</h3>
+          <p>Au cœur du centre-bourg de Die, l'hôtel Saint Domingue est un repère identitaire du territoire depuis plusieurs décennies.</p>
+        </div>
+        <div class="card-info card-info--accent">
+          <div class="card-icon">🤝</div>
+          <h3>Une opportunité citoyenne</h3>
+          <p>Les propriétaires partagent nos valeurs et souhaitent voir ce lieu renaître au bénéfice du territoire.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COMMENT -->
+  <section id="comment" class="section">
+    <div class="container">
+      <p class="section-label centered">Comment ?</p>
+      <h2 class="centered">"On crée une foncière citoyenne pour acheter les murs et on imagine ensemble sa réhabilitation"</h2>
+      <div class="schema-container">
+        <img src="/schema-scic.jpg" alt="Schéma de la SCIC Saint Domingue" class="schema-img" />
+        <p class="schema-caption">Schéma de gouvernance de la SCIC</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- DANS QUEL BUT -->
+  <section id="but" class="section section-alt">
+    <div class="container">
+      <p class="section-label centered">Dans quel but ?</p>
+      <h2 class="centered">"Proposer de l'hébergement accessible et adapté ; créer de nouveaux lieux de vie et de rencontres"</h2>
+      <p class="section-intro centered">Sa réhabilitation pourra répondre à de nombreux besoins du territoire. Trois pistes ont été explorées avec les associations et les porteurs de projet locaux :</p>
+      <div class="usages">
+        <div class="usage">
+          <div class="usage-icon">🏠</div>
+          <h3>Logement accessible</h3>
+          <p>Pour des seniors autonomes, des familles mono-parentales, des personnes exilées ou réfugiées, et des logements de répit.</p>
+        </div>
+        <div class="usage">
+          <div class="usage-icon">🌿</div>
+          <h3>Hébergement saisonnier</h3>
+          <p>Petite auberge de jeunesse, pension de famille, accueil de saisonniers… Un lieu ouvert à tous et toutes.</p>
+        </div>
+        <div class="usage">
+          <div class="usage-icon">🛍️</div>
+          <h3>Activités en rez-de-chaussée</h3>
+          <p>Des commerces participant à la revitalisation du centre-bourg, en lien avec les acteurs économiques existants.</p>
+        </div>
+        <div class="usage">
+          <div class="usage-icon">🎭</div>
+          <h3>Espace partagé</h3>
+          <p>Un lieu de rencontre intergénérationnel pour des activités sociales et culturelles, ouvert à toute la communauté.</p>
+        </div>
+      </div>
+      <p class="footnote centered">Les futurs usages seront imaginés et testés avec les acteurs du territoire, dans une logique d'intérêt général et en bonne intelligence avec ce qui existe déjà !</p>
+    </div>
+  </section>
+
+  <!-- CTA SECTION -->
+  <section id="rejoindre" class="section section-cta">
+    <div class="container">
+      <p class="section-label centered" style="color: var(--green-light);">Rejoignez l'aventure !</p>
+      <h2 class="centered" style="color: white;">Choisissez votre façon de soutenir le projet</h2>
+      <p class="section-intro centered" style="color: rgba(255,255,255,0.8);">Trois manières concrètes de contribuer à ce projet d'intérêt général.</p>
+
+      <div class="cta-cards">
+        <div class="cta-card" id="adhesion">
+          <div class="cta-card-icon">🧑‍🤝‍🧑</div>
+          <h3>Adhérer à l'association</h3>
+          <p>Rejoignez la communauté de citoyens engagés qui portent ce projet. Votre adhésion vous donne voix au chapitre.</p>
+          <a href={ctaAdhesion} class="btn btn-white">Adhérer maintenant</a>
+        </div>
+
+        <div class="cta-card" id="don">
+          <div class="cta-card-icon">💚</div>
+          <h3>Faire un don défiscalisé</h3>
+          <p>Via HelloAsso et le fonds de dotation <em>Graines de moutarde</em>. Votre don est défiscalisable et soutient directement l'acquisition du bâtiment.</p>
+          <a href={ctaDon} class="btn btn-white">Faire un don</a>
+        </div>
+
+        <div class="cta-card" id="apport">
+          <div class="cta-card-icon">📈</div>
+          <h3>Faire un apport associatif</h3>
+          <p>Votre apport deviendra des parts sociales de la SCIC. Vous devenez co-propriétaire et participez à la gouvernance du projet.</p>
+          <a href={ctaApport} class="btn btn-white">Devenir sociétaire</a>
+        </div>
+      </div>
+
+      <p class="partage-text">
+        Vous pouvez aussi <strong>diffuser, partager et en parler autour de vous</strong> — c'est déjà une contribution précieuse !
+      </p>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-inner">
+      <div>
+        <strong>Hôtel Saint Domingue</strong>
+        <span>44 rue Camille Buffardel, Die (26)</span>
+      </div>
+      <div>
+        <a href="https://saintdo.org">saintdo.org</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
+
+<style>
+  :root {
+    --green: #2D6A4F;
+    --green-dark: #1B4332;
+    --green-light: #95D5B2;
+    --amber: #E76F51;
+    --amber-dark: #C75B3A;
+    --bg: #F7F3EE;
+    --bg-alt: #EDE8E1;
+    --text: #1C1C1E;
+    --text-muted: #5C5C6B;
+    --white: #FFFFFF;
+    --radius: 12px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.65;
+  }
+
+  /* NAV */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(247,243,238,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+  }
+  .nav-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 24px;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    color: var(--green-dark);
+    font-weight: 700;
+  }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-block;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-decoration: none;
+    transition: all 0.2s;
+    cursor: pointer;
+  }
+  .btn-primary {
+    background: var(--amber);
+    color: var(--white);
+  }
+  .btn-primary:hover { background: var(--amber-dark); transform: translateY(-1px); }
+  .btn-white {
+    background: var(--white);
+    color: var(--green-dark);
+    border: 2px solid var(--white);
+  }
+  .btn-white:hover { background: transparent; color: var(--white); }
+
+  /* HERO */
+  .hero {
+    position: relative;
+    min-height: 88vh;
+    display: flex;
+    align-items: center;
+    padding: 80px 24px;
+    overflow: hidden;
+  }
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    z-index: 0;
+  }
+  .hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(27,67,50,0.88) 0%, rgba(45,106,79,0.75) 60%, rgba(82,183,136,0.55) 100%);
+    z-index: 1;
+  }
+  .hero-content {
+    position: relative;
+    z-index: 2;
+    max-width: 700px;
+    margin: 0 auto;
+  }
+  .hero-eyebrow {
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--green-light);
+    margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    color: var(--white);
+    line-height: 1.2;
+    margin-bottom: 24px;
+  }
+  .hero-sub {
+    font-size: 1.15rem;
+    color: rgba(255,255,255,0.85);
+    max-width: 580px;
+    margin-bottom: 40px;
+  }
+  .hero-cta-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-top: 40px;
+  }
+  .hero-cta-card {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: var(--radius);
+    padding: 20px;
+    color: white;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .hero-cta-card:hover {
+    background: rgba(255,255,255,0.2);
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,0.5);
+  }
+  .hero-cta-icon { font-size: 1.6rem; }
+  .hero-cta-label { font-weight: 700; font-size: 0.95rem; line-height: 1.3; }
+  .hero-cta-sub { font-size: 0.78rem; color: rgba(255,255,255,0.7); }
+  .hero-cta-arrow {
+    position: absolute;
+    top: 16px; right: 16px;
+    font-size: 1rem;
+    opacity: 0.6;
+  }
+  .hero-link {
+    display: inline-block;
+    margin-top: 24px;
+    color: rgba(255,255,255,0.55);
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .hero-link:hover { color: rgba(255,255,255,0.9); }
+
+  /* BANDEAU */
+  .bandeau {
+    background: var(--green-dark);
+    padding: 20px 24px;
+  }
+  .bandeau-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 40px;
+    flex-wrap: wrap;
+  }
+  .stat { text-align: center; color: white; }
+  .stat strong { display: block; font-size: 1rem; font-weight: 700; }
+  .stat span { font-size: 0.8rem; color: var(--green-light); }
+  .stat-sep { width: 1px; height: 36px; background: rgba(255,255,255,0.2); }
+
+  /* SECTIONS */
+  .section { padding: 96px 24px; }
+  .section-alt { background: var(--bg-alt); }
+  .container { max-width: 1100px; margin: 0 auto; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+  .section-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 12px;
+  }
+  .section-text h2, h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    line-height: 1.25;
+    color: var(--green-dark);
+    margin-bottom: 24px;
+  }
+  .section-text p { color: var(--text-muted); margin-bottom: 16px; }
+  .highlight-text {
+    font-weight: 600;
+    color: var(--green) !important;
+    font-size: 1.05rem;
+  }
+  .centered { text-align: center; }
+  .section-intro {
+    font-size: 1.05rem;
+    color: var(--text-muted);
+    max-width: 680px;
+    margin: 0 auto 56px;
+  }
+
+  /* CARDS */
+  .section-visual { display: flex; flex-direction: column; gap: 20px; }
+  .card-info {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 28px;
+    box-shadow: var(--shadow);
+  }
+  .card-info--accent { border-left: 4px solid var(--amber); }
+  .card-icon { font-size: 2rem; margin-bottom: 12px; }
+  .card-info h3 { font-size: 1.05rem; font-weight: 600; color: var(--green-dark); margin-bottom: 8px; }
+  .card-info p { font-size: 0.9rem; color: var(--text-muted); }
+
+  /* SCHEMA */
+  .schema-container {
+    margin-top: 56px;
+    text-align: center;
+  }
+  .schema-img {
+    max-width: 100%;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .schema-caption {
+    margin-top: 12px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  /* USAGES */
+  .usages {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+    margin-bottom: 40px;
+  }
+  .usage {
+    background: var(--white);
+    border-radius: var(--radius);
+    padding: 32px;
+    box-shadow: var(--shadow);
+  }
+  .usage-icon { font-size: 2.2rem; margin-bottom: 16px; }
+  .usage h3 { font-size: 1.05rem; font-weight: 600; color: var(--green-dark); margin-bottom: 10px; }
+  .usage p { font-size: 0.9rem; color: var(--text-muted); }
+  .footnote { font-size: 0.9rem; color: var(--text-muted); font-style: italic; }
+
+  /* CTA SECTION */
+  .section-cta {
+    background: linear-gradient(135deg, var(--green-dark), var(--green));
+    padding: 96px 24px;
+  }
+  .cta-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-top: 48px;
+    margin-bottom: 48px;
+  }
+  .cta-card {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: var(--radius);
+    padding: 36px 28px;
+    color: white;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    position: relative;
+  }
+  .cta-card-icon { font-size: 2.4rem; }
+  .cta-card h3 { font-size: 1.15rem; font-weight: 700; }
+  .cta-card p { font-size: 0.9rem; color: rgba(255,255,255,0.8); flex: 1; }
+  .partage-text {
+    text-align: center;
+    color: rgba(255,255,255,0.7);
+    font-size: 0.95rem;
+  }
+  .partage-text strong { color: white; }
+
+  /* FOOTER */
+  footer {
+    background: var(--green-dark);
+    border-top: 1px solid rgba(255,255,255,0.08);
+    padding: 28px 24px;
+  }
+  .footer-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: rgba(255,255,255,0.6);
+    font-size: 0.875rem;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .footer-inner div { display: flex; flex-direction: column; gap: 2px; }
+  .footer-inner strong { color: white; }
+  .footer-inner a { color: var(--green-light); text-decoration: none; }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    .two-col { grid-template-columns: 1fr; gap: 40px; }
+    .usages { grid-template-columns: 1fr; }
+    .cta-cards { grid-template-columns: 1fr; }
+    .stat-sep { display: none; }
+    .bandeau-inner { gap: 20px; }
+    .hero-cta-cards { grid-template-columns: 1fr; }
+  }
+</style>
