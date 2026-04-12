@@ -4,6 +4,11 @@ import path from 'path';
 
 const API_BASE = 'https://api.helloasso.com/v5';
 const ORG = 'le-saint-domingue';
+const CONTACTS_REMOTE_PATH = 'Dossier partagé/07_CRM/Contacts.ods';
+const CRM_DIR = 'Dossier partagé/07_CRM';
+const HEADERS = ['EMAIL', 'NOM', 'PRENOM', 'STRUCTURE', 'DATE_ACHAT', 'DATE_ADHESION', 'MONTANT_ACHAT', 'MONTANT_ADHESION'];
+
+// ── HelloAsso ─────────────────────────────────────────────────────────────────
 
 async function getToken(): Promise<string> {
   const res = await fetch('https://api.helloasso.com/oauth2/token', {
@@ -23,48 +28,35 @@ async function getToken(): Promise<string> {
 async function fetchAllPages(token: string, url: string): Promise<any[]> {
   const items: any[] = [];
   let pageIndex = 1;
-
   while (true) {
     const sep = url.includes('?') ? '&' : '?';
     const res = await fetch(`${url}${sep}pageSize=100&pageIndex=${pageIndex}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-
     if (!res.ok) {
       console.error(`[sync-members] ${res.status} on ${url} (page ${pageIndex})`);
       break;
     }
-
     const data = await res.json();
     items.push(...(data.data ?? []));
-
     if (pageIndex >= (data.pagination?.totalPages ?? 1)) break;
     pageIndex++;
   }
-
   return items;
 }
 
-async function buildPeopleMap(token: string) {
+async function fetchHelloAssoData(token: string) {
   const forms: any[] = await fetchAllPages(token, `${API_BASE}/organizations/${ORG}/forms`);
 
   const people = new Map<string, {
-    nom: string; prenom: string; email: string;
+    nom: string; prenom: string;
     date_adhesion: string; date_achat: string;
     adhesion_cents: number; apport_cents: number;
   }>();
 
   function upsert(email: string, user: any, patch: object) {
     if (!people.has(email)) {
-      people.set(email, {
-        nom: user?.lastName ?? '',
-        prenom: user?.firstName ?? '',
-        email,
-        date_adhesion: '',
-        date_achat: '',
-        adhesion_cents: 0,
-        apport_cents: 0,
-      });
+      people.set(email, { nom: user?.lastName ?? '', prenom: user?.firstName ?? '', date_adhesion: '', date_achat: '', adhesion_cents: 0, apport_cents: 0 });
     }
     Object.assign(people.get(email)!, patch);
   }
@@ -95,49 +87,100 @@ async function buildPeopleMap(token: string) {
   return people;
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
 function fmtDate(iso: string): string {
   if (!iso) return '';
   const d = new Date(iso);
   return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
 }
 
-function num(cents: number): number {
-  return parseFloat((cents / 100).toFixed(2));
+function webdavUrl(framaspaceUrl: string, framaspaceUser: string, remotePath: string): string {
+  return `${framaspaceUrl}/remote.php/dav/files/${encodeURIComponent(framaspaceUser)}/${remotePath.split('/').map(encodeURIComponent).join('/')}`;
 }
 
+function basicAuth(user: string, password: string): string {
+  return `Basic ${Buffer.from(`${user}:${password}`).toString('base64')}`;
+}
+
+// ── Framaspace WebDAV ─────────────────────────────────────────────────────────
+
+async function download(url: string, framaspaceUser: string, framaspacePassword: string): Promise<Buffer | null> {
+  const res = await fetch(url, {
+    headers: { Authorization: basicAuth(framaspaceUser, framaspacePassword) },
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Téléchargement échoué (${res.status})`);
+  return Buffer.from(await res.arrayBuffer());
+}
+
+async function upload(localPath: string, url: string, framaspaceUser: string, framaspacePassword: string): Promise<void> {
+  const res = await fetch(url, {
+    method: 'PUT',
+    headers: {
+      Authorization: basicAuth(framaspaceUser, framaspacePassword),
+      'Content-Type': 'application/vnd.oasis.opendocument.spreadsheet',
+    },
+    body: fs.readFileSync(localPath),
+  });
+  if (!res.ok) throw new Error(`Upload échoué (${res.status}): ${await res.text()}`);
+}
+
+// ── Parse / Merge ─────────────────────────────────────────────────────────────
+
+type SyntheseRow = {
+  EMAIL: string; NOM: string; PRENOM: string; STRUCTURE: string;
+  DATE_ACHAT: string; DATE_ADHESION: string;
+  MONTANT_ACHAT: number; MONTANT_ADHESION: number;
+};
+
+function parseOds(buffer: Buffer): Map<string, SyntheseRow> {
+  const wb = XLSX.read(buffer, { type: 'buffer' });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rawRows: any[] = XLSX.utils.sheet_to_json(ws, { defval: '' });
+  const rows = rawRows.map((row: any) =>
+    Object.fromEntries(Object.entries(row).map(([k, v]) => [k.toLowerCase().trim(), v]))
+  );
+  const map = new Map<string, SyntheseRow>();
+  for (const row of rows) {
+    const email = (row.email ?? '').trim().toLowerCase();
+    if (!email) continue;
+    map.set(email, {
+      EMAIL: email,
+      NOM: row.nom ?? '',
+      PRENOM: row.prenom ?? '',
+      STRUCTURE: row.structure ?? '',
+      DATE_ACHAT: '',
+      DATE_ADHESION: '',
+      MONTANT_ACHAT: 0,
+      MONTANT_ADHESION: 0,
+    });
+  }
+  return map;
+}
+
+function merge(contacts: Map<string, SyntheseRow>, helloasso: Map<string, any>): SyntheseRow[] {
+  const merged = new Map<string, SyntheseRow>(contacts);
+  for (const [email, data] of helloasso) {
+    const key = email.toLowerCase();
+    const prev = merged.get(key);
+    merged.set(key, {
+      EMAIL: key,
+      NOM: data.nom || prev?.NOM || '',
+      PRENOM: data.prenom || prev?.PRENOM || '',
+      STRUCTURE: prev?.STRUCTURE ?? '',
+      DATE_ACHAT: fmtDate(data.date_achat) || prev?.DATE_ACHAT || '',
+      DATE_ADHESION: fmtDate(data.date_adhesion) || prev?.DATE_ADHESION || '',
+      MONTANT_ACHAT: parseFloat((data.apport_cents / 100).toFixed(2)),
+      MONTANT_ADHESION: parseFloat((data.adhesion_cents / 100).toFixed(2)),
+    });
+  }
+  return [...merged.values()].sort((a, b) => a.NOM.localeCompare(b.NOM));
+}
+
+// ── Entry point ───────────────────────────────────────────────────────────────
+
 export async function syncMembers(): Promise<{ ok: boolean; message: string }> {
-  const token = await getToken();
-  const people = await buildPeopleMap(token);
-
-  const rows = [...people.values()]
-    .sort((a, b) => a.nom.localeCompare(b.nom))
-    .map(p => ({
-      nom: p.nom,
-      prenom: p.prenom,
-      email: p.email,
-      'date_adhésion': fmtDate(p.date_adhesion),
-      'date_achat': fmtDate(p.date_achat),
-      adhésion: num(p.adhesion_cents),
-      apport: num(p.apport_cents),
-    }));
-
-  const totalAdhesion = parseFloat(rows.reduce((s, r) => s + r.adhésion, 0).toFixed(2));
-  const totalApport = parseFloat(rows.reduce((s, r) => s + r.apport, 0).toFixed(2));
-  rows.push({ nom: 'TOTAL', prenom: '', email: '', 'date_adhésion': '', 'date_achat': '', adhésion: totalAdhesion, apport: totalApport });
-
-  const ws = XLSX.utils.json_to_sheet(rows);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Membres');
-
-  const today = new Date();
-  const stamp = today.getFullYear().toString()
-    + String(today.getMonth() + 1).padStart(2, '0')
-    + String(today.getDate()).padStart(2, '0');
-  const filename = `${stamp}_helloasso.xlsx`;
-  const outPath = path.join('/tmp', filename);
-
-  XLSX.writeFile(wb, outPath);
-
   const framaspaceUrl = process.env.FRAMASPACE_URL ?? '';
   const framaspaceUser = process.env.FRAMASPACE_USER ?? '';
   const framaspacePassword = process.env.FRAMASPACE_PASSWORD ?? '';
@@ -146,26 +189,31 @@ export async function syncMembers(): Promise<{ ok: boolean; message: string }> {
     return { ok: false, message: 'Variables Framaspace manquantes' };
   }
 
-  const remotePath = `Dossier partagé/07_CRM/${filename}`;
-  const webdavUrl = `${framaspaceUrl}/remote.php/dav/files/${encodeURIComponent(framaspaceUser)}/${remotePath.split('/').map(encodeURIComponent).join('/')}`;
-  const auth = Buffer.from(`${framaspaceUser}:${framaspacePassword}`).toString('base64');
-  const fileBuffer = fs.readFileSync(outPath);
+  const token = await getToken();
+  const helloassoData = await fetchHelloAssoData(token);
 
-  const res = await fetch(webdavUrl, {
-    method: 'PUT',
-    headers: {
-      Authorization: `Basic ${auth}`,
-      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    },
-    body: fileBuffer,
-  });
+  const contactsUrl = webdavUrl(framaspaceUrl, framaspaceUser, CONTACTS_REMOTE_PATH);
+  const contactsBuffer = await download(contactsUrl, framaspaceUser, framaspacePassword);
+  const contactsRows = contactsBuffer ? parseOds(contactsBuffer) : new Map<string, SyntheseRow>();
 
-  fs.unlinkSync(outPath);
+  const rows = merge(contactsRows, helloassoData);
 
-  if (!res.ok) {
-    const text = await res.text();
-    return { ok: false, message: `Upload échoué (${res.status}): ${text}` };
-  }
+  const today = new Date();
+  const stamp = today.getFullYear().toString()
+    + String(today.getMonth() + 1).padStart(2, '0')
+    + String(today.getDate()).padStart(2, '0');
+  const filename = `${stamp}_synthese.ods`;
+  const tmpPath = path.join('/tmp', filename);
+  const remotePath = `${CRM_DIR}/${filename}`;
 
-  return { ok: true, message: `${filename} déposé dans Framaspace` };
+  const ws = XLSX.utils.json_to_sheet(rows, { header: HEADERS });
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Synthèse');
+  XLSX.writeFile(wb, tmpPath, { bookType: 'ods' });
+
+  const uploadUrl = webdavUrl(framaspaceUrl, framaspaceUser, remotePath);
+  await upload(tmpPath, uploadUrl, framaspaceUser, framaspacePassword);
+  fs.unlinkSync(tmpPath);
+
+  return { ok: true, message: `${filename} déposé dans Framaspace (${rows.length} lignes)` };
 }

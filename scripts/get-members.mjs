@@ -1,9 +1,8 @@
 /**
- * Récupère les adhérents et les acheteurs de la boutique HelloAsso.
- * Exporte le résultat dans YYYYMMdd_helloasso.xlsx.
+ * Fusionne Contacts.ods (Framaspace) et les données HelloAsso,
+ * et génère un fichier YYYYMMdd_synthese.ods uploadé sur Framaspace.
  *
- * Usage : node scripts/get-members.mjs
- *    ou : export $(cat .env | xargs) && node scripts/get-members.mjs
+ * Usage : export $(cat .env | xargs) && node scripts/get-members.mjs
  */
 
 import * as XLSX from 'xlsx';
@@ -11,15 +10,41 @@ import fs from 'fs';
 
 const API_BASE = 'https://api.helloasso.com/v5';
 const ORG = 'le-saint-domingue';
+const CONTACTS_REMOTE_PATH = 'Dossier partagé/07_CRM/Contacts.ods';
+const CRM_DIR = 'Dossier partagé/07_CRM';
 
 const CLIENT_ID = process.env.HELLOASSO_CLIENT_ID;
 const CLIENT_SECRET = process.env.HELLOASSO_CLIENT_SECRET;
+const FRAMASPACE_URL = process.env.FRAMASPACE_URL;
+const FRAMASPACE_USER = process.env.FRAMASPACE_USER;
+const FRAMASPACE_PASSWORD = process.env.FRAMASPACE_PASSWORD;
 
 if (!CLIENT_ID || !CLIENT_SECRET) {
-  console.error('❌  Variables manquantes. Lance :');
-  console.error('   export $(cat .env | xargs) && node scripts/get-members.mjs');
+  console.error('❌  Variables HelloAsso manquantes.');
   process.exit(1);
 }
+if (!FRAMASPACE_URL || !FRAMASPACE_USER || !FRAMASPACE_PASSWORD) {
+  console.error('❌  Variables Framaspace manquantes.');
+  process.exit(1);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function webdavUrl(remotePath) {
+  return `${FRAMASPACE_URL}/remote.php/dav/files/${encodeURIComponent(FRAMASPACE_USER)}/${remotePath.split('/').map(encodeURIComponent).join('/')}`;
+}
+
+function basicAuth() {
+  return `Basic ${Buffer.from(`${FRAMASPACE_USER}:${FRAMASPACE_PASSWORD}`).toString('base64')}`;
+}
+
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+}
+
+// ── HelloAsso ─────────────────────────────────────────────────────────────────
 
 async function getToken() {
   const res = await fetch('https://api.helloasso.com/oauth2/token', {
@@ -32,80 +57,41 @@ async function getToken() {
     }),
   });
   const data = await res.json();
-  if (!data.access_token) {
-    console.error('❌  Erreur token :', data);
-    process.exit(1);
-  }
+  if (!data.access_token) { console.error('❌  Token error:', data); process.exit(1); }
   return data.access_token;
 }
 
-/**
- * Récupère toutes les pages d'un endpoint paginé HelloAsso.
- * Retourne un tableau plat de tous les items.
- */
 async function fetchAllPages(token, url) {
   const items = [];
   let pageIndex = 1;
-
   while (true) {
     const sep = url.includes('?') ? '&' : '?';
     const res = await fetch(`${url}${sep}pageSize=100&pageIndex=${pageIndex}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-
-    if (!res.ok) {
-      const text = await res.text();
-      console.error(`❌  ${res.status} sur ${url} (page ${pageIndex}) :`, text);
-      break;
-    }
-
+    if (!res.ok) { console.error(`❌  ${res.status} on ${url}`); break; }
     const data = await res.json();
     items.push(...(data.data ?? []));
-
     if (pageIndex >= (data.pagination?.totalPages ?? 1)) break;
     pageIndex++;
   }
-
   return items;
 }
 
-/**
- * Récupère tous les formulaires de l'organisation.
- */
-async function getForms(token) {
-  return fetchAllPages(token, `${API_BASE}/organizations/${ORG}/forms`);
-}
-
-/**
- * Retourne une Map email → { nom, prenom, email, date_adhesion, date_achat, adhesion_cents, apport_cents }
- * en agrégeant adhésions et achats boutique dans la même structure.
- */
-async function buildPeopleMap(token, forms) {
+async function fetchHelloAssoData(token) {
+  const forms = await fetchAllPages(token, `${API_BASE}/organizations/${ORG}/forms`);
   const people = new Map();
 
   function upsert(email, user, patch) {
     if (!people.has(email)) {
-      people.set(email, {
-        nom: user?.lastName ?? '',
-        prenom: user?.firstName ?? '',
-        email,
-        date_adhesion: '',
-        date_achat: '',
-        adhesion_cents: 0,
-        apport_cents: 0,
-      });
+      people.set(email, { nom: user?.lastName ?? '', prenom: user?.firstName ?? '', date_adhesion: '', date_achat: '', adhesion_cents: 0, apport_cents: 0 });
     }
     Object.assign(people.get(email), patch);
   }
 
-  // ── Adhésions ──
-  const membershipForms = forms.filter(f => f.formType === 'Membership');
-  for (const form of membershipForms) {
-    console.log(`  → Adhésion : "${form.title}" (${form.formSlug})`);
-    const items = await fetchAllPages(
-      token,
-      `${API_BASE}/organizations/${ORG}/forms/Membership/${form.formSlug}/items`
-    );
+  for (const form of forms.filter(f => f.formType === 'Membership')) {
+    console.log(`  → Adhésion : "${form.title}"`);
+    const items = await fetchAllPages(token, `${API_BASE}/organizations/${ORG}/forms/Membership/${form.formSlug}/items`);
     for (const item of items) {
       const user = item.payer ?? item.user;
       if (!user?.email) continue;
@@ -114,22 +100,16 @@ async function buildPeopleMap(token, forms) {
     }
   }
 
-  // ── Boutique ──
-  const shopForms = forms.filter(f => f.formType === 'Shop');
-  for (const form of shopForms) {
-    console.log(`  → Boutique : "${form.title}" (${form.formSlug})`);
-    const orders = await fetchAllPages(
-      token,
-      `${API_BASE}/organizations/${ORG}/forms/Shop/${form.formSlug}/orders`
-    );
+  for (const form of forms.filter(f => f.formType === 'Shop')) {
+    console.log(`  → Boutique : "${form.title}"`);
+    const orders = await fetchAllPages(token, `${API_BASE}/organizations/${ORG}/forms/Shop/${form.formSlug}/orders`);
     for (const order of orders) {
       const user = order.payer;
       if (!user?.email) continue;
-      const existing = people.get(user.email);
-      const prevDate = existing?.date_achat ?? '';
+      const prevDate = people.get(user.email)?.date_achat ?? '';
       const newDate = order.date ?? '';
       upsert(user.email, user, { date_achat: newDate > prevDate ? newDate : prevDate });
-      const orderTotal = (order.items ?? []).reduce((sum, item) => sum + (item.amount ?? 0), 0);
+      const orderTotal = (order.items ?? []).reduce((s, i) => s + (i.amount ?? 0), 0);
       people.get(user.email).apport_cents += orderTotal;
     }
   }
@@ -137,115 +117,110 @@ async function buildPeopleMap(token, forms) {
   return people;
 }
 
-function printTable(label, rows, columns) {
-  console.log(`\n${'─'.repeat(60)}`);
-  console.log(`  ${label} (${rows.length})`);
-  console.log('─'.repeat(60));
-  if (rows.length === 0) {
-    console.log('  (aucun résultat)');
-    return;
+const HEADERS = ['EMAIL', 'NOM', 'PRENOM', 'STRUCTURE', 'DATE_ACHAT', 'DATE_ADHESION', 'MONTANT_ACHAT', 'MONTANT_ADHESION'];
+
+// ── Framaspace WebDAV ─────────────────────────────────────────────────────────
+
+async function download(remotePath) {
+  const res = await fetch(webdavUrl(remotePath), {
+    headers: { Authorization: basicAuth() },
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Téléchargement ${remotePath} échoué (${res.status})`);
+  return Buffer.from(await res.arrayBuffer());
+}
+
+async function upload(localPath, remotePath) {
+  const res = await fetch(webdavUrl(remotePath), {
+    method: 'PUT',
+    headers: {
+      Authorization: basicAuth(),
+      'Content-Type': 'application/vnd.oasis.opendocument.spreadsheet',
+    },
+    body: fs.readFileSync(localPath),
+  });
+  if (!res.ok) throw new Error(`Upload ${remotePath} échoué (${res.status}): ${await res.text()}`);
+}
+
+// ── Parse / Merge ─────────────────────────────────────────────────────────────
+
+function parseOds(buffer) {
+  const wb = XLSX.read(buffer, { type: 'buffer' });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  const rawRows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+  const rows = rawRows.map(row =>
+    Object.fromEntries(Object.entries(row).map(([k, v]) => [k.toLowerCase().trim(), v]))
+  );
+  const map = new Map();
+  for (const row of rows) {
+    const email = (row.email ?? '').trim().toLowerCase();
+    if (!email) continue;
+    map.set(email, {
+      EMAIL: email,
+      NOM: row.nom ?? '',
+      PRENOM: row.prenom ?? '',
+      STRUCTURE: row.structure ?? '',
+      DATE_ACHAT: '',
+      DATE_ADHESION: '',
+      MONTANT_ACHAT: 0,
+      MONTANT_ADHESION: 0,
+    });
   }
-  console.table(rows.map(r => Object.fromEntries(columns.map(c => [c, r[c]]))));
+  return map;
+}
+
+function merge(contacts, helloasso) {
+  const merged = new Map(contacts);
+  for (const [email, data] of helloasso) {
+    const key = email.toLowerCase();
+    const prev = merged.get(key);
+    merged.set(key, {
+      EMAIL: key,
+      NOM: data.nom || prev?.NOM || '',
+      PRENOM: data.prenom || prev?.PRENOM || '',
+      STRUCTURE: prev?.STRUCTURE ?? '',
+      DATE_ACHAT: fmtDate(data.date_achat) || prev?.DATE_ACHAT || '',
+      DATE_ADHESION: fmtDate(data.date_adhesion) || prev?.DATE_ADHESION || '',
+      MONTANT_ACHAT: parseFloat((data.apport_cents / 100).toFixed(2)),
+      MONTANT_ADHESION: parseFloat((data.adhesion_cents / 100).toFixed(2)),
+    });
+  }
+  return [...merged.values()].sort((a, b) => a.NOM.localeCompare(b.NOM));
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
-console.log('🔑  Obtention du token...');
+console.log('🔑  Obtention du token HelloAsso...');
 const token = await getToken();
-console.log('✅  Token obtenu.\n');
 
-console.log('📋  Récupération des formulaires...');
-const forms = await getForms(token);
-console.log(`   ${forms.length} formulaire(s) trouvé(s) : ${forms.map(f => f.formType + '/' + f.formSlug).join(', ')}\n`);
+console.log('📋  Récupération des données HelloAsso...');
+const helloassoData = await fetchHelloAssoData(token);
+console.log(`   ${helloassoData.size} personne(s) trouvée(s).`);
 
-console.log('👥  Adhérents & boutique...');
-const people = await buildPeopleMap(token, forms);
+console.log('\n☁️   Téléchargement de Contacts.ods depuis Framaspace...');
+const contactsBuffer = await download(CONTACTS_REMOTE_PATH);
+const contactsRows = contactsBuffer ? parseOds(contactsBuffer) : new Map();
+if (!contactsBuffer) console.log('  ℹ️  Contacts.ods introuvable, synthèse générée depuis HelloAsso uniquement.');
+else console.log(`   ${contactsRows.size} contact(s) existant(s).`);
 
-const fmt = cents => (cents / 100).toFixed(2) + ' €';
-const num = cents => parseFloat((cents / 100).toFixed(2));
-const fmtDate = iso => {
-  if (!iso) return '';
-  const d = new Date(iso);
-  return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
-};
+const rows = merge(contactsRows, helloassoData);
+console.log(`\n🔀  Fusion : ${rows.length} ligne(s) au total.`);
 
-const rows = [...people.values()]
-  .sort((a, b) => a.nom.localeCompare(b.nom))
-  .map(p => ({
-    nom: p.nom,
-    prenom: p.prenom,
-    email: p.email,
-    'date_adhésion': fmtDate(p.date_adhesion),
-    'date_achat': fmtDate(p.date_achat),
-    adhésion: fmt(p.adhesion_cents),
-    apport: fmt(p.apport_cents),
-  }));
-
-printTable('ADHÉRENTS & BOUTIQUE', rows, ['nom', 'prenom', 'email', 'date_adhésion', 'date_achat', 'adhésion', 'apport']);
-
-// ── Export XLSX ───────────────────────────────────────────────────────────────
-const xlsxRows = [...people.values()]
-  .sort((a, b) => a.nom.localeCompare(b.nom))
-  .map(p => ({
-    nom: p.nom,
-    prenom: p.prenom,
-    email: p.email,
-    'date_adhésion': fmtDate(p.date_adhesion),
-    'date_achat': fmtDate(p.date_achat),
-    adhésion: num(p.adhesion_cents),
-    apport: num(p.apport_cents),
-  }));
-
-const totalAdhesion = xlsxRows.reduce((s, r) => s + r.adhésion, 0);
-const totalApport = xlsxRows.reduce((s, r) => s + r.apport, 0);
-xlsxRows.push({
-  nom: 'TOTAL',
-  prenom: '',
-  email: '',
-  'date_adhésion': '',
-  'date_achat': '',
-  adhésion: parseFloat(totalAdhesion.toFixed(2)),
-  apport: parseFloat(totalApport.toFixed(2)),
-});
-
-const ws = XLSX.utils.json_to_sheet(xlsxRows);
-const wb = XLSX.utils.book_new();
-XLSX.utils.book_append_sheet(wb, ws, 'Membres');
 const today = new Date();
 const stamp = today.getFullYear().toString()
   + String(today.getMonth() + 1).padStart(2, '0')
   + String(today.getDate()).padStart(2, '0');
-const outPath = `${stamp}_helloasso.xlsx`;
-XLSX.writeFile(wb, outPath);
-console.log(`\n📄  Fichier exporté : ${outPath}`);
+const filename = `${stamp}_synthese.ods`;
+const tmpPath = `/tmp/${filename}`;
+const remoteSynthesePath = `${CRM_DIR}/${filename}`;
 
-// ── Upload WebDAV (Framaspace / Nextcloud) ────────────────────────────────────
-const framaspaceUrl = process.env.FRAMASPACE_URL;
-const framaspaceUser = process.env.FRAMASPACE_USER;
-const framaspacePassword = process.env.FRAMASPACE_PASSWORD;
+const ws = XLSX.utils.json_to_sheet(rows, { header: HEADERS });
+const wb = XLSX.utils.book_new();
+XLSX.utils.book_append_sheet(wb, ws, 'Synthèse');
+XLSX.writeFile(wb, tmpPath, { bookType: 'ods' });
 
-if (framaspaceUrl && framaspaceUser && framaspacePassword) {
-  const remotePath = `Dossier partag\u00e9/07_CRM/${outPath}`;
-  const webdavUrl = `${framaspaceUrl}/remote.php/dav/files/${encodeURIComponent(framaspaceUser)}/${remotePath.split('/').map(encodeURIComponent).join('/')}`;
-  const auth = Buffer.from(`${framaspaceUser}:${framaspacePassword}`).toString('base64');
-  const fileBuffer = fs.readFileSync(outPath);
+console.log(`☁️   Upload de ${filename} vers Framaspace...`);
+await upload(tmpPath, remoteSynthesePath);
+fs.unlinkSync(tmpPath);
 
-  console.log('☁️   Upload vers Framaspace...');
-  const res = await fetch(webdavUrl, {
-    method: 'PUT',
-    headers: {
-      Authorization: `Basic ${auth}`,
-      'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    },
-    body: fileBuffer,
-  });
-
-  if (res.ok) {
-    console.log(`✅  Fichier disponible sur Framaspace : ${framaspaceUrl}/apps/files`);
-    fs.unlinkSync(outPath);
-  } else {
-    console.error(`❌  Échec de l'upload (${res.status}) :`, await res.text());
-  }
-}
-
-console.log('\n✅  Terminé.');
+console.log(`✅  ${filename} déposé dans Framaspace.`);
