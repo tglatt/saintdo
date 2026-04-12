@@ -51,6 +51,9 @@ async function sumPayments(token: string, org: string, formType: string, formSlu
 
 export async function getStats() {
   try {
+    console.log('[HelloAsso] CLIENT_ID present:', !!process.env.HELLOASSO_CLIENT_ID);
+    console.log('[HelloAsso] CLIENT_SECRET present:', !!process.env.HELLOASSO_CLIENT_SECRET);
+    console.log('[HelloAsso] DON_MANUEL:', process.env.HELLOASSO_DON_MANUEL);
     const token = await getToken();
     const apport = await sumPayments(token, 'le-saint-domingue', 'Shop', 'apports-associatifs');
     const don = parseInt(env('HELLOASSO_DON_MANUEL') || '0', 10);
