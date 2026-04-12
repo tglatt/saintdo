@@ -1,7 +1,18 @@
 ---
+import { getStats } from '../lib/helloasso';
+
 const ctaAdhesion = "https://www.helloasso.com/associations/le-saint-domingue/adhesions/adhesion";
 const ctaDon = "https://www.helloasso.com/associations/graine-de-moutarde-fonds-de-dotation/collectes/rehabilitation-de-l-hotel-saint-domingue";
 const ctaApport = "https://www.helloasso.com/associations/le-saint-domingue/boutiques/apports-associatifs";
+
+const OBJECTIF = 300000;
+const stats = await getStats();
+const total = stats.don + stats.apport;
+const pct = Math.min(Math.round((total / OBJECTIF) * 100), 100);
+
+function euros(n: number) {
+  return n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+}
 ---
 
 <!DOCTYPE html>
@@ -71,11 +82,26 @@ const ctaApport = "https://www.helloasso.com/associations/le-saint-domingue/bout
     <img src="/hotel.jpg" alt="Devanture de l'Hôtel Saint Domingue à Die" class="hero-bg" />
     <div class="hero-overlay"></div>
     <div class="hero-content">
-      <p class="hero-eyebrow">Foncière citoyenne · Die, Drôme</p>
-      <h1>On rachète un hôtel désaffecté en centre-ville pour bâtir un projet d'intérêt général</h1>
+      <h1>On rachète Le Saint Domingue avec une foncière citoyenne</h1>
       <p class="hero-sub">
         L'Hôtel Saint Domingue ferme ses portes. Ensemble, nous pouvons lui offrir une seconde vie — accessible, solidaire et ancrée dans le territoire.
       </p>
+
+      <!-- JAUGE -->
+      <div class="gauge">
+        <div class="gauge-amounts">
+          <div class="gauge-total">{euros(total)}</div>
+          <div class="gauge-goal">sur {euros(OBJECTIF)}</div>
+        </div>
+        <div class="gauge-bar">
+          <div class="gauge-fill" style={`width: ${pct}%`}></div>
+        </div>
+        <div class="gauge-details">
+          <span><strong>{euros(stats.don)}</strong> dons défiscalisés</span>
+          <span class="gauge-pct">{pct} %</span>
+          <span><strong>{euros(stats.apport)}</strong> apports associatifs</span>
+        </div>
+      </div>
 
       <div class="hero-cta-cards">
         <a href={ctaAdhesion} class="hero-cta-card">
@@ -509,6 +535,61 @@ const ctaApport = "https://www.helloasso.com/associations/le-saint-domingue/bout
   .usage h3 { font-size: 1.05rem; font-weight: 600; color: var(--green-dark); margin-bottom: 10px; }
   .usage p { font-size: 0.9rem; color: var(--text-muted); }
   .footnote { font-size: 0.9rem; color: var(--text-muted); font-style: italic; }
+
+  /* JAUGE */
+  .gauge {
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+    backdrop-filter: blur(8px);
+  }
+  .gauge-amounts {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .gauge-total {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: white;
+    line-height: 1;
+  }
+  .gauge-goal {
+    font-size: 1rem;
+    color: rgba(255,255,255,0.6);
+  }
+  .gauge-bar {
+    width: 100%;
+    height: 10px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 99px;
+    overflow: hidden;
+    margin-bottom: 14px;
+  }
+  .gauge-fill {
+    height: 100%;
+    background: var(--green-light);
+    border-radius: 99px;
+    transition: width 1.2s ease;
+    min-width: 4px;
+  }
+  .gauge-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.82rem;
+    color: rgba(255,255,255,0.6);
+  }
+  .gauge-details strong { color: white; }
+  .gauge-pct {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--green-light);
+  }
 
   /* CTA SECTION */
   .section-cta {
