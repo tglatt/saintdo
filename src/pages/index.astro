@@ -102,6 +102,9 @@ function euros(n: number) {
           <span class="gauge-pct">{pct} %</span>
           <span><strong>{euros(stats.apport)}</strong> Parts sociales</span>
         </div>
+        <div class="gauge-participants">
+          <strong>{stats.participants}</strong> participant{stats.participants > 1 ? 's' : ''}
+        </div>
       </div>
 
       <div class="hero-cta-cards">
@@ -613,6 +616,15 @@ function euros(n: number) {
     font-weight: 700;
     font-size: 1rem;
     color: var(--green-light);
+  }
+  .gauge-participants {
+    text-align: center;
+    margin-top: 0.5rem;
+    font-size: 0.82rem;
+    color: rgba(255,255,255,0.6);
+  }
+  .gauge-participants strong {
+    color: white;
   }
 
   /* CTA SECTION */
