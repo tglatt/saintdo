@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://saintdo.org/sitemap.xml
+Sitemap: https://saindo.org/sitemap.xml

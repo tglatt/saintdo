@@ -1,4 +1,4 @@
-# Hôtel Saint Domingue — saintdo.org
+# Hôtel Saint Domingue — saindo.org
 
 Site vitrine de la foncière citoyenne pour le rachat de l'Hôtel Saint Domingue à Die (26).
 
@@ -28,7 +28,7 @@ Les fichiers statiques générés se trouvent dans `dist/`.
 ## Structure
 
 ```
-saintdo/
+saindo/
 ├── public/
 │   └── schema-scic.jpg       # Schéma de gouvernance SCIC
 ├── src/
