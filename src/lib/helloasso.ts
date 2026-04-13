@@ -37,32 +37,13 @@ async function fetchAllPages(token: string, url: string): Promise<any[]> {
 }
 
 async function sumPayments(token: string, org: string, formType: string, formSlug: string): Promise<number> {
+  const orders = await fetchAllPages(token, `${API_BASE}/organizations/${org}/forms/${formType}/${formSlug}/orders`);
   let total = 0;
-  let pageIndex = 1;
-
-  while (true) {
-    const params = new URLSearchParams({
-      formType,
-      formSlug,
-      pageSize: '100',
-      pageIndex: String(pageIndex),
-    });
-    const url = `${API_BASE}/organizations/${org}/payments?${params}`;
-    const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-    if (!res.ok) {
-      console.error(`[HelloAsso] payments ${org}/${formSlug} → ${res.status}`);
-      break;
+  for (const order of orders) {
+    for (const payment of (order.payments ?? [])) {
+      if (payment.state === 'Authorized') total += payment.amount ?? 0;
     }
-
-    const data = await res.json();
-    for (const p of (data.data ?? [])) {
-      if (p.state === 'Authorized') total += p.amount ?? 0;
-    }
-
-    if (pageIndex >= (data.pagination?.totalPages ?? 1)) break;
-    pageIndex++;
   }
-
   return total / 100;
 }
 
@@ -93,11 +74,13 @@ async function countParticipants(token: string, org: string): Promise<number> {
 export async function getStats() {
   try {
     const token = await getToken();
-    const [apport, participants] = await Promise.all([
+    const [apport, adhesion, participants] = await Promise.all([
       sumPayments(token, 'le-saint-domingue', 'Shop', 'apports-associatifs'),
+      sumPayments(token, 'le-saint-domingue', 'Membership', 'adhesion'),
       countParticipants(token, 'le-saint-domingue'),
     ]);
-    const don = parseInt(env('HELLOASSO_DON_MANUEL') || '0', 10);
+    const donManuel = parseInt(env('HELLOASSO_DON_MANUEL') || '0', 10);
+    const don = donManuel + adhesion;
 
     return { don, apport, participants };
   } catch (e) {
