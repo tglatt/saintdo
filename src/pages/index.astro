@@ -200,6 +200,74 @@ function euros(n: number) {
     </div>
   </section>
 
+  <!-- LES PHASES -->
+  <section id="phases" class="section section-alt">
+    <div class="container">
+      <p class="section-label centered">Les phases</p>
+      <h2 style="text-align: left;">"Les investissements"</h2>
+
+      <div class="phases">
+
+        <div class="phase">
+          <div class="phase-header">
+            <span class="phase-num">Phase 1</span>
+            <div>
+              <h3 class="phase-title">Achat du foncier et études préalables</h3>
+              <span class="phase-budget">300 000 €</span>
+            </div>
+          </div>
+          <p class="phase-tagline">"On rachète l'hôtel !"</p>
+          <ul class="phase-items">
+            <li><span>Achat du foncier</span><span>250 000 €</span></li>
+            <li><span>Frais de notaire</span><span>18 800 €</span></li>
+            <li><span>Géomètre</span><span>4 000 €</span></li>
+            <li><span>Faisabilité architecturale (@Tout va bien)</span><span>12 000 €</span></li>
+            <li><span>Accompagnement à la création d'une foncière citoyenne (@Villages vivants)</span><span>3 800 €</span></li>
+            <li><span>Montage juridique de l'opération (@UR SCOOP)</span><span>2 400 €</span></li>
+            <li><span>Coordination du projet sur 6 mois</span><span>9 000 €</span></li>
+          </ul>
+        </div>
+
+        <div class="phase">
+          <div class="phase-header">
+            <span class="phase-num">Phase 2</span>
+            <div>
+              <h3 class="phase-title">Mise en sécurité et premiers aménagements</h3>
+              <span class="phase-budget">200 000 €</span>
+            </div>
+          </div>
+          <p class="phase-tagline">"On monte le projet et on teste des usages !"</p>
+          <ul class="phase-items">
+            <li><span>Première phase de travaux : mise en sécurité, reprise des désordres structurels, reprise de l'étanchéité…</span><span>100 000 €</span></li>
+            <li><span>Autorisation d'Occupation Temporaire pour expérimenter pendant 2 ans le fonctionnement, les usages et la mutualisation. Petits aménagements.</span><span>10 000 €</span></li>
+            <li><span>Frais de fonctionnement pendant 2 ans (taxes, fluides, charges diverses)</span><span>30 000 €</span></li>
+            <li><span>Coordination</span><span>15 000 €</span></li>
+            <li><span>Maîtrise d'œuvre / conception</span><span>30 000 €</span></li>
+            <li><span>Aléas (5%)</span><span>15 000 €</span></li>
+          </ul>
+        </div>
+
+        <div class="phase">
+          <div class="phase-header">
+            <span class="phase-num">Phase 3</span>
+            <div>
+              <h3 class="phase-title">Travaux de réhabilitation globale</h3>
+            </div>
+          </div>
+          <p class="phase-tagline">"Chaque euro supplémentaire finance l'opération globale de réhabilitation"</p>
+          <ul class="phase-items">
+            <li><span>Ces travaux seront dimensionnés au plus près des besoins finaux et financés en partie par les porteurs de projet</span><span></span></li>
+            <li><span>Coordination</span><span>15 000 €</span></li>
+            <li><span>Maîtrise d'œuvre / conception</span><span>120 000 €</span></li>
+            <li><span>Travaux rez-de-chaussée — estimation</span><span>300 000 €</span></li>
+            <li><span>Travaux étages — estimation</span><span>1 400 000 €</span></li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
   <!-- CTA SECTION -->
   <section id="rejoindre" class="section section-cta">
     <div class="container">
@@ -655,6 +723,64 @@ function euros(n: number) {
     font-size: 0.95rem;
   }
   .partage-text strong { color: white; }
+
+  /* PHASES */
+  .phases { display: flex; flex-direction: column; gap: 48px; margin-top: 48px; }
+  .phase { border-left: 3px solid var(--amber); padding-left: 28px; }
+  .phase-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 8px;
+  }
+  .phase-num {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--amber);
+    white-space: nowrap;
+    padding-top: 4px;
+  }
+  .phase-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    color: var(--green-dark);
+    margin-bottom: 4px;
+  }
+  .phase-budget {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--green);
+  }
+  .phase-tagline {
+    font-style: italic;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    font-size: 0.95rem;
+  }
+  .phase-items {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .phase-items li {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    font-size: 0.92rem;
+    color: var(--text-muted);
+    border-bottom: 1px dashed rgba(0,0,0,0.08);
+    padding-bottom: 10px;
+  }
+  .phase-items li span:last-child {
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
 
   /* CONTACT */
   .section-contact { background: var(--bg-alt); }
