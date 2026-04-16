@@ -1,0 +1,286 @@
+---
+import { createAdminClient } from '../../lib/supabase';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/login');
+
+const supabase = createAdminClient();
+
+const { data: membres } = await supabase
+  .from('membres')
+  .select(`
+    id, email, nom, prenom, structure, role, created_at,
+    transactions (type, montant, date)
+  `)
+  .order('nom', { ascending: true });
+
+// Calculs globaux
+const totalMembres = membres?.length ?? 0;
+const totalAdhesion = membres?.flatMap(m => m.transactions)
+  .filter(t => t.type === 'adhesion')
+  .reduce((s, t) => s + t.montant, 0) ?? 0;
+const totalApport = membres?.flatMap(m => m.transactions)
+  .filter(t => t.type === 'apport_associatif')
+  .reduce((s, t) => s + t.montant, 0) ?? 0;
+
+function euros(n: number) {
+  return n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+}
+function fmtDate(iso: string | null) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Saint Domingue</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <nav>
+    <div class="nav-inner">
+      <a href="/" class="logo">Saint Domingue</a>
+      <div class="nav-right">
+        <a href="/espace-membre" class="btn-member">Mon espace</a>
+        <span class="user-email">{user.email}</span>
+        <a href="/auth/logout" class="btn-logout">Déconnexion</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+
+      <header class="page-header">
+        <h1>Administration</h1>
+        <p class="sub">Vue d'ensemble des membres et des transactions.</p>
+      </header>
+
+      <!-- STATS GLOBALES -->
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Membres</div>
+          <div class="stat-value">{totalMembres}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Adhésions & dons</div>
+          <div class="stat-value">{euros(totalAdhesion)}</div>
+        </div>
+        <div class="stat-card stat-card--accent">
+          <div class="stat-label">Apports associatifs</div>
+          <div class="stat-value">{euros(totalApport)}</div>
+        </div>
+        <div class="stat-card stat-card--total">
+          <div class="stat-label">Total collecté</div>
+          <div class="stat-value">{euros(totalAdhesion + totalApport)}</div>
+        </div>
+      </div>
+
+      <!-- ACTIONS -->
+      <div class="actions">
+        <form method="POST" action="/admin/sync">
+          <button type="submit" class="btn-sync">
+            Synchroniser HelloAsso
+          </button>
+        </form>
+      </div>
+
+      <!-- LISTE MEMBRES -->
+      <section class="section">
+        <h2>Membres ({totalMembres})</h2>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Nom</th>
+                <th>Email</th>
+                <th>Structure</th>
+                <th class="right">Adhésions</th>
+                <th class="right">Apports</th>
+                <th>Rôle</th>
+                <th>Inscrit le</th>
+              </tr>
+            </thead>
+            <tbody>
+              {membres?.map(m => {
+                const adh = m.transactions.filter(t => t.type === 'adhesion').reduce((s, t) => s + t.montant, 0);
+                const app = m.transactions.filter(t => t.type === 'apport_associatif').reduce((s, t) => s + t.montant, 0);
+                return (
+                  <tr>
+                    <td class="bold">{m.nom || '—'} {m.prenom || ''}</td>
+                    <td class="muted">{m.email}</td>
+                    <td class="muted">{m.structure || '—'}</td>
+                    <td class="right">{adh > 0 ? euros(adh) : '—'}</td>
+                    <td class="right">{app > 0 ? euros(app) : '—'}</td>
+                    <td>
+                      <span class={`badge badge-${m.role}`}>
+                        {m.role === 'admin' ? 'Admin' : 'Membre'}
+                      </span>
+                    </td>
+                    <td class="muted">{fmtDate(m.created_at)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+</body>
+</html>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #F7F3EE;
+    color: #1C1C1E;
+    min-height: 100vh;
+  }
+
+  nav {
+    background: white;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1B4332;
+    text-decoration: none;
+  }
+  .nav-right { display: flex; align-items: center; gap: 16px; }
+  .user-email { font-size: 0.85rem; color: #5C5C6B; }
+  .btn-logout, .btn-member {
+    font-size: 0.85rem;
+    color: #5C5C6B;
+    text-decoration: none;
+    padding: 6px 12px;
+    border: 1px solid #E5E5EA;
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+  .btn-logout:hover, .btn-member:hover { background: #F7F3EE; color: #1C1C1E; }
+
+  main { padding: 48px 24px; }
+  .container { max-width: 1200px; margin: 0 auto; }
+
+  .page-header { margin-bottom: 40px; }
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    color: #1B4332;
+    margin-bottom: 8px;
+  }
+  .sub { color: #5C5C6B; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px 20px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+  }
+  .stat-card--accent { border-top: 3px solid #2D6A4F; }
+  .stat-card--total { border-top: 3px solid #E76F51; }
+  .stat-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #5C5C6B; margin-bottom: 8px; }
+  .stat-value { font-family: 'Playfair Display', serif; font-size: 1.6rem; color: #1B4332; }
+
+  .actions { margin-bottom: 32px; }
+  .btn-sync {
+    padding: 10px 20px;
+    background: #1B4332;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .btn-sync:hover { background: #2D6A4F; }
+
+  .section h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    color: #1B4332;
+    margin-bottom: 16px;
+  }
+
+  .table-wrapper { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    min-width: 700px;
+  }
+  th {
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #5C5C6B;
+    background: #F7F3EE;
+    border-bottom: 1px solid #E5E5EA;
+  }
+  td {
+    padding: 12px 16px;
+    font-size: 0.88rem;
+    border-bottom: 1px solid #F0EDE8;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #FAFAF8; }
+  .right { text-align: right; }
+  .bold { font-weight: 600; }
+  .muted { color: #5C5C6B; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 99px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .badge-membre { background: #F0FDF4; color: #166534; }
+  .badge-admin { background: #FEF3C7; color: #92400E; }
+
+  @media (max-width: 768px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .user-email { display: none; }
+  }
+</style>
