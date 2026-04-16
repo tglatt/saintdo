@@ -5,4 +5,7 @@ export default defineConfig({
   site: 'https://saindo.org',
   output: 'server',
   adapter: vercel(),
+  security: {
+    checkOrigin: false,
+  },
 });
