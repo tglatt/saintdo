@@ -1,12 +1,26 @@
 ---
-import { getStats } from '../lib/helloasso';
+import { createAdminClient } from '../lib/supabase';
 
 const ctaAdhesion = "https://www.helloasso.com/associations/le-saint-domingue/adhesions/adhesion";
 const ctaDon = "https://www.helloasso.com/associations/graine-de-moutarde-fonds-de-dotation/collectes/rehabilitation-de-l-hotel-saint-domingue";
 const ctaApport = "https://www.helloasso.com/associations/le-saint-domingue/boutiques/apports-associatifs";
 
 const OBJECTIF = 300000;
-const stats = await getStats();
+
+const supabase = createAdminClient();
+const { data: transactions } = await supabase
+  .from('transactions')
+  .select('type, montant');
+
+const donManuel = parseInt(import.meta.env.HELLOASSO_DON_MANUEL || '0', 10);
+const don = donManuel + (transactions?.filter(t => t.type === 'adhesion').reduce((s, t) => s + t.montant, 0) ?? 0);
+const apport = transactions?.filter(t => t.type === 'apport_associatif').reduce((s, t) => s + t.montant, 0) ?? 0;
+
+const { count: participantsCount } = await supabase
+  .from('membres')
+  .select('id', { count: 'exact', head: true });
+
+const stats = { don, apport, participants: participantsCount ?? 0 };
 const total = stats.don + stats.apport;
 const pct = Math.min(Math.round((total / OBJECTIF) * 100), 100);
 
