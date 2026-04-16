@@ -1,0 +1,276 @@
+---
+import { createAdminClient, supabase } from '../lib/supabase';
+
+// Si déjà connecté, rediriger
+const accessToken = Astro.cookies.get('sb-access-token')?.value;
+if (accessToken) return Astro.redirect('/espace-membre');
+
+let errorMsg = '';
+let successMsg = '';
+let step: 'email' | 'code' = 'email';
+let emailForCode = '';
+
+if (Astro.request.method === 'POST') {
+  const form = await Astro.request.formData();
+  const action = form.get('action')?.toString();
+
+  // ── Étape 1 : envoi du code ──────────────────────────────────────────────
+  if (action === 'send') {
+    const email = form.get('email')?.toString().trim().toLowerCase() ?? '';
+
+    const admin = createAdminClient();
+    const { data: membre } = await admin
+      .from('membres')
+      .select('id')
+      .eq('email', email)
+      .single();
+
+    if (!membre) {
+      errorMsg = 'Adresse email non reconnue. Seuls les membres peuvent accéder à cet espace.';
+    } else {
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: true },
+      });
+
+      if (error) {
+        errorMsg = error.message;
+      } else {
+        step = 'code';
+        emailForCode = email;
+        successMsg = `Un code à 6 chiffres a été envoyé à ${email}.`;
+      }
+    }
+  }
+
+  // ── Étape 2 : vérification du code ───────────────────────────────────────
+  if (action === 'verify') {
+    const email = form.get('email')?.toString().trim().toLowerCase() ?? '';
+    const token = form.get('token')?.toString().trim() ?? '';
+
+    const { data, error } = await supabase.auth.verifyOtp({
+      email,
+      token,
+      type: 'email',
+    });
+
+    if (error || !data.session) {
+      step = 'code';
+      emailForCode = email;
+      errorMsg = 'Code invalide ou expiré. Vérifiez le code et réessayez.';
+    } else {
+      const { access_token, refresh_token, expires_in } = data.session;
+
+      Astro.cookies.set('sb-access-token', access_token, {
+        path: '/',
+        maxAge: expires_in ?? 3600,
+        httpOnly: true,
+        secure: import.meta.env.PROD,
+        sameSite: 'lax',
+      });
+      Astro.cookies.set('sb-refresh-token', refresh_token, {
+        path: '/',
+        maxAge: 60 * 60 * 24 * 30,
+        httpOnly: true,
+        secure: import.meta.env.PROD,
+        sameSite: 'lax',
+      });
+
+      return Astro.redirect('/espace-membre');
+    }
+  }
+}
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Connexion — Saint Domingue</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <div class="page">
+    <div class="card">
+      <a href="/" class="back">← Retour au site</a>
+
+      <div class="logo">Saint Domingue</div>
+      <h1>Espace membres</h1>
+
+      {step === 'email' && (
+        <p class="sub">Entrez votre adresse email pour recevoir un code de connexion.</p>
+      )}
+      {step === 'code' && (
+        <p class="sub">Entrez le code à 6 chiffres envoyé à <strong>{emailForCode}</strong>.</p>
+      )}
+
+      {errorMsg && <div class="alert alert-error">{errorMsg}</div>}
+      {successMsg && step === 'code' && <div class="alert alert-success">{successMsg}</div>}
+
+      {step === 'email' && (
+        <form method="POST">
+          <input type="hidden" name="action" value="send" />
+          <label for="email">Adresse email</label>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            placeholder="vous@exemple.fr"
+            required
+            autofocus
+          />
+          <button type="submit">Recevoir le code</button>
+        </form>
+      )}
+
+      {step === 'code' && (
+        <form method="POST">
+          <input type="hidden" name="action" value="verify" />
+          <input type="hidden" name="email" value={emailForCode} />
+          <label for="token">Code à 6 chiffres</label>
+          <input
+            type="text"
+            id="token"
+            name="token"
+            placeholder="123456"
+            maxlength="6"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            required
+            autofocus
+          />
+          <button type="submit">Se connecter</button>
+          <form method="POST" style="margin-top: 8px;">
+            <input type="hidden" name="action" value="send" />
+            <input type="hidden" name="email" value={emailForCode} />
+            <button type="submit" class="btn-resend">Renvoyer le code</button>
+          </form>
+        </form>
+      )}
+    </div>
+  </div>
+
+</body>
+</html>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #F7F3EE;
+    color: #1C1C1E;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .page { width: 100%; max-width: 420px; }
+
+  .card {
+    background: white;
+    border-radius: 16px;
+    padding: 48px 40px;
+    box-shadow: 0 4px 32px rgba(0,0,0,0.08);
+  }
+
+  .back {
+    display: inline-block;
+    font-size: 0.85rem;
+    color: #5C5C6B;
+    text-decoration: none;
+    margin-bottom: 32px;
+  }
+  .back:hover { color: #1C1C1E; }
+
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1B4332;
+    margin-bottom: 8px;
+  }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    color: #1B4332;
+    margin-bottom: 12px;
+  }
+
+  .sub {
+    font-size: 0.9rem;
+    color: #5C5C6B;
+    margin-bottom: 32px;
+    line-height: 1.6;
+  }
+
+  .alert {
+    padding: 14px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    margin-bottom: 24px;
+    line-height: 1.5;
+  }
+  .alert-error { background: #FEF2F2; color: #B91C1C; border: 1px solid #FCA5A5; }
+  .alert-success { background: #F0FDF4; color: #166534; border: 1px solid #86EFAC; }
+
+  form { display: flex; flex-direction: column; gap: 12px; }
+
+  label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #1C1C1E;
+  }
+
+  input[type="email"],
+  input[type="text"] {
+    width: 100%;
+    padding: 12px 14px;
+    border: 1.5px solid #E5E5EA;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input[type="text"] {
+    font-size: 1.4rem;
+    letter-spacing: 0.25em;
+    text-align: center;
+  }
+  input:focus { border-color: #2D6A4F; }
+
+  button {
+    width: 100%;
+    padding: 13px;
+    background: #2D6A4F;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    margin-top: 4px;
+    transition: background 0.2s;
+  }
+  button:hover { background: #1B4332; }
+
+  .btn-resend {
+    background: transparent;
+    color: #5C5C6B;
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 8px;
+    margin-top: 0;
+    border: 1px solid #E5E5EA;
+  }
+  .btn-resend:hover { background: #F7F3EE; color: #1C1C1E; }
+</style>

@@ -1,0 +1,58 @@
+---
+// Le traitement se fait côté client (les tokens arrivent dans le hash de l'URL)
+---
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Connexion en cours…</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      background: #F7F3EE;
+      color: #5C5C6B;
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+  <p>Connexion en cours…</p>
+
+  <script>
+    async function handleCallback() {
+      // Les tokens sont dans le hash (#access_token=...&refresh_token=...)
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash);
+
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      const expiresIn = params.get('expires_in');
+
+      if (!accessToken || !refreshToken) {
+        window.location.href = '/login';
+        return;
+      }
+
+      // Envoyer les tokens au serveur pour qu'il pose les cookies httpOnly
+      const res = await fetch('/auth/set-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ access_token: accessToken, refresh_token: refreshToken, expires_in: expiresIn }),
+      });
+
+      if (res.ok) {
+        window.location.href = '/espace-membre';
+      } else {
+        window.location.href = '/login';
+      }
+    }
+
+    handleCallback();
+  </script>
+</body>
+</html>

@@ -74,7 +74,10 @@ function euros(n: number) {
   <nav>
     <div class="nav-inner">
       <span class="logo">Saint Domingue</span>
-      <a href="#contact" class="btn btn-nav">Contact</a>
+      <div class="nav-actions">
+        <a href="#contact" class="btn btn-nav">Contact</a>
+        <a href="/login" class="btn btn-nav btn-nav-outline">Se connecter</a>
+      </div>
     </div>
   </nav>
 
@@ -100,7 +103,7 @@ function euros(n: number) {
         <div class="gauge-details">
           <span><strong>{euros(stats.don)}</strong> adhésions et dons </span>
           <span class="gauge-pct">{pct} %</span>
-          <span><strong>{euros(stats.apport)}</strong> parts sociales</span>
+          <span><strong>{euros(stats.apport)}</strong> apport associatif</span>
         </div>
         <div class="gauge-participants">
           <strong>{stats.participants}</strong> participant{stats.participants > 1 ? 's' : ''}
@@ -122,7 +125,7 @@ function euros(n: number) {
         <a href={ctaApport} target="_blank" rel="noopener noreferrer" class="hero-cta-card">
           <span class="hero-cta-icon">📈</span>
           <span class="hero-cta-label">Faire un apport associatif</span>
-          <span class="hero-cta-sub">→ parts sociales SCIC</span>
+          <span class="hero-cta-sub">→ apport associatif SCIC</span>
           <span class="hero-cta-arrow">→</span>
         </a>
       </div>
@@ -419,6 +422,11 @@ function euros(n: number) {
     color: var(--white);
   }
   .btn-primary:hover { background: var(--amber-dark); transform: translateY(-1px); }
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
   .btn-nav {
     background: var(--green);
     color: var(--white);
@@ -426,6 +434,12 @@ function euros(n: number) {
     font-size: 0.875rem;
   }
   .btn-nav:hover { background: var(--green-dark); }
+  .btn-nav-outline {
+    background: transparent;
+    color: var(--green-dark);
+    border: 1.5px solid var(--green);
+  }
+  .btn-nav-outline:hover { background: var(--green); color: var(--white); }
   .btn-white {
     background: var(--white);
     color: var(--green-dark);
