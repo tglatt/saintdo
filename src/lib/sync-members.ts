@@ -3,6 +3,10 @@ import { createAdminClient } from './supabase';
 const API_BASE = 'https://api.helloasso.com/v5';
 const ORG = 'le-saint-domingue';
 
+function env(key: string): string {
+  return process.env[key] ?? import.meta.env[key] ?? '';
+}
+
 // ── HelloAsso ─────────────────────────────────────────────────────────────────
 
 async function getToken(): Promise<string> {
@@ -11,8 +15,8 @@ async function getToken(): Promise<string> {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       grant_type: 'client_credentials',
-      client_id: process.env.HELLOASSO_CLIENT_ID ?? '',
-      client_secret: process.env.HELLOASSO_CLIENT_SECRET ?? '',
+      client_id: env('HELLOASSO_CLIENT_ID'),
+      client_secret: env('HELLOASSO_CLIENT_SECRET'),
     }),
   });
   const data = await res.json();
@@ -110,76 +114,98 @@ async function fetchHelloAssoTransactions(token: string): Promise<RawTransaction
 
 export async function syncMembers(): Promise<{ ok: boolean; message: string }> {
   const supabase = createAdminClient();
-  const token = await getToken();
-  const transactions = await fetchHelloAssoTransactions(token);
+  const startedAt = new Date().toISOString();
 
-  // Regrouper les membres uniques
-  const membresMap = new Map<string, { nom: string; prenom: string }>();
-  for (const tx of transactions) {
-    if (!membresMap.has(tx.email)) {
-      membresMap.set(tx.email, { nom: tx.nom, prenom: tx.prenom });
+  // Créer une entrée de sync en cours
+  const { data: syncRow } = await supabase
+    .from('syncs')
+    .insert({ started_at: startedAt, status: 'success' })
+    .select('id')
+    .single();
+
+  const syncId = syncRow?.id;
+
+  async function finalize(ok: boolean, message: string, nb_membres = 0, nb_transactions = 0) {
+    if (syncId) {
+      await supabase.from('syncs').update({
+        ended_at: new Date().toISOString(),
+        status: ok ? 'success' : 'error',
+        nb_membres,
+        nb_transactions,
+        message,
+      }).eq('id', syncId);
     }
+    return { ok, message };
   }
 
-  // Upsert des membres (sans écraser le rôle ou la structure existants)
-  const membresRows = [...membresMap.entries()].map(([email, data]) => ({
-    email,
-    nom: data.nom || null,
-    prenom: data.prenom || null,
-    updated_at: new Date().toISOString(),
-  }));
+  try {
+    const token = await getToken();
+    const transactions = await fetchHelloAssoTransactions(token);
 
-  const { error: membresError } = await supabase
-    .from('membres')
-    .upsert(membresRows, {
-      onConflict: 'email',
-      ignoreDuplicates: false,
-    });
+    // Regrouper les membres uniques
+    const membresMap = new Map<string, { nom: string; prenom: string }>();
+    for (const tx of transactions) {
+      if (!membresMap.has(tx.email)) {
+        membresMap.set(tx.email, { nom: tx.nom, prenom: tx.prenom });
+      }
+    }
 
-  if (membresError) {
-    console.error('[sync-members] upsert membres:', membresError);
-    return { ok: false, message: `Erreur membres: ${membresError.message}` };
+    // Upsert des membres
+    const membresRows = [...membresMap.entries()].map(([email, data]) => ({
+      email,
+      nom: data.nom || null,
+      prenom: data.prenom || null,
+      updated_at: new Date().toISOString(),
+    }));
+
+    const { error: membresError } = await supabase
+      .from('membres')
+      .upsert(membresRows, { onConflict: 'email', ignoreDuplicates: false });
+
+    if (membresError) {
+      console.error('[sync-members] upsert membres:', membresError);
+      return finalize(false, `Erreur membres: ${membresError.message}`);
+    }
+
+    // Récupérer les IDs des membres pour les FK
+    const emails = [...membresMap.keys()];
+    const { data: membresData, error: fetchError } = await supabase
+      .from('membres')
+      .select('id, email')
+      .in('email', emails);
+
+    if (fetchError || !membresData) {
+      return finalize(false, `Erreur fetch membres: ${fetchError?.message}`);
+    }
+
+    const emailToId = new Map(membresData.map(m => [m.email, m.id]));
+
+    // Upsert des transactions
+    const txRows = transactions
+      .map(tx => ({
+        membre_id: emailToId.get(tx.email),
+        type: tx.type,
+        montant: tx.montant,
+        date: tx.date ? new Date(tx.date).toISOString() : null,
+        helloasso_order_id: tx.helloasso_order_id,
+        helloasso_form_slug: tx.helloasso_form_slug,
+      }))
+      .filter(tx => tx.membre_id);
+
+    const { error: txError } = await supabase
+      .from('transactions')
+      .upsert(txRows, { onConflict: 'helloasso_order_id', ignoreDuplicates: false });
+
+    if (txError) {
+      console.error('[sync-members] upsert transactions:', txError);
+      return finalize(false, `Erreur transactions: ${txError.message}`, membresRows.length);
+    }
+
+    const message = `${membresRows.length} membres, ${txRows.length} transactions`;
+    return finalize(true, message, membresRows.length, txRows.length);
+
+  } catch (err: any) {
+    console.error('[sync-members]', err);
+    return finalize(false, err.message ?? 'Erreur inconnue');
   }
-
-  // Récupérer les IDs des membres pour les FK
-  const emails = [...membresMap.keys()];
-  const { data: membresData, error: fetchError } = await supabase
-    .from('membres')
-    .select('id, email')
-    .in('email', emails);
-
-  if (fetchError || !membresData) {
-    return { ok: false, message: `Erreur fetch membres: ${fetchError?.message}` };
-  }
-
-  const emailToId = new Map(membresData.map(m => [m.email, m.id]));
-
-  // Upsert des transactions
-  const txRows = transactions
-    .map(tx => ({
-      membre_id: emailToId.get(tx.email),
-      type: tx.type,
-      montant: tx.montant,
-      date: tx.date ? new Date(tx.date).toISOString() : null,
-      helloasso_order_id: tx.helloasso_order_id,
-      helloasso_form_slug: tx.helloasso_form_slug,
-    }))
-    .filter(tx => tx.membre_id);
-
-  const { error: txError } = await supabase
-    .from('transactions')
-    .upsert(txRows, {
-      onConflict: 'helloasso_order_id',
-      ignoreDuplicates: false,
-    });
-
-  if (txError) {
-    console.error('[sync-members] upsert transactions:', txError);
-    return { ok: false, message: `Erreur transactions: ${txError.message}` };
-  }
-
-  return {
-    ok: true,
-    message: `Sync OK — ${membresRows.length} membres, ${txRows.length} transactions`,
-  };
 }
