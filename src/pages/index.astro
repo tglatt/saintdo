@@ -13,7 +13,9 @@ const { data: transactions } = await supabase
   .select('type, montant');
 
 const donManuel = parseInt(import.meta.env.HELLOASSO_DON_MANUEL || '0', 10);
-const don = donManuel + (transactions?.filter(t => t.type === 'adhesion').reduce((s, t) => s + t.montant, 0) ?? 0);
+const don = donManuel
+  + (transactions?.filter(t => t.type === 'adhesion').reduce((s, t) => s + t.montant, 0) ?? 0)
+  + (transactions?.filter(t => t.type === 'don').reduce((s, t) => s + t.montant, 0) ?? 0);
 const apport = transactions?.filter(t => t.type === 'apport_associatif').reduce((s, t) => s + t.montant, 0) ?? 0;
 
 const { count: participantsCount } = await supabase

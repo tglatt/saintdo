@@ -48,7 +48,7 @@ type RawTransaction = {
   email: string;
   nom: string;
   prenom: string;
-  type: 'adhesion' | 'apport_associatif';
+  type: 'adhesion' | 'don' | 'apport_associatif';
   montant: number;
   date: string;
   helloasso_order_id: string;
@@ -68,12 +68,20 @@ async function fetchHelloAssoTransactions(token: string): Promise<RawTransaction
     for (const item of items) {
       const user = item.payer ?? item.user;
       if (!user?.email) continue;
+
+      const montant = (item.amount ?? 0) / 100;
+      if (montant <= 0) continue;
+
+      const type = item.type === 'Donation' ? 'don'
+                 : item.type === 'Membership' ? 'adhesion'
+                 : 'don'; // fallback : on classe les items inconnus en don
+
       transactions.push({
         email: user.email.toLowerCase().trim(),
         nom: user.lastName ?? '',
         prenom: user.firstName ?? '',
-        type: 'adhesion',
-        montant: (item.amount ?? 0) / 100,
+        type,
+        montant,
         date: item.order?.date ?? '',
         helloasso_order_id: `membership-${form.formSlug}-${item.id}`,
         helloasso_form_slug: form.formSlug,
@@ -81,7 +89,7 @@ async function fetchHelloAssoTransactions(token: string): Promise<RawTransaction
     }
   }
 
-  // Apports associatifs
+  // Apports associatifs (et potentielles adhésions incluses dans la commande)
   for (const form of forms.filter(f => f.formType === 'Shop')) {
     const orders = await fetchAllPages(
       token,
@@ -90,20 +98,36 @@ async function fetchHelloAssoTransactions(token: string): Promise<RawTransaction
     for (const order of orders) {
       const user = order.payer;
       if (!user?.email) continue;
-      const montant = (order.items ?? []).reduce(
-        (s: number, i: any) => s + (i.amount ?? 0),
-        0,
-      ) / 100;
-      transactions.push({
-        email: user.email.toLowerCase().trim(),
-        nom: user.lastName ?? '',
-        prenom: user.firstName ?? '',
-        type: 'apport_associatif',
-        montant,
-        date: order.date ?? '',
-        helloasso_order_id: `shop-${form.formSlug}-${order.id}`,
-        helloasso_form_slug: form.formSlug,
-      });
+
+      const items: any[] = order.items ?? [];
+
+      if (items.length === 0) continue;
+
+      // Traiter chaque item individuellement
+      for (const item of items) {
+        const montant = (item.amount ?? 0) / 100;
+        if (montant <= 0) continue;
+
+        // Dans le Shop, un item "adhésion" est un don complémentaire,
+        // pas une adhésion formelle (celle-ci est dans le formulaire Membership)
+        const label = (item.name ?? '').toLowerCase();
+        const isDon =
+          label.includes('adhésion') ||
+          label.includes('adhesion') ||
+          label.includes('cotisation') ||
+          label.includes('don');
+
+        transactions.push({
+          email: user.email.toLowerCase().trim(),
+          nom: user.lastName ?? '',
+          prenom: user.firstName ?? '',
+          type: isDon ? 'don' : 'apport_associatif',
+          montant,
+          date: order.date ?? '',
+          helloasso_order_id: `shop-${form.formSlug}-${order.id}-${item.id}`,
+          helloasso_form_slug: form.formSlug,
+        });
+      }
     }
   }
 

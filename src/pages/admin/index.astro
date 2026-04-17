@@ -13,7 +13,7 @@ const { data: membres } = await supabase
 
 const { data: transactions } = await supabase
   .from('transactions')
-  .select('membre_id, type, montant');
+  .select('membre_id, type, montant, date');
 
 const { data: lastSync } = await supabase
   .from('syncs')
@@ -25,6 +25,8 @@ const { data: lastSync } = await supabase
 // Calculs globaux
 const totalMembres = membres?.length ?? 0;
 const totalAdhesion = transactions?.filter(t => t.type === 'adhesion')
+  .reduce((s, t) => s + t.montant, 0) ?? 0;
+const totalDon = transactions?.filter(t => t.type === 'don')
   .reduce((s, t) => s + t.montant, 0) ?? 0;
 const totalApport = transactions?.filter(t => t.type === 'apport_associatif')
   .reduce((s, t) => s + t.montant, 0) ?? 0;
@@ -87,12 +89,12 @@ function fmtDateTime(iso: string | null) {
       <!-- STATS GLOBALES -->
       <div class="stats-grid">
         <div class="stat-card">
-          <div class="stat-label">Membres</div>
-          <div class="stat-value">{totalMembres}</div>
+          <div class="stat-label">Adhésions</div>
+          <div class="stat-value">{euros(totalAdhesion)}</div>
         </div>
         <div class="stat-card">
-          <div class="stat-label">Adhésions & dons</div>
-          <div class="stat-value">{euros(totalAdhesion)}</div>
+          <div class="stat-label">Dons</div>
+          <div class="stat-value">{euros(totalDon)}</div>
         </div>
         <div class="stat-card stat-card--accent">
           <div class="stat-label">Apports associatifs</div>
@@ -100,7 +102,7 @@ function fmtDateTime(iso: string | null) {
         </div>
         <div class="stat-card stat-card--total">
           <div class="stat-label">Total collecté</div>
-          <div class="stat-value">{euros(totalAdhesion + totalApport)}</div>
+          <div class="stat-value">{euros(totalAdhesion + totalDon + totalApport)}</div>
         </div>
       </div>
 
@@ -131,36 +133,39 @@ function fmtDateTime(iso: string | null) {
           />
         </div>
         <div class="table-wrapper">
-          <table>
+          <table id="membres-table">
             <thead>
               <tr>
-                <th>Nom</th>
-                <th>Email</th>
-                <th>Structure</th>
-                <th class="right">Adhésions</th>
-                <th class="right">Apports</th>
-                <th>Rôle</th>
-                <th>Inscrit le</th>
+                <th data-col="0" class="sortable">Nom <span class="sort-icon">↕</span></th>
+                <th data-col="1" class="sortable">Email <span class="sort-icon">↕</span></th>
+                <th data-col="2" class="sortable">Date d'adhésion <span class="sort-icon">↕</span></th>
+                <th data-col="3" class="sortable right">Adhésions <span class="sort-icon">↕</span></th>
+                <th data-col="4" class="sortable right">Dons <span class="sort-icon">↕</span></th>
+                <th data-col="5" class="sortable right">Apports <span class="sort-icon">↕</span></th>
+                <th data-col="6">Rôle</th>
               </tr>
             </thead>
             <tbody>
               {membres?.map(m => {
                 const txs = txByMembre.get(m.id) ?? [];
-                const adh = txs.filter(t => t.type === 'adhesion').reduce((s, t) => s + t.montant, 0);
+                const adhTxs = txs.filter(t => t.type === 'adhesion');
+                const adh = adhTxs.reduce((s, t) => s + t.montant, 0);
+                const don = txs.filter(t => t.type === 'don').reduce((s, t) => s + t.montant, 0);
                 const app = txs.filter(t => t.type === 'apport_associatif').reduce((s, t) => s + t.montant, 0);
+                const dateAdhesion = adhTxs.map(t => t.date).filter(Boolean).sort()[0] ?? null;
                 return (
                   <tr>
                     <td class="bold">{[m.nom, m.prenom].filter(Boolean).join(' ') || '—'}</td>
                     <td class="muted">{m.email}</td>
-                    <td class="muted">{m.structure || '—'}</td>
+                    <td class="muted">{fmtDate(dateAdhesion)}</td>
                     <td class="right">{adh > 0 ? euros(adh) : '—'}</td>
+                    <td class="right">{don > 0 ? euros(don) : '—'}</td>
                     <td class="right">{app > 0 ? euros(app) : '—'}</td>
                     <td>
                       <span class={`badge badge-${m.role}`}>
                         {m.role === 'admin' ? 'Admin' : 'Membre'}
                       </span>
                     </td>
-                    <td class="muted">{fmtDate(m.created_at)}</td>
                   </tr>
                 );
               })}
@@ -343,6 +348,13 @@ function fmtDateTime(iso: string | null) {
 
   tr.hidden { display: none; }
 
+  th.sortable { cursor: pointer; user-select: none; }
+  th.sortable:hover { background: #EDE8E1; }
+  th.sort-asc .sort-icon::after { content: ' ↑'; }
+  th.sort-desc .sort-icon::after { content: ' ↓'; }
+  .sort-icon { font-size: 0.7rem; color: #9CA3AF; }
+  th.sort-asc .sort-icon, th.sort-desc .sort-icon { color: #2D6A4F; }
+
   @media (max-width: 768px) {
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
     .user-email { display: none; }
@@ -351,15 +363,71 @@ function fmtDateTime(iso: string | null) {
 </style>
 
 <script>
+  // ── Filtrage ──────────────────────────────────────────────────────────────
   const search = document.getElementById('search') as HTMLInputElement;
-  const rows = document.querySelectorAll<HTMLTableRowElement>('tbody tr');
+  const tbody = document.querySelector<HTMLTableSectionElement>('#membres-table tbody')!;
+
+  function getRows() {
+    return Array.from(tbody.querySelectorAll<HTMLTableRowElement>('tr'));
+  }
 
   search.addEventListener('input', () => {
     const q = search.value.toLowerCase().trim();
-    rows.forEach(row => {
+    getRows().forEach(row => {
       const nom = row.cells[0]?.textContent?.toLowerCase() ?? '';
       const email = row.cells[1]?.textContent?.toLowerCase() ?? '';
       row.classList.toggle('hidden', q !== '' && !nom.includes(q) && !email.includes(q));
+    });
+  });
+
+  // ── Tri ───────────────────────────────────────────────────────────────────
+  let sortCol = -1;
+  let sortAsc = true;
+
+  document.querySelectorAll<HTMLTableCellElement>('th.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = parseInt(th.dataset.col ?? '0');
+      if (sortCol === col) {
+        sortAsc = !sortAsc;
+      } else {
+        sortCol = col;
+        sortAsc = true;
+      }
+
+      // Mettre à jour les classes des en-têtes
+      document.querySelectorAll('th').forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+      th.classList.add(sortAsc ? 'sort-asc' : 'sort-desc');
+
+      // Trier les lignes
+      const rows = getRows();
+      rows.sort((a, b) => {
+        const aText = a.cells[col]?.textContent?.trim() ?? '';
+        const bText = b.cells[col]?.textContent?.trim() ?? '';
+
+        // Détecter si c'est un montant (contient €)
+        const aNum = parseFloat(aText.replace(/[^0-9,.-]/g, '').replace(',', '.'));
+        const bNum = parseFloat(bText.replace(/[^0-9,.-]/g, '').replace(',', '.'));
+        const isNum = !isNaN(aNum) && !isNaN(bNum);
+
+        // Détecter si c'est une date (format JJ/MM/AAAA)
+        const dateRe = /^\d{2}\/\d{2}\/\d{4}$/;
+        const isDate = dateRe.test(aText) && dateRe.test(bText);
+
+        let cmp = 0;
+        if (isDate) {
+          const [ad, am, ay] = aText.split('/');
+          const [bd, bm, by] = bText.split('/');
+          cmp = new Date(`${ay}-${am}-${ad}`).getTime() - new Date(`${by}-${bm}-${bd}`).getTime();
+        } else if (isNum) {
+          cmp = aNum - bNum;
+        } else {
+          cmp = aText.localeCompare(bText, 'fr');
+        }
+
+        return sortAsc ? cmp : -cmp;
+      });
+
+      rows.forEach(row => tbody.appendChild(row));
     });
   });
 </script>
