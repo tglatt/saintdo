@@ -17,7 +17,7 @@ export const GET: APIRoute = async ({ url }) => {
 
   const { data: transactions } = await supabase
     .from('transactions')
-    .select('type, montant, date, paiement, detail, helloasso_form_slug')
+    .select('id, type, montant, date, paiement, detail, helloasso_form_slug')
     .eq('membre_id', id)
     .order('date', { ascending: false });
 

@@ -182,7 +182,7 @@ function fmtDateTime(iso: string | null) {
     <div class="modal tx-modal">
       <div class="modal-header">
         <div>
-          <h2>Nouvelle transaction</h2>
+          <h2 id="tx-modal-title">Nouvelle transaction</h2>
           <p id="tx-member-name" class="modal-email"></p>
         </div>
         <button id="tx-close" class="modal-close">✕</button>
@@ -223,7 +223,7 @@ function fmtDateTime(iso: string | null) {
           <p id="tx-error" class="tx-error hidden"></p>
           <div class="form-actions">
             <button type="button" id="tx-cancel">Annuler</button>
-            <button type="submit">Créer</button>
+            <button type="submit" id="tx-submit">Créer</button>
           </div>
         </form>
       </div>
@@ -519,6 +519,20 @@ function fmtDateTime(iso: string | null) {
   }
   .tx-table tr:last-child td { border-bottom: none; }
   .tx-table .right { text-align: right; }
+  .tx-actions { width: 32px; text-align: right; }
+  .btn-edit-tx {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: #9CA3AF;
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: all 0.15s;
+    opacity: 0;
+  }
+  .tx-table tr:hover .btn-edit-tx { opacity: 1; }
+  .btn-edit-tx:hover { color: #2D6A4F; background: #F0FDF4; }
   .tx-date { color: #5C5C6B; white-space: nowrap; }
   .tx-paiement { font-size: 0.82rem; color: #5C5C6B; }
   .tx-montant { font-weight: 600; white-space: nowrap; }
@@ -664,6 +678,8 @@ function fmtDateTime(iso: string | null) {
 
   let currentMemberId = '';
   let currentMemberName = '';
+  let currentTxId: string | null = null;
+  let currentTransactions: any[] = [];
 
   async function openModal(id: string) {
     currentMemberId = id;
@@ -684,6 +700,7 @@ function fmtDateTime(iso: string | null) {
       return;
     }
 
+    currentTransactions = transactions;
     const total = transactions.reduce((s: number, t: any) => s + t.montant, 0);
 
     const paiementLabel: Record<string, string> = {
@@ -700,17 +717,19 @@ function fmtDateTime(iso: string | null) {
             <th>Type</th>
             <th>Paiement</th>
             <th class="right">Montant</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
           ${transactions.map((t: any) => `
-            <tr>
+            <tr data-tx-id="${t.id}">
               <td class="tx-date">${fmtDate(t.date)}</td>
               <td><span class="badge badge-${t.type}">${typeLabel[t.type] ?? t.type}</span></td>
               <td class="tx-paiement">${t.paiement ? paiementLabel[t.paiement] ?? t.paiement : '<span class="muted">—</span>'}</td>
               <td class="right tx-montant">${euros(t.montant)}</td>
+              <td class="tx-actions"><button class="btn-edit-tx" data-tx-id="${t.id}">✏</button></td>
             </tr>
-            ${t.detail ? `<tr class="tx-detail-row"><td colspan="4" class="tx-detail">${t.detail}</td></tr>` : ''}
+            ${t.detail ? `<tr class="tx-detail-row"><td colspan="5" class="tx-detail">${t.detail}</td></tr>` : ''}
           `).join('')}
         </tbody>
       </table>
@@ -719,6 +738,7 @@ function fmtDateTime(iso: string | null) {
         <span>${euros(total)}</span>
       </div>
     `;
+
   }
 
   document.querySelectorAll<HTMLTableRowElement>('tr.clickable').forEach(row => {
@@ -726,6 +746,14 @@ function fmtDateTime(iso: string | null) {
       const id = row.dataset.id;
       if (id) openModal(id);
     });
+  });
+
+  modalBody.addEventListener('click', (e) => {
+    const btn = (e.target as Element).closest('.btn-edit-tx') as HTMLElement | null;
+    if (!btn) return;
+    const txId = btn.dataset.txId;
+    const tx = currentTransactions.find(t => t.id === txId);
+    if (tx) openTxModal('edit', tx);
   });
 
   modalClose.addEventListener('click', () => overlay.classList.add('hidden'));
@@ -744,6 +772,7 @@ function fmtDateTime(iso: string | null) {
   const txClose = document.getElementById('tx-close')!;
   const txCancel = document.getElementById('tx-cancel')!;
   const txForm = document.getElementById('tx-form') as HTMLFormElement;
+  const txModalTitle = document.getElementById('tx-modal-title')!;
   const txTypeEl = document.getElementById('tx-type') as HTMLSelectElement;
   const txMontant = document.getElementById('tx-montant') as HTMLInputElement;
   const txDate = document.getElementById('tx-date') as HTMLInputElement;
@@ -751,15 +780,21 @@ function fmtDateTime(iso: string | null) {
   const txDetail = document.getElementById('tx-detail') as HTMLTextAreaElement;
   const txError = document.getElementById('tx-error')!;
   const txMemberName = document.getElementById('tx-member-name')!;
+  const txSubmit = document.getElementById('tx-submit') as HTMLButtonElement;
   const btnAddTx = document.getElementById('btn-add-tx')!;
 
-  function openTxModal() {
+  function openTxModal(mode: 'create' | 'edit' = 'create', tx?: any) {
+    currentTxId = mode === 'edit' ? (tx?.id ?? null) : null;
+    const isEdit = mode === 'edit';
+
+    txModalTitle.textContent = isEdit ? 'Modifier la transaction' : 'Nouvelle transaction';
+    txSubmit.textContent = isEdit ? 'Enregistrer' : 'Créer';
     txMemberName.textContent = currentMemberName;
-    txTypeEl.value = '';
-    txMontant.value = '';
-    txDate.value = new Date().toISOString().split('T')[0];
-    txPaiement.value = '';
-    txDetail.value = '';
+    txTypeEl.value = tx?.type ?? '';
+    txMontant.value = tx?.montant?.toString() ?? '';
+    txDate.value = tx?.date ? tx.date.split('T')[0] : new Date().toISOString().split('T')[0];
+    txPaiement.value = tx?.paiement ?? '';
+    txDetail.value = tx?.detail ?? '';
     txError.classList.add('hidden');
     txError.textContent = '';
     txOverlay.classList.remove('hidden');
@@ -769,7 +804,7 @@ function fmtDateTime(iso: string | null) {
     txOverlay.classList.add('hidden');
   }
 
-  btnAddTx.addEventListener('click', openTxModal);
+  btnAddTx.addEventListener('click', () => openTxModal('create'));
   txClose.addEventListener('click', closeTxModal);
   txCancel.addEventListener('click', closeTxModal);
   txOverlay.addEventListener('click', (e) => {
@@ -778,23 +813,20 @@ function fmtDateTime(iso: string | null) {
 
   txForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const submitBtn = txForm.querySelector<HTMLButtonElement>('[type="submit"]')!;
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Enregistrement…';
+    txSubmit.disabled = true;
+    txSubmit.textContent = 'Enregistrement…';
     txError.classList.add('hidden');
+
+    const isEdit = currentTxId !== null;
+    const payload = isEdit
+      ? { id: currentTxId, type: txTypeEl.value, montant: Number(txMontant.value), date: txDate.value || null, paiement: txPaiement.value || null, detail: txDetail.value.trim() || null }
+      : { membre_id: currentMemberId, type: txTypeEl.value, montant: Number(txMontant.value), date: txDate.value || null, paiement: txPaiement.value || null, detail: txDetail.value.trim() || null };
 
     try {
       const res = await fetch('/api/admin/transaction', {
-        method: 'POST',
+        method: isEdit ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          membre_id: currentMemberId,
-          type: txTypeEl.value,
-          montant: Number(txMontant.value),
-          date: txDate.value || null,
-          paiement: txPaiement.value || null,
-          detail: txDetail.value.trim() || null,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -808,8 +840,8 @@ function fmtDateTime(iso: string | null) {
       txError.textContent = err.message;
       txError.classList.remove('hidden');
     } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Créer';
+      txSubmit.disabled = false;
+      txSubmit.textContent = isEdit ? 'Enregistrer' : 'Créer';
     }
   });
 
