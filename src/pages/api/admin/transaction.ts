@@ -17,6 +17,23 @@ function validateBody(body: any) {
   return null;
 }
 
+async function syncDateAdhesion(supabase: ReturnType<typeof createAdminClient>, membre_id: string) {
+  const { data: adhesions } = await supabase
+    .from('transactions')
+    .select('date')
+    .eq('membre_id', membre_id)
+    .eq('type', 'adhesion')
+    .not('date', 'is', null)
+    .order('date', { ascending: false })
+    .limit(1)
+    .single();
+
+  await supabase
+    .from('membres')
+    .update({ date_adhesion: adhesions?.date ?? null })
+    .eq('id', membre_id);
+}
+
 export const POST: APIRoute = async ({ request }) => {
   const body = await request.json().catch(() => null);
   if (!body) return new Response('Invalid JSON', { status: 400 });
@@ -47,6 +64,10 @@ export const POST: APIRoute = async ({ request }) => {
   if (error) return new Response(JSON.stringify({ error: error.message }), {
     status: 500, headers: { 'Content-Type': 'application/json' },
   });
+
+  if (type === 'adhesion') {
+    await syncDateAdhesion(supabase, membre_id);
+  }
 
   return new Response(JSON.stringify({ transaction: data }), {
     headers: { 'Content-Type': 'application/json' },
@@ -79,6 +100,10 @@ export const PUT: APIRoute = async ({ request }) => {
     status: 500, headers: { 'Content-Type': 'application/json' },
   });
   if (!data) return new Response('Transaction introuvable', { status: 404 });
+
+  if (type === 'adhesion' && data.membre_id) {
+    await syncDateAdhesion(supabase, data.membre_id);
+  }
 
   return new Response(JSON.stringify({ transaction: data }), {
     headers: { 'Content-Type': 'application/json' },
