@@ -75,12 +75,6 @@ Routes protégées :
 # HelloAsso
 HELLOASSO_CLIENT_ID=
 HELLOASSO_CLIENT_SECRET=
-HELLOASSO_DON_MANUEL=        # Montant de dons hors HelloAsso (en €)
-
-# Framaspace (Nextcloud)
-FRAMASPACE_URL=
-FRAMASPACE_USER=
-FRAMASPACE_PASSWORD=
 
 # Cron
 CRON_SECRET=                 # Bearer token pour sécuriser l'endpoint cron

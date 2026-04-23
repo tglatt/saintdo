@@ -26,7 +26,9 @@ const { data: lastSync } = await supabase
 const totalMembres = membres?.length ?? 0;
 const totalAdhesion = transactions?.filter(t => t.type === 'adhesion')
   .reduce((s, t) => s + t.montant, 0) ?? 0;
-const totalDon = transactions?.filter(t => t.type === 'don' || t.type === 'don_defiscalise')
+const totalDon = transactions?.filter(t => t.type === 'don')
+  .reduce((s, t) => s + t.montant, 0) ?? 0;
+const totalDonDefiscalise = transactions?.filter(t => t.type === 'don_defiscalise')
   .reduce((s, t) => s + t.montant, 0) ?? 0;
 const totalApport = transactions?.filter(t => t.type === 'apport_associatif')
   .reduce((s, t) => s + t.montant, 0) ?? 0;
@@ -96,13 +98,17 @@ function fmtDateTime(iso: string | null) {
           <div class="stat-label">Dons</div>
           <div class="stat-value">{euros(totalDon)}</div>
         </div>
+        <div class="stat-card">
+          <div class="stat-label">Dons défiscalisés</div>
+          <div class="stat-value">{euros(totalDonDefiscalise)}</div>
+        </div>
         <div class="stat-card stat-card--accent">
           <div class="stat-label">Apports associatifs</div>
           <div class="stat-value">{euros(totalApport)}</div>
         </div>
         <div class="stat-card stat-card--total">
           <div class="stat-label">Total collecté</div>
-          <div class="stat-value">{euros(totalAdhesion + totalDon + totalApport)}</div>
+          <div class="stat-value">{euros(totalAdhesion + totalDon + totalDonDefiscalise + totalApport)}</div>
         </div>
       </div>
 
@@ -125,12 +131,15 @@ function fmtDateTime(iso: string | null) {
       <section class="section">
         <div class="section-header">
           <h2>Membres ({totalMembres})</h2>
-          <input
-            type="text"
-            id="search"
-            placeholder="Rechercher par nom ou email…"
-            autocomplete="off"
-          />
+          <div class="section-header-right">
+            <input
+              type="text"
+              id="search"
+              placeholder="Rechercher par nom ou email…"
+              autocomplete="off"
+            />
+            <button id="btn-create-membre" class="btn-create">+ Nouveau membre</button>
+          </div>
         </div>
         <div class="table-wrapper">
           <table id="membres-table">
@@ -176,6 +185,52 @@ function fmtDateTime(iso: string | null) {
 
     </div>
   </main>
+
+  <!-- MODAL NOUVEAU MEMBRE -->
+  <div id="membre-overlay" class="modal-overlay hidden">
+    <div class="modal tx-modal">
+      <div class="modal-header">
+        <div>
+          <h2>Nouveau membre</h2>
+        </div>
+        <button id="membre-close" class="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <form id="membre-form">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="m-nom">Nom</label>
+              <input type="text" id="m-nom" placeholder="Dupont" />
+            </div>
+            <div class="form-group">
+              <label for="m-prenom">Prénom</label>
+              <input type="text" id="m-prenom" placeholder="Jean" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="m-email">Email <span class="required">*</span></label>
+            <input type="email" id="m-email" required placeholder="jean.dupont@example.com" />
+          </div>
+          <div class="form-group">
+            <label for="m-structure">Structure</label>
+            <input type="text" id="m-structure" placeholder="Association, entreprise…" />
+          </div>
+          <div class="form-group">
+            <label for="m-role">Rôle</label>
+            <select id="m-role">
+              <option value="membre">Membre</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <p id="membre-error" class="tx-error hidden"></p>
+          <div class="form-actions">
+            <button type="button" id="membre-cancel">Annuler</button>
+            <button type="submit" id="membre-submit">Créer</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 
   <!-- MODAL NOUVELLE TRANSACTION -->
   <div id="tx-overlay" class="modal-overlay hidden">
@@ -312,7 +367,7 @@ function fmtDateTime(iso: string | null) {
 
   .stats-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     gap: 16px;
     margin-bottom: 32px;
   }
@@ -405,6 +460,23 @@ function fmtDateTime(iso: string | null) {
     flex-wrap: wrap;
   }
   .section-header h2 { margin-bottom: 0; }
+  .section-header-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .btn-create {
+    padding: 8px 16px;
+    background: #2D6A4F;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.2s;
+    white-space: nowrap;
+  }
+  .btn-create:hover { background: #1B4332; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .required { color: #EF4444; }
 
   #search {
     padding: 8px 14px;
@@ -641,6 +713,9 @@ function fmtDateTime(iso: string | null) {
   .sort-icon { font-size: 0.7rem; color: #9CA3AF; }
   th.sort-asc .sort-icon, th.sort-desc .sort-icon { color: #2D6A4F; }
 
+  @media (max-width: 1024px) {
+    .stats-grid { grid-template-columns: repeat(3, 1fr); }
+  }
   @media (max-width: 768px) {
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
     .user-email { display: none; }
@@ -764,6 +839,65 @@ function fmtDateTime(iso: string | null) {
     if (e.key === 'Escape') {
       txOverlay.classList.add('hidden');
       overlay.classList.add('hidden');
+      membreOverlay.classList.add('hidden');
+    }
+  });
+
+  // ── Modal nouveau membre ───────────────────────────────────────────────────
+  const membreOverlay = document.getElementById('membre-overlay')!;
+  const membreClose = document.getElementById('membre-close')!;
+  const membreCancel = document.getElementById('membre-cancel')!;
+  const membreForm = document.getElementById('membre-form') as HTMLFormElement;
+  const membreError = document.getElementById('membre-error')!;
+  const membreSubmit = document.getElementById('membre-submit') as HTMLButtonElement;
+  const btnCreateMembre = document.getElementById('btn-create-membre')!;
+
+  function openMembreModal() {
+    membreForm.reset();
+    membreError.classList.add('hidden');
+    membreOverlay.classList.remove('hidden');
+  }
+  function closeMembreModal() { membreOverlay.classList.add('hidden'); }
+
+  btnCreateMembre.addEventListener('click', openMembreModal);
+  membreClose.addEventListener('click', closeMembreModal);
+  membreCancel.addEventListener('click', closeMembreModal);
+  membreOverlay.addEventListener('click', (e) => {
+    if (e.target === membreOverlay) closeMembreModal();
+  });
+
+  membreForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    membreSubmit.disabled = true;
+    membreSubmit.textContent = 'Enregistrement…';
+    membreError.classList.add('hidden');
+
+    const email = (document.getElementById('m-email') as HTMLInputElement).value.trim();
+    const nom = (document.getElementById('m-nom') as HTMLInputElement).value.trim();
+    const prenom = (document.getElementById('m-prenom') as HTMLInputElement).value.trim();
+    const structure = (document.getElementById('m-structure') as HTMLInputElement).value.trim();
+    const role = (document.getElementById('m-role') as HTMLSelectElement).value;
+
+    try {
+      const res = await fetch('/api/admin/membre', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, nom: nom || null, prenom: prenom || null, structure: structure || null, role }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || 'Erreur serveur');
+      }
+
+      closeMembreModal();
+      window.location.reload();
+    } catch (err: any) {
+      membreError.textContent = err.message;
+      membreError.classList.remove('hidden');
+    } finally {
+      membreSubmit.disabled = false;
+      membreSubmit.textContent = 'Créer';
     }
   });
 

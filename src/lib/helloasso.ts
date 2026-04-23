@@ -79,10 +79,7 @@ export async function getStats() {
       sumPayments(token, 'le-saint-domingue', 'Membership', 'adhesion'),
       countParticipants(token, 'le-saint-domingue'),
     ]);
-    const donManuel = parseInt(env('HELLOASSO_DON_MANUEL') || '0', 10);
-    const don = donManuel + adhesion;
-
-    return { don, apport, participants };
+    return { don: adhesion, apport, participants };
   } catch (e) {
     console.error('[HelloAsso] getStats error:', e);
     return { don: 0, apport: 0, participants: 0 };
