@@ -21,20 +21,36 @@ const { data: transactions } = await supabase
 const totalAdhesion = transactions?.filter(t => t.type === 'adhesion').reduce((s, t) => s + t.montant, 0) ?? 0;
 const totalApport = transactions?.filter(t => t.type === 'apport_associatif').reduce((s, t) => s + t.montant, 0) ?? 0;
 
+const TYPE_ORDER = ['adhesion', 'don', 'don_defiscalise', 'apport_associatif'];
+const typeLabel: Record<string, string> = {
+  adhesion: 'Adhésions',
+  don: 'Dons',
+  don_defiscalise: 'Dons défiscalisés',
+  apport_associatif: 'Apports associatifs',
+};
+
+const grouped = new Map<string, { date: string | null; montant: number }[]>();
+for (const tx of transactions ?? []) {
+  if (!grouped.has(tx.type)) grouped.set(tx.type, []);
+  grouped.get(tx.type)!.push(tx);
+}
+const groups = TYPE_ORDER
+  .filter(t => grouped.has(t))
+  .map(type => ({
+    type,
+    rows: (grouped.get(type) ?? []).sort((a, b) =>
+      new Date(b.date ?? 0).getTime() - new Date(a.date ?? 0).getTime()
+    ),
+    total: (grouped.get(type) ?? []).reduce((s, t) => s + t.montant, 0),
+  }));
+
 function euros(n: number) {
   return n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
 }
-
 function fmtDate(iso: string | null) {
   if (!iso) return '—';
   return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
 }
-
-const typeLabel: Record<string, string> = {
-  adhesion: 'Adhésion',
-  don: 'Don',
-  apport_associatif: 'Apport associatif',
-};
 ---
 
 <!DOCTYPE html>
@@ -87,21 +103,19 @@ const typeLabel: Record<string, string> = {
       <!-- TRANSACTIONS -->
       <section class="section">
         <h2>Historique de vos transactions</h2>
-        {transactions && transactions.length > 0 ? (
+        {groups.length > 0 ? (
           <table>
             <thead>
               <tr>
-                <th>Date</th>
                 <th>Type</th>
                 <th class="right">Montant</th>
               </tr>
             </thead>
             <tbody>
-              {transactions.map(tx => (
+              {groups.map(g => (
                 <tr>
-                  <td>{fmtDate(tx.date)}</td>
-                  <td><span class={`badge badge-${tx.type}`}>{typeLabel[tx.type] ?? tx.type}</span></td>
-                  <td class="right">{euros(tx.montant)}</td>
+                  <td><span class={`badge badge-${g.type}`}>{typeLabel[g.type] ?? g.type}</span></td>
+                  <td class="right">{euros(g.total)}</td>
                 </tr>
               ))}
             </tbody>
@@ -245,6 +259,20 @@ const typeLabel: Record<string, string> = {
   tr:last-child td { border-bottom: none; }
   .right { text-align: right; }
 
+  .groups { display: flex; flex-direction: column; gap: 24px; }
+  .group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .group-total {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: #1B4332;
+    font-weight: 700;
+  }
+
   .badge {
     display: inline-block;
     padding: 3px 10px;
@@ -254,6 +282,7 @@ const typeLabel: Record<string, string> = {
   }
   .badge-adhesion { background: #DBEAFE; color: #1D4ED8; }
   .badge-don { background: #D1FAE5; color: #065F46; }
+  .badge-don_defiscalise { background: #EDE9FE; color: #5B21B6; }
   .badge-apport_associatif { background: #FEF3C7; color: #92400E; }
 
   .empty { color: #5C5C6B; font-size: 0.9rem; padding: 24px 0; }
