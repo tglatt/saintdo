@@ -28,9 +28,11 @@ export type Membre = {
 export type Transaction = {
   id: string;
   membre_id: string;
-  type: 'adhesion' | 'don' | 'apport_associatif';
+  type: 'adhesion' | 'don' | 'don_defiscalise' | 'apport_associatif';
   montant: number;
   date: string | null;
+  paiement: 'helloasso' | 'cheque' | 'virement' | null;
+  detail: string | null;
   helloasso_order_id: string | null;
   helloasso_form_slug: string | null;
   created_at: string;
