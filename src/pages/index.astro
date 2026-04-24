@@ -6,6 +6,7 @@ const ctaDon = "https://www.helloasso.com/associations/graine-de-moutarde-fonds-
 const ctaApport = "https://www.helloasso.com/associations/le-saint-domingue/boutiques/apports-associatifs";
 
 const OBJECTIF = 300000;
+const SUBVENTIONS = 25000;
 
 const supabase = createAdminClient();
 const { data: transactions } = await supabase
@@ -21,7 +22,10 @@ const { count: participantsCount } = await supabase
 
 const stats = { don, apport, participants: participantsCount ?? 0 };
 const total = stats.don + stats.apport;
-const pct = Math.min(Math.round((total / OBJECTIF) * 100), 100);
+const totalAvecSubventions = total + SUBVENTIONS;
+const pct = Math.min(Math.round((totalAvecSubventions / OBJECTIF) * 100), 100);
+const pctCitoyens = Math.min(Math.round((total / OBJECTIF) * 100), 100);
+const pctSubventions = Math.min(Math.round((SUBVENTIONS / OBJECTIF) * 100), 100);
 
 function euros(n: number) {
   return n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
@@ -107,16 +111,20 @@ function euros(n: number) {
       <!-- JAUGE -->
       <div class="gauge">
         <div class="gauge-amounts">
-          <div class="gauge-total">{euros(total)}</div>
+          <div class="gauge-total">{euros(totalAvecSubventions)}</div>
           <div class="gauge-goal">sur {euros(OBJECTIF)}</div>
         </div>
         <div class="gauge-bar">
-          <div class="gauge-fill" style={`width: ${pct}%`}></div>
+          <div class="gauge-fill gauge-fill--subvention" style={`width: ${pctSubventions}%`}></div>
+          <div class="gauge-fill" style={`width: ${pctCitoyens}%`}></div>
         </div>
         <div class="gauge-details">
-          <span><strong>{euros(stats.don)}</strong> adhésions et dons </span>
+          <span><strong>{euros(stats.don)}</strong> adhésions et dons</span>
           <span class="gauge-pct">{pct} %</span>
-          <span><strong>{euros(stats.apport)}</strong> apport associatif</span>
+          <span><strong>{euros(stats.apport)}</strong> apports associatifs</span>
+        </div>
+        <div class="gauge-subvention">
+          + <strong>{euros(SUBVENTIONS)}</strong> de subventions
         </div>
         <div class="gauge-participants">
           <strong>{stats.participants}</strong> participant{stats.participants > 1 ? 's' : ''}
@@ -688,13 +696,16 @@ function euros(n: number) {
     border-radius: 99px;
     overflow: hidden;
     margin-bottom: 14px;
+    display: flex;
   }
   .gauge-fill {
     height: 100%;
     background: var(--green-light);
-    border-radius: 99px;
     transition: width 1.2s ease;
     min-width: 4px;
+  }
+  .gauge-fill--subvention {
+    background: #52B788;
   }
   .gauge-details {
     display: flex;
@@ -709,15 +720,20 @@ function euros(n: number) {
     font-size: 1rem;
     color: var(--green-light);
   }
+  .gauge-subvention {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.55);
+  }
+  .gauge-subvention strong { color: #52B788; }
   .gauge-participants {
     text-align: center;
-    margin-top: 0.5rem;
+    margin-top: 6px;
     font-size: 0.82rem;
     color: rgba(255,255,255,0.6);
   }
-  .gauge-participants strong {
-    color: white;
-  }
+  .gauge-participants strong { color: white; }
 
   /* CTA SECTION */
   .section-cta {
