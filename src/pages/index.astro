@@ -124,9 +124,9 @@ function euros(n: number) {
           <div class="gauge-fill gauge-fill--don" style={`width: ${pctDon}%`}></div>
         </div>
         <div class="gauge-details">
-          <span><strong style="color: #52B788">{euros(SUBVENTIONS)}</strong> subventions</span>
-          <span><strong style="color: #74C69D">{euros(stats.apport)}</strong> apports associatifs</span>
-          <span><strong style="color: #95D5B2">{euros(stats.don)}</strong> adhésions & dons</span>
+          <span><strong style="color: #52B788">{euros(SUBVENTIONS)}</strong><em>subventions</em></span>
+          <span><strong style="color: #74C69D">{euros(stats.apport)}</strong><em>apports associatifs</em></span>
+          <span><strong style="color: #95D5B2">{euros(stats.don)}</strong><em>adhésions & dons</em></span>
         </div>
         <div class="gauge-participants">
           <strong>{stats.participants}</strong> participant{stats.participants > 1 ? 's' : ''}
@@ -720,6 +720,17 @@ function euros(n: number) {
     justify-content: space-between;
     font-size: 0.82rem;
     color: rgba(255,255,255,0.6);
+  }
+  .gauge-details em { font-style: normal; margin-left: 4px; }
+  @media (max-width: 480px) {
+    .gauge-details span {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .gauge-details em { margin-left: 0; font-size: 0.75rem; text-align: center; }
+    .gauge-details strong { font-size: 0.88rem; }
   }
   .gauge-pct {
     font-weight: 700;
