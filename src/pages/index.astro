@@ -38,6 +38,7 @@ function euros(n: number) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
   <!-- SEO de base -->
   <title>Hôtel Saint Domingue — Foncière Citoyenne à Die</title>
@@ -124,9 +125,9 @@ function euros(n: number) {
           <div class="gauge-fill gauge-fill--don" style={`width: ${pctDon}%`}></div>
         </div>
         <div class="gauge-details">
-          <span><strong style="color: #52B788">{euros(SUBVENTIONS)}</strong><em>subventions</em></span>
-          <span><strong style="color: #74C69D">{euros(stats.apport)}</strong><em>apports associatifs</em></span>
-          <span><strong style="color: #95D5B2">{euros(stats.don)}</strong><em>adhésions & dons</em></span>
+          <span><strong style="color: #8E8BC4">{euros(SUBVENTIONS)}</strong><em>subventions</em></span>
+          <span><strong style="color: #B0ADD4">{euros(stats.apport)}</strong><em>apports associatifs</em></span>
+          <span><strong style="color: #DFC85A">{euros(stats.don)}</strong><em>adhésions & dons</em></span>
         </div>
         <div class="gauge-participants">
           <strong>{stats.participants}</strong> participant{stats.participants > 1 ? 's' : ''}
@@ -379,13 +380,13 @@ function euros(n: number) {
 
 <style>
   :root {
-    --green: #2D6A4F;
-    --green-dark: #1B4332;
-    --green-light: #95D5B2;
-    --amber: #E76F51;
-    --amber-dark: #C75B3A;
-    --bg: #F7F3EE;
-    --bg-alt: #EDE8E1;
+    --green: #6663A0;
+    --green-dark: #2D2A68;
+    --green-light: #B0ADD4;
+    --amber: #A07C10;
+    --amber-dark: #7A5E0A;
+    --bg: #F7F6FB;
+    --bg-alt: #EEEDF6;
     --text: #1C1C1E;
     --text-muted: #5C5C6B;
     --white: #FFFFFF;
@@ -492,7 +493,7 @@ function euros(n: number) {
   .hero-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(135deg, rgba(27,67,50,0.88) 0%, rgba(45,106,79,0.75) 60%, rgba(82,183,136,0.55) 100%);
+    background: linear-gradient(135deg, rgba(45,42,104,0.88) 0%, rgba(102,99,160,0.75) 10%, rgba(176,173,212,0.50) 100%);
     z-index: 1;
   }
   .hero-content {
@@ -712,9 +713,9 @@ function euros(n: number) {
     transition: width 1.2s ease;
     min-width: 4px;
   }
-  .gauge-fill--subvention { background: #52B788; }
-  .gauge-fill--apport    { background: #74C69D; }
-  .gauge-fill--don       { background: #95D5B2; }
+  .gauge-fill--subvention { background: #5A579E; }
+  .gauge-fill--apport    { background: #8E8BC4; }
+  .gauge-fill--don       { background: #DFC85A; }
   .gauge-details {
     display: flex;
     justify-content: space-between;
