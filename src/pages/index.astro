@@ -24,7 +24,8 @@ const stats = { don, apport, participants: participantsCount ?? 0 };
 const total = stats.don + stats.apport;
 const totalAvecSubventions = total + SUBVENTIONS;
 const pct = Math.min(Math.round((totalAvecSubventions / OBJECTIF) * 100), 100);
-const pctCitoyens = Math.min(Math.round((total / OBJECTIF) * 100), 100);
+const pctDon = Math.min(Math.round((stats.don / OBJECTIF) * 100), 100);
+const pctApport = Math.min(Math.round((stats.apport / OBJECTIF) * 100), 100);
 const pctSubventions = Math.min(Math.round((SUBVENTIONS / OBJECTIF) * 100), 100);
 
 function euros(n: number) {
@@ -112,19 +113,20 @@ function euros(n: number) {
       <div class="gauge">
         <div class="gauge-amounts">
           <div class="gauge-total">{euros(totalAvecSubventions)}</div>
-          <div class="gauge-goal">sur {euros(OBJECTIF)}</div>
+          <div class="gauge-amounts-right">
+            <div class="gauge-pct">{pct} %</div>
+            <div class="gauge-goal">sur {euros(OBJECTIF)}</div>
+          </div>
         </div>
         <div class="gauge-bar">
           <div class="gauge-fill gauge-fill--subvention" style={`width: ${pctSubventions}%`}></div>
-          <div class="gauge-fill" style={`width: ${pctCitoyens}%`}></div>
+          <div class="gauge-fill gauge-fill--apport" style={`width: ${pctApport}%`}></div>
+          <div class="gauge-fill gauge-fill--don" style={`width: ${pctDon}%`}></div>
         </div>
         <div class="gauge-details">
-          <span><strong>{euros(stats.don)}</strong> adhésions et dons</span>
-          <span class="gauge-pct">{pct} %</span>
-          <span><strong>{euros(stats.apport)}</strong> apports associatifs</span>
-        </div>
-        <div class="gauge-subvention">
-          + <strong>{euros(SUBVENTIONS)}</strong> de subventions
+          <span><strong style="color: #52B788">{euros(SUBVENTIONS)}</strong> subventions</span>
+          <span><strong style="color: #74C69D">{euros(stats.apport)}</strong> apports associatifs</span>
+          <span><strong style="color: #95D5B2">{euros(stats.don)}</strong> adhésions & dons</span>
         </div>
         <div class="gauge-participants">
           <strong>{stats.participants}</strong> participant{stats.participants > 1 ? 's' : ''}
@@ -674,9 +676,15 @@ function euros(n: number) {
   }
   .gauge-amounts {
     display: flex;
-    align-items: baseline;
-    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
     margin-bottom: 14px;
+  }
+  .gauge-amounts-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
   }
   .gauge-total {
     font-family: 'Playfair Display', serif;
@@ -704,29 +712,21 @@ function euros(n: number) {
     transition: width 1.2s ease;
     min-width: 4px;
   }
-  .gauge-fill--subvention {
-    background: #52B788;
-  }
+  .gauge-fill--subvention { background: #52B788; }
+  .gauge-fill--apport    { background: #74C69D; }
+  .gauge-fill--don       { background: #95D5B2; }
   .gauge-details {
     display: flex;
     justify-content: space-between;
-    align-items: center;
     font-size: 0.82rem;
     color: rgba(255,255,255,0.6);
   }
-  .gauge-details strong { color: white; }
   .gauge-pct {
     font-weight: 700;
-    font-size: 1rem;
+    font-size: 1.1rem;
     color: var(--green-light);
+    line-height: 1;
   }
-  .gauge-subvention {
-    text-align: center;
-    margin-top: 10px;
-    font-size: 0.8rem;
-    color: rgba(255,255,255,0.55);
-  }
-  .gauge-subvention strong { color: #52B788; }
   .gauge-participants {
     text-align: center;
     margin-top: 6px;
