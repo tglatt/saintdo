@@ -212,6 +212,7 @@ export async function syncMembers(): Promise<{ ok: boolean; message: string }> {
         date: tx.date ? new Date(tx.date).toISOString() : null,
         helloasso_order_id: tx.helloasso_order_id,
         helloasso_form_slug: tx.helloasso_form_slug,
+        paiement: 'helloasso',
       }))
       .filter(tx => tx.membre_id);
 

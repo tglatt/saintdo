@@ -85,6 +85,16 @@ export const PUT: APIRoute = async ({ request }) => {
 
   const supabase = createAdminClient();
 
+  const { data: existing } = await supabase
+    .from('transactions')
+    .select('helloasso_order_id, membre_id')
+    .eq('id', id)
+    .single();
+
+  if (!existing) return new Response('Transaction introuvable', { status: 404 });
+  if (!existing.helloasso_order_id?.startsWith('manual_'))
+    return new Response('Impossible de modifier une transaction HelloAsso', { status: 403 });
+
   const { data, error } = await supabase
     .from('transactions')
     .update({
@@ -99,9 +109,8 @@ export const PUT: APIRoute = async ({ request }) => {
   if (error) return new Response(JSON.stringify({ error: error.message }), {
     status: 500, headers: { 'Content-Type': 'application/json' },
   });
-  if (!data) return new Response('Transaction introuvable', { status: 404 });
 
-  if (type === 'adhesion' && data.membre_id) {
+  if (type === 'adhesion' && data?.membre_id) {
     await syncDateAdhesion(supabase, data.membre_id);
   }
 

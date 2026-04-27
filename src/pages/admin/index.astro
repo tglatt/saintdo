@@ -150,8 +150,9 @@ function fmtDateTime(iso: string | null) {
                 <th data-col="2" class="sortable">Date d'adhésion <span class="sort-icon">↕</span></th>
                 <th data-col="3" class="sortable right">Adhésions <span class="sort-icon">↕</span></th>
                 <th data-col="4" class="sortable right">Dons <span class="sort-icon">↕</span></th>
-                <th data-col="5" class="sortable right">Apports <span class="sort-icon">↕</span></th>
-                <th data-col="6">Rôle</th>
+                <th data-col="5" class="sortable right">Dons défiscalisés <span class="sort-icon">↕</span></th>
+                <th data-col="6" class="sortable right">Apports <span class="sort-icon">↕</span></th>
+                <th data-col="7">Rôle</th>
               </tr>
             </thead>
             <tbody>
@@ -160,6 +161,7 @@ function fmtDateTime(iso: string | null) {
                 const adhTxs = txs.filter(t => t.type === 'adhesion');
                 const adh = adhTxs.reduce((s, t) => s + t.montant, 0);
                 const don = txs.filter(t => t.type === 'don').reduce((s, t) => s + t.montant, 0);
+                const donDef = txs.filter(t => t.type === 'don_defiscalise').reduce((s, t) => s + t.montant, 0);
                 const app = txs.filter(t => t.type === 'apport_associatif').reduce((s, t) => s + t.montant, 0);
                 const dateAdhesion = adhTxs.map(t => t.date).filter(Boolean).sort()[0] ?? null;
                 return (
@@ -169,6 +171,7 @@ function fmtDateTime(iso: string | null) {
                     <td class="muted">{fmtDate(dateAdhesion)}</td>
                     <td class="right">{adh > 0 ? euros(adh) : '—'}</td>
                     <td class="right">{don > 0 ? euros(don) : '—'}</td>
+                    <td class="right">{donDef > 0 ? euros(donDef) : '—'}</td>
                     <td class="right">{app > 0 ? euros(app) : '—'}</td>
                     <td>
                       <span class={`badge badge-${m.role}`}>
@@ -802,7 +805,7 @@ function fmtDateTime(iso: string | null) {
               <td><span class="badge badge-${t.type}">${typeLabel[t.type] ?? t.type}</span></td>
               <td class="tx-paiement">${t.paiement ? paiementLabel[t.paiement] ?? t.paiement : '<span class="muted">—</span>'}</td>
               <td class="right tx-montant">${euros(t.montant)}</td>
-              <td class="tx-actions"><button class="btn-edit-tx" data-tx-id="${t.id}">✏</button></td>
+              <td class="tx-actions">${t.helloasso_order_id?.startsWith('manual_') ? `<button class="btn-edit-tx" data-tx-id="${t.id}">✏</button>` : ''}</td>
             </tr>
             ${t.detail ? `<tr class="tx-detail-row"><td colspan="5" class="tx-detail">${t.detail}</td></tr>` : ''}
           `).join('')}
