@@ -108,20 +108,19 @@ async function fetchHelloAssoTransactions(token: string): Promise<RawTransaction
         const montant = (item.amount ?? 0) / 100;
         if (montant <= 0) continue;
 
-        // Dans le Shop, un item "adhésion" est un don complémentaire,
-        // pas une adhésion formelle (celle-ci est dans le formulaire Membership)
         const label = (item.name ?? '').toLowerCase();
-        const isDon =
+        const isAdhesion =
           label.includes('adhésion') ||
           label.includes('adhesion') ||
-          label.includes('cotisation') ||
-          label.includes('don');
+          label.includes('cotisation');
+        const isDon = !isAdhesion && label.includes('don');
+        const type = isAdhesion ? 'adhesion' : isDon ? 'don' : 'apport_associatif';
 
         transactions.push({
           email: user.email.toLowerCase().trim(),
           nom: user.lastName ?? '',
           prenom: user.firstName ?? '',
-          type: isDon ? 'don' : 'apport_associatif',
+          type,
           montant,
           date: order.date ?? '',
           helloasso_order_id: `shop-${form.formSlug}-${order.id}-${item.id}`,
