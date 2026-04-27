@@ -108,6 +108,7 @@ function fmtDate(iso: string | null) {
             <thead>
               <tr>
                 <th>Type</th>
+                <th>Date</th>
                 <th class="right">Montant</th>
               </tr>
             </thead>
@@ -115,6 +116,7 @@ function fmtDate(iso: string | null) {
               {groups.map(g => (
                 <tr>
                   <td><span class={`badge badge-${g.type}`}>{typeLabel[g.type] ?? g.type}</span></td>
+                  <td class="muted">{fmtDate(g.rows[0]?.date ?? null)}</td>
                   <td class="right">{euros(g.total)}</td>
                 </tr>
               ))}
@@ -258,6 +260,7 @@ function fmtDate(iso: string | null) {
   }
   tr:last-child td { border-bottom: none; }
   .right { text-align: right; }
+  .muted { color: #5C5C6B; }
 
   .groups { display: flex; flex-direction: column; gap: 24px; }
   .group-header {
