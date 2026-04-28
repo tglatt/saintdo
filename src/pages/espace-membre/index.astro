@@ -18,7 +18,7 @@ const { data: transactions } = await supabase
   .eq('membre_id', (await supabase.from('membres').select('id').eq('email', user.email).single()).data?.id)
   .order('date', { ascending: false });
 
-const totalAdhesion = transactions?.filter(t => t.type === 'adhesion').reduce((s, t) => s + t.montant, 0) ?? 0;
+const totalAdhesion = transactions?.filter(t => ['adhesion', 'don', 'don_defiscalise'].includes(t.type)).reduce((s, t) => s + t.montant, 0) ?? 0;
 const totalApport = transactions?.filter(t => t.type === 'apport_associatif').reduce((s, t) => s + t.montant, 0) ?? 0;
 
 const TYPE_ORDER = ['adhesion', 'don', 'don_defiscalise', 'apport_associatif'];
