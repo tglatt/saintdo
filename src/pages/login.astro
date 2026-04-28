@@ -1,5 +1,6 @@
 ---
 import { createAdminClient, supabase } from '../lib/supabase';
+import '../styles/theme.css';
 
 // Si déjà connecté, rediriger
 const accessToken = Astro.cookies.get('sb-access-token')?.value;
@@ -162,8 +163,8 @@ if (Astro.request.method === 'POST') {
 
   body {
     font-family: 'Inter', system-ui, sans-serif;
-    background: #F7F3EE;
-    color: #1C1C1E;
+    background: var(--color-bg);
+    color: var(--color-text);
     min-height: 100vh;
     display: flex;
     align-items: center;
@@ -183,30 +184,30 @@ if (Astro.request.method === 'POST') {
   .back {
     display: inline-block;
     font-size: 0.85rem;
-    color: #5C5C6B;
+    color: var(--color-muted);
     text-decoration: none;
     margin-bottom: 32px;
   }
-  .back:hover { color: #1C1C1E; }
+  .back:hover { color: var(--color-text); }
 
   .logo {
     font-family: 'Playfair Display', serif;
     font-size: 1.1rem;
     font-weight: 700;
-    color: #1B4332;
+    color: var(--color-primary);
     margin-bottom: 8px;
   }
 
   h1 {
     font-family: 'Playfair Display', serif;
     font-size: 1.6rem;
-    color: #1B4332;
+    color: var(--color-primary);
     margin-bottom: 12px;
   }
 
   .sub {
     font-size: 0.9rem;
-    color: #5C5C6B;
+    color: var(--color-muted);
     margin-bottom: 32px;
     line-height: 1.6;
   }
@@ -218,22 +219,22 @@ if (Astro.request.method === 'POST') {
     margin-bottom: 24px;
     line-height: 1.5;
   }
-  .alert-error { background: #FEF2F2; color: #B91C1C; border: 1px solid #FCA5A5; }
-  .alert-success { background: #F0FDF4; color: #166534; border: 1px solid #86EFAC; }
+  .alert-error { background: var(--color-error-bg); color: var(--color-error-text); border: 1px solid var(--color-error-border); }
+  .alert-success { background: var(--color-success-bg); color: var(--color-success-text); border: 1px solid var(--color-success-border); }
 
   form { display: flex; flex-direction: column; gap: 12px; }
 
   label {
     font-size: 0.85rem;
     font-weight: 600;
-    color: #1C1C1E;
+    color: var(--color-text);
   }
 
   input[type="email"],
   input[type="text"] {
     width: 100%;
     padding: 12px 14px;
-    border: 1.5px solid #E5E5EA;
+    border: 1.5px solid var(--color-border);
     border-radius: 8px;
     font-size: 1rem;
     font-family: inherit;
@@ -245,12 +246,12 @@ if (Astro.request.method === 'POST') {
     letter-spacing: 0.25em;
     text-align: center;
   }
-  input:focus { border-color: #2D6A4F; }
+  input:focus { border-color: var(--color-primary-mid); }
 
   button {
     width: 100%;
     padding: 13px;
-    background: #2D6A4F;
+    background: var(--color-primary-mid);
     color: white;
     border: none;
     border-radius: 8px;
@@ -261,16 +262,16 @@ if (Astro.request.method === 'POST') {
     margin-top: 4px;
     transition: background 0.2s;
   }
-  button:hover { background: #1B4332; }
+  button:hover { background: var(--color-primary); }
 
   .btn-resend {
     background: transparent;
-    color: #5C5C6B;
+    color: var(--color-muted);
     font-size: 0.85rem;
     font-weight: 500;
     padding: 8px;
     margin-top: 0;
-    border: 1px solid #E5E5EA;
+    border: 1px solid var(--color-border);
   }
-  .btn-resend:hover { background: #F7F3EE; color: #1C1C1E; }
+  .btn-resend:hover { background: var(--color-bg); color: var(--color-text); }
 </style>

@@ -1,0 +1,47 @@
+:root {
+  /* Marque */
+  --color-primary:        #1B4332;
+  --color-primary-mid:    #2D6A4F;
+  --color-primary-hover:  #EDE8E1;
+
+  /* Fond & surfaces */
+  --color-bg:             #F7F3EE;
+  --color-surface:        #FAFAF8;
+  --color-border:         #E5E5EA;
+  --color-border-light:   #F0EDE8;
+
+  /* Texte */
+  --color-text:           #1C1C1E;
+  --color-muted:          #5C5C6B;
+  --color-subtle:         #9CA3AF;
+
+  /* Accent */
+  --color-accent:         #E76F51;
+  --color-accent-hover:   #C75B3A;
+
+  /* Statuts */
+  --color-success:        #22C55E;
+  --color-success-bg:     #F0FDF4;
+  --color-success-border: #86EFAC;
+  --color-success-text:   #166534;
+  --color-error:          #EF4444;
+  --color-error-bg:       #FEF2F2;
+  --color-error-border:   #FCA5A5;
+  --color-error-text:     #B91C1C;
+
+  /* Badges transactions */
+  --badge-adhesion-bg:        #DBEAFE;
+  --badge-adhesion-text:      #1D4ED8;
+  --badge-don-bg:             #D1FAE5;
+  --badge-don-text:           #065F46;
+  --badge-don-def-bg:         #EDE9FE;
+  --badge-don-def-text:       #5B21B6;
+  --badge-apport-bg:          #FEF3C7;
+  --badge-apport-text:        #92400E;
+
+  /* Badges rôles */
+  --badge-membre-bg:      #F0FDF4;
+  --badge-membre-text:    #166534;
+  --badge-admin-bg:       #FEF3C7;
+  --badge-admin-text:     #92400E;
+}

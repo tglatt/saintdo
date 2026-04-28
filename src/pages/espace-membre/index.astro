@@ -1,5 +1,6 @@
 ---
 import { createAdminClient } from '../../lib/supabase';
+import '../../styles/theme.css';
 
 const user = Astro.locals.user;
 if (!user) return Astro.redirect('/login');
@@ -315,8 +316,8 @@ function fmtDate(iso: string | null) {
 
   body {
     font-family: 'Inter', system-ui, sans-serif;
-    background: #F7F3EE;
-    color: #1C1C1E;
+    background: var(--color-bg);
+    color: var(--color-text);
     min-height: 100vh;
   }
 
@@ -340,39 +341,32 @@ function fmtDate(iso: string | null) {
     font-family: 'Playfair Display', serif;
     font-size: 1.1rem;
     font-weight: 700;
-    color: #1B4332;
+    color: var(--color-primary);
     text-decoration: none;
   }
-  .nav-right {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-  .user-email {
-    font-size: 0.85rem;
-    color: #5C5C6B;
-  }
+  .nav-right { display: flex; align-items: center; gap: 16px; }
+  .user-email { font-size: 0.85rem; color: var(--color-muted); }
   .btn-logout {
     font-size: 0.85rem;
-    color: #5C5C6B;
+    color: var(--color-muted);
     text-decoration: none;
     padding: 6px 12px;
-    border: 1px solid #E5E5EA;
+    border: 1px solid var(--color-border);
     border-radius: 6px;
     transition: all 0.2s;
   }
-  .btn-logout:hover { background: #F7F3EE; color: #1C1C1E; }
+  .btn-logout:hover { background: var(--color-bg); color: var(--color-text); }
   .btn-admin {
     font-size: 0.85rem;
     font-weight: 600;
     color: white;
-    background: #E76F51;
+    background: var(--color-accent);
     text-decoration: none;
     padding: 6px 12px;
     border-radius: 6px;
     transition: background 0.2s;
   }
-  .btn-admin:hover { background: #C75B3A; }
+  .btn-admin:hover { background: var(--color-accent-hover); }
 
   main { padding: 48px 24px; }
   .container { max-width: 1000px; margin: 0 auto; }
@@ -381,10 +375,10 @@ function fmtDate(iso: string | null) {
   h1 {
     font-family: 'Playfair Display', serif;
     font-size: 2rem;
-    color: #1B4332;
+    color: var(--color-primary);
     margin-bottom: 8px;
   }
-  .sub { color: #5C5C6B; font-size: 1rem; }
+  .sub { color: var(--color-muted); font-size: 1rem; }
 
   .stats-grid {
     display: grid;
@@ -398,15 +392,15 @@ function fmtDate(iso: string | null) {
     padding: 28px 24px;
     box-shadow: 0 2px 12px rgba(0,0,0,0.05);
   }
-  .stat-card--accent { border-top: 3px solid #2D6A4F; }
-  .stat-label { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #5C5C6B; margin-bottom: 10px; }
-  .stat-value { font-family: 'Playfair Display', serif; font-size: 1.8rem; color: #1B4332; }
+  .stat-card--accent { border-top: 3px solid var(--color-primary-mid); }
+  .stat-label { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-muted); margin-bottom: 10px; }
+  .stat-value { font-family: 'Playfair Display', serif; font-size: 1.8rem; color: var(--color-primary); }
   .stat-value--sm { font-size: 1.1rem; font-weight: 600; font-family: 'Inter', sans-serif; }
 
   .section h2 {
     font-family: 'Playfair Display', serif;
     font-size: 1.3rem;
-    color: #1B4332;
+    color: var(--color-primary);
   }
 
   table {
@@ -424,60 +418,39 @@ function fmtDate(iso: string | null) {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #5C5C6B;
-    background: #F7F3EE;
-    border-bottom: 1px solid #E5E5EA;
+    color: var(--color-muted);
+    background: var(--color-bg);
+    border-bottom: 1px solid var(--color-border);
   }
   td {
     padding: 14px 20px;
     font-size: 0.92rem;
-    border-bottom: 1px solid #F0EDE8;
-    color: #1C1C1E;
+    border-bottom: 1px solid var(--color-border-light);
+    color: var(--color-text);
   }
   tr:last-child td { border-bottom: none; }
   .right { text-align: right; }
-  .muted { color: #5C5C6B; }
+  .muted { color: var(--color-muted); }
 
   .groups { display: flex; flex-direction: column; gap: 24px; }
-  .group-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 10px;
-  }
-  .group-total {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.1rem;
-    color: #1B4332;
-    font-weight: 700;
-  }
+  .group-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .group-total { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: var(--color-primary); font-weight: 700; }
 
-  .badge {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 99px;
-    font-size: 0.78rem;
-    font-weight: 600;
-  }
-  .badge-adhesion { background: #DBEAFE; color: #1D4ED8; }
-  .badge-don { background: #D1FAE5; color: #065F46; }
-  .badge-don_defiscalise { background: #EDE9FE; color: #5B21B6; }
-  .badge-apport_associatif { background: #FEF3C7; color: #92400E; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 0.78rem; font-weight: 600; }
+  .badge-adhesion        { background: var(--badge-adhesion-bg);  color: var(--badge-adhesion-text); }
+  .badge-don             { background: var(--badge-don-bg);        color: var(--badge-don-text); }
+  .badge-don_defiscalise { background: var(--badge-don-def-bg);    color: var(--badge-don-def-text); }
+  .badge-apport_associatif { background: var(--badge-apport-bg);  color: var(--badge-apport-text); }
 
-  .empty { color: #5C5C6B; font-size: 0.9rem; padding: 24px 0; }
+  .empty { color: var(--color-muted); font-size: 0.9rem; padding: 24px 0; }
 
-  .section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 20px;
-  }
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
   .section-header h2 { margin-bottom: 0; }
   .btn-download {
     padding: 8px 16px;
     background: white;
-    color: #2D6A4F;
-    border: 1.5px solid #2D6A4F;
+    color: var(--color-primary-mid);
+    border: 1.5px solid var(--color-primary-mid);
     border-radius: 8px;
     font-size: 0.85rem;
     font-weight: 600;
@@ -486,7 +459,7 @@ function fmtDate(iso: string | null) {
     transition: all 0.2s;
     white-space: nowrap;
   }
-  .btn-download:hover { background: #F0FDF4; }
+  .btn-download:hover { background: var(--color-success-bg); }
 
   @media (max-width: 640px) {
     .stats-grid { grid-template-columns: 1fr; }
