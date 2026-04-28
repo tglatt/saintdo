@@ -14,7 +14,7 @@ const { data: membre } = await supabase
 
 const { data: transactions } = await supabase
   .from('transactions')
-  .select('type, montant, date')
+  .select('type, montant, date, paiement')
   .eq('membre_id', (await supabase.from('membres').select('id').eq('email', user.email).single()).data?.id)
   .order('date', { ascending: false });
 
@@ -102,7 +102,12 @@ function fmtDate(iso: string | null) {
 
       <!-- TRANSACTIONS -->
       <section class="section">
-        <h2>Historique de vos transactions</h2>
+        <div class="section-header">
+          <h2>Historique de vos transactions</h2>
+          {groups.length > 0 && (
+            <button id="btn-recu" class="btn-download">Télécharger le reçu (PDF)</button>
+          )}
+        </div>
         {groups.length > 0 ? (
           <table>
             <thead>
@@ -129,6 +134,178 @@ function fmtDate(iso: string | null) {
 
     </div>
   </main>
+
+  <script type="application/json" id="recu-data" set:html={JSON.stringify({
+    nom: [membre?.nom, membre?.prenom].filter(Boolean).join(' ') || user.email,
+    email: user.email,
+    rows: (transactions ?? []).map(t => ({
+      label: typeLabel[t.type] ?? t.type,
+      date: t.date ?? null,
+      paiement: t.paiement ?? null,
+      montant: t.montant,
+    })),
+    totalAdhesion,
+    totalApport,
+  })}></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+    document.getElementById('btn-recu')?.addEventListener('click', async () => {
+      const data = JSON.parse(document.getElementById('recu-data').textContent);
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+      const green = [27, 67, 50];
+      const lightBg = [247, 243, 238];
+      const grey = [92, 92, 107];
+      const pageW = doc.internal.pageSize.getWidth();
+      const marginL = 16;
+      const marginR = pageW - 16;
+
+      function eur(n) {
+        return Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ' EUR';
+      }
+
+      // En-tête
+      doc.setFillColor(...green);
+      doc.rect(0, 0, pageW, 36, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(255, 255, 255);
+      doc.text('Le Saint-Domingue', marginL, 11);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.text('85 impasse de la Gélibaudière — 26150 Die', marginL, 18);
+      doc.text('SIRET : 10073905100017', marginL, 24);
+      const today = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+      doc.text(`Édité le ${today}`, marginR, 24, { align: 'right' });
+
+      // Titre
+      doc.setFontSize(18);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...green);
+      doc.text('Reçu', marginL, 52);
+
+      // Infos membre
+      doc.setFontSize(9);
+      doc.setFontSize(10);
+      doc.setTextColor(28, 28, 30);
+      doc.setFont('helvetica', 'bold');
+      doc.text(data.nom, marginL, 68);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(...grey);
+      doc.text(data.email, marginL, 74);
+
+      // Table header
+      let y = 84;
+      const rowH = 9;
+      const colType = marginL;
+      const colDate = 80;
+      const colPaiement = 120;
+      const colMontant = marginR;
+
+      const paiementLabel = { helloasso: 'HelloAsso', virement: 'Virement', cheque: 'Chèque' };
+
+      doc.setFillColor(...green);
+      doc.rect(marginL, y, marginR - marginL, rowH, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(255, 255, 255);
+      doc.text('Type', colType + 3, y + 6);
+      doc.text('Date', colDate, y + 6);
+      doc.text('Paiement', colPaiement, y + 6);
+      doc.text('Montant', colMontant, y + 6, { align: 'right' });
+      y += rowH;
+
+      // Grouper par date + type + paiement
+      const grouped = new Map();
+      for (const r of data.rows) {
+        const key = `${r.date}||${r.label}||${r.paiement}`;
+        if (grouped.has(key)) {
+          grouped.get(key).montant += r.montant;
+        } else {
+          grouped.set(key, { ...r });
+        }
+      }
+      const groupedRows = [...grouped.values()].sort((a, b) => {
+        if (!a.date && !b.date) return 0;
+        if (!a.date) return 1;
+        if (!b.date) return -1;
+        return new Date(b.date) - new Date(a.date);
+      });
+
+      // Rows
+      groupedRows.forEach((r, i) => {
+        if (i % 2 === 0) {
+          doc.setFillColor(...lightBg);
+          doc.rect(marginL, y, marginR - marginL, rowH, 'F');
+        }
+        const date = r.date
+          ? new Date(r.date).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+          : '—';
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.setTextColor(28, 28, 30);
+        doc.text(r.label, colType + 3, y + 6);
+        doc.setTextColor(...grey);
+        doc.text(date, colDate, y + 6);
+        doc.text(paiementLabel[r.paiement] ?? '—', colPaiement, y + 6);
+        doc.setTextColor(28, 28, 30);
+        doc.setFont('helvetica', 'bold');
+        doc.text(eur(r.montant), colMontant, y + 6, { align: 'right' });
+        y += rowH;
+      });
+
+      // Signature
+      y += 20;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(...grey);
+      doc.text('Le Président de l\'association', marginR - 50, y, { align: 'left' });
+      y += 5;
+
+      // Tentative de chargement de l'image signature
+      const sigX = marginR - 50;
+      const sigW = 50;
+      const sigH = 20;
+      try {
+        const res = await fetch('/signature.png');
+        if (res.ok) {
+          const blob = await res.blob();
+          const reader = new FileReader();
+          await new Promise(resolve => {
+            reader.onload = () => {
+              doc.addImage(reader.result, 'PNG', sigX, y, sigW, sigH);
+              resolve();
+            };
+            reader.readAsDataURL(blob);
+          });
+          y += sigH + 4;
+        } else {
+          doc.setDrawColor(200, 200, 200);
+          doc.setLineWidth(0.3);
+          doc.rect(sigX, y, sigW, sigH);
+          doc.setFontSize(7);
+          doc.setTextColor(180, 180, 180);
+          doc.text('[ signature ]', sigX + sigW / 2, y + sigH / 2 + 2, { align: 'center' });
+          y += sigH + 4;
+        }
+      } catch {
+        doc.setDrawColor(200, 200, 200);
+        doc.setLineWidth(0.3);
+        doc.rect(sigX, y, sigW, sigH);
+        y += sigH + 4;
+      }
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.setTextColor(28, 28, 30);
+      doc.text('Thomas Glatt', marginR - 50, y, { align: 'left' });
+
+      doc.save('recu-saint-domingue.pdf');
+    });
+  </script>
 
 </body>
 </html>
@@ -230,7 +407,6 @@ function fmtDate(iso: string | null) {
     font-family: 'Playfair Display', serif;
     font-size: 1.3rem;
     color: #1B4332;
-    margin-bottom: 20px;
   }
 
   table {
@@ -289,6 +465,28 @@ function fmtDate(iso: string | null) {
   .badge-apport_associatif { background: #FEF3C7; color: #92400E; }
 
   .empty { color: #5C5C6B; font-size: 0.9rem; padding: 24px 0; }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .section-header h2 { margin-bottom: 0; }
+  .btn-download {
+    padding: 8px 16px;
+    background: white;
+    color: #2D6A4F;
+    border: 1.5px solid #2D6A4F;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .btn-download:hover { background: #F0FDF4; }
 
   @media (max-width: 640px) {
     .stats-grid { grid-template-columns: 1fr; }
