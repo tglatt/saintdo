@@ -81,6 +81,13 @@ function fmtDateTime(iso: string | null) {
     </div>
   </nav>
 
+  <subnav>
+    <div class="subnav-inner">
+      <a href="/admin" class="subnav-link active">Membres</a>
+      <a href="/admin/transactions" class="subnav-link">Transactions</a>
+    </div>
+  </subnav>
+
   <main>
     <div class="container">
 
@@ -344,7 +351,31 @@ function fmtDateTime(iso: string | null) {
     color: var(--color-primary);
     text-decoration: none;
   }
-  .nav-right { display: flex; align-items: center; gap: 16px; }
+  .nav-right { display: flex; align-items: center; gap: 12px; }
+
+  subnav {
+    background: white;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .subnav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    gap: 4px;
+  }
+  .subnav-link {
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--color-muted);
+    text-decoration: none;
+    padding: 10px 14px;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .subnav-link:hover { color: var(--color-primary); }
+  .subnav-link.active { color: var(--color-primary); border-bottom-color: var(--color-primary-mid); font-weight: 600; }
   .user-email { font-size: 0.85rem; color: var(--color-muted); }
   .btn-logout, .btn-member {
     font-size: 0.85rem;
@@ -707,6 +738,7 @@ function fmtDateTime(iso: string | null) {
     .stats-grid { grid-template-columns: repeat(3, 1fr); }
   }
   @media (max-width: 768px) {
+    .user-email { display: none; }
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
     .user-email { display: none; }
     #search { width: 100%; }

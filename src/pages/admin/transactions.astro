@@ -1,0 +1,441 @@
+---
+import { createAdminClient } from '../../lib/supabase';
+import '../../styles/theme.css';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/login');
+
+const supabase = createAdminClient();
+
+const { data: transactions } = await supabase
+  .from('transactions')
+  .select('id, type, montant, date, paiement, helloasso_order_id, membres(nom, prenom, email)')
+  .order('date', { ascending: false });
+
+const typeLabel: Record<string, string> = {
+  adhesion: 'Adhésion',
+  don: 'Don',
+  don_defiscalise: 'Don défiscalisé',
+  apport_associatif: 'Apport associatif',
+};
+const paiementLabel: Record<string, string> = {
+  helloasso: 'HelloAsso',
+  cheque: 'Chèque',
+  virement: 'Virement',
+};
+
+function euros(n: number) {
+  return n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+}
+function fmtDate(iso: string | null) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transactions — Admin Saint Domingue</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <nav>
+    <div class="nav-inner">
+      <a href="/" class="logo">Saint Domingue</a>
+      <div class="nav-right">
+        <a href="/espace-membre" class="btn-member">Mon espace</a>
+        <span class="user-email">{user.email}</span>
+        <a href="/auth/logout" class="btn-logout">Déconnexion</a>
+      </div>
+    </div>
+  </nav>
+
+  <subnav>
+    <div class="subnav-inner">
+      <a href="/admin" class="subnav-link">Membres</a>
+      <a href="/admin/transactions" class="subnav-link active">Transactions</a>
+    </div>
+  </subnav>
+
+  <main>
+    <div class="container">
+
+      <header class="page-header">
+        <h1>Transactions</h1>
+        <p class="sub">{transactions?.length ?? 0} transactions au total.</p>
+      </header>
+
+      <div class="toolbar">
+        <input type="text" id="search" placeholder="Rechercher par nom, email, type…" autocomplete="off" />
+        <select id="filter-type">
+          <option value="">Tous les types</option>
+          <option value="adhesion">Adhésion</option>
+          <option value="don">Don</option>
+          <option value="don_defiscalise">Don défiscalisé</option>
+          <option value="apport_associatif">Apport associatif</option>
+        </select>
+        <select id="filter-paiement">
+          <option value="">Tous les paiements</option>
+          <option value="helloasso">HelloAsso</option>
+          <option value="cheque">Chèque</option>
+          <option value="virement">Virement</option>
+        </select>
+      </div>
+
+      <div class="table-wrapper">
+        <table id="tx-table">
+          <thead>
+            <tr>
+              <th data-col="0" class="sortable">Membre <span class="sort-icon">↕</span></th>
+              <th data-col="1" class="sortable">Email <span class="sort-icon">↕</span></th>
+              <th data-col="2" class="sortable">Type <span class="sort-icon">↕</span></th>
+              <th data-col="3" class="sortable">Date <span class="sort-icon">↕</span></th>
+              <th data-col="4" class="sortable">Paiement <span class="sort-icon">↕</span></th>
+              <th data-col="5" class="sortable right">Montant <span class="sort-icon">↕</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            {transactions?.map(tx => {
+              const m = tx.membres as any;
+              const nom = [m?.nom, m?.prenom].filter(Boolean).join(' ') || '—';
+              return (
+                <tr
+                  data-type={tx.type}
+                  data-paiement={tx.paiement ?? ''}
+                  data-search={`${nom} ${m?.email ?? ''} ${typeLabel[tx.type] ?? ''} ${paiementLabel[tx.paiement ?? ''] ?? ''}`.toLowerCase()}
+                >
+                  <td class="bold">{nom}</td>
+                  <td class="muted">{m?.email ?? '—'}</td>
+                  <td><span class={`badge badge-${tx.type}`}>{typeLabel[tx.type] ?? tx.type}</span></td>
+                  <td class="muted">{fmtDate(tx.date)}</td>
+                  <td class="muted">{paiementLabel[tx.paiement ?? ''] ?? '—'}</td>
+                  <td class="right bold">{euros(tx.montant)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination" id="pagination"></div>
+
+    </div>
+  </main>
+
+</body>
+</html>
+
+<script>
+  const PAGE_SIZE = 50;
+  let currentPage = 1;
+  let sortCol = 3;
+  let sortAsc = false;
+
+  const tbody = document.querySelector<HTMLTableSectionElement>('#tx-table tbody')!;
+  const pagination = document.getElementById('pagination')!;
+  const search = document.getElementById('search') as HTMLInputElement;
+  const filterType = document.getElementById('filter-type') as HTMLSelectElement;
+  const filterPaiement = document.getElementById('filter-paiement') as HTMLSelectElement;
+
+  function allRows() {
+    return Array.from(tbody.querySelectorAll<HTMLTableRowElement>('tr'));
+  }
+
+  function visibleRows() {
+    const q = search.value.toLowerCase().trim();
+    const type = filterType.value;
+    const paiement = filterPaiement.value;
+
+    return allRows().filter(row => {
+      if (type && row.dataset.type !== type) return false;
+      if (paiement && row.dataset.paiement !== paiement) return false;
+      if (q && !row.dataset.search?.includes(q)) return false;
+      return true;
+    });
+  }
+
+  function renderPage() {
+    const rows = visibleRows();
+    const total = rows.length;
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    currentPage = Math.min(currentPage, totalPages);
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const end = start + PAGE_SIZE;
+
+    allRows().forEach(r => r.classList.add('hidden'));
+    rows.slice(start, end).forEach(r => r.classList.remove('hidden'));
+
+    // Pagination
+    pagination.innerHTML = '';
+    if (totalPages <= 1) return;
+
+    const info = document.createElement('span');
+    info.className = 'page-info';
+    info.textContent = `${start + 1}–${Math.min(end, total)} sur ${total}`;
+    pagination.appendChild(info);
+
+    const prev = document.createElement('button');
+    prev.textContent = '←';
+    prev.disabled = currentPage === 1;
+    prev.addEventListener('click', () => { currentPage--; renderPage(); });
+    pagination.appendChild(prev);
+
+    for (let p = 1; p <= totalPages; p++) {
+      if (totalPages > 7 && Math.abs(p - currentPage) > 2 && p !== 1 && p !== totalPages) {
+        if (p === 2 || p === totalPages - 1) {
+          const dots = document.createElement('span');
+          dots.textContent = '…';
+          dots.className = 'dots';
+          pagination.appendChild(dots);
+        }
+        continue;
+      }
+      const btn = document.createElement('button');
+      btn.textContent = String(p);
+      if (p === currentPage) btn.classList.add('active');
+      btn.addEventListener('click', () => { currentPage = p; renderPage(); });
+      pagination.appendChild(btn);
+    }
+
+    const next = document.createElement('button');
+    next.textContent = '→';
+    next.disabled = currentPage === totalPages;
+    next.addEventListener('click', () => { currentPage++; renderPage(); });
+    pagination.appendChild(next);
+  }
+
+  function sortRows(col: number, asc: boolean) {
+    const rows = allRows();
+    rows.sort((a, b) => {
+      const aText = a.cells[col]?.textContent?.trim() ?? '';
+      const bText = b.cells[col]?.textContent?.trim() ?? '';
+
+      const dateRe = /^\d{2}\/\d{2}\/\d{4}$/;
+      if (dateRe.test(aText) && dateRe.test(bText)) {
+        const [ad, am, ay] = aText.split('/');
+        const [bd, bm, by] = bText.split('/');
+        const cmp = new Date(`${ay}-${am}-${ad}`).getTime() - new Date(`${by}-${bm}-${bd}`).getTime();
+        return asc ? cmp : -cmp;
+      }
+
+      const aNum = parseFloat(aText.replace(/[^0-9,.-]/g, '').replace(',', '.'));
+      const bNum = parseFloat(bText.replace(/[^0-9,.-]/g, '').replace(',', '.'));
+      if (!isNaN(aNum) && !isNaN(bNum)) {
+        return asc ? aNum - bNum : bNum - aNum;
+      }
+
+      const cmp = aText.localeCompare(bText, 'fr');
+      return asc ? cmp : -cmp;
+    });
+    rows.forEach(r => tbody.appendChild(r));
+    renderPage();
+  }
+
+  document.querySelectorAll<HTMLTableCellElement>('th.sortable').forEach(th => {
+    th.addEventListener('click', () => {
+      const col = parseInt(th.dataset.col ?? '0');
+      if (sortCol === col) {
+        sortAsc = !sortAsc;
+      } else {
+        sortCol = col;
+        sortAsc = true;
+      }
+      document.querySelectorAll('th').forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+      th.classList.add(sortAsc ? 'sort-asc' : 'sort-desc');
+      sortRows(col, sortAsc);
+    });
+  });
+
+  search.addEventListener('input', () => { currentPage = 1; renderPage(); });
+  filterType.addEventListener('change', () => { currentPage = 1; renderPage(); });
+  filterPaiement.addEventListener('change', () => { currentPage = 1; renderPage(); });
+
+  // Tri par date décroissant par défaut
+  const dateHeader = document.querySelector<HTMLTableCellElement>('th[data-col="3"]')!;
+  dateHeader.classList.add('sort-desc');
+  sortRows(3, false);
+</script>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body { font-family: 'Inter', system-ui, sans-serif; background: var(--color-bg); color: var(--color-text); min-height: 100vh; }
+
+  nav {
+    background: white;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  subnav {
+    background: white;
+    border-bottom: 1px solid var(--color-border);
+    position: sticky;
+    top: 60px;
+    z-index: 9;
+  }
+  .nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    text-decoration: none;
+  }
+  .nav-right { display: flex; align-items: center; gap: 12px; }
+  .user-email { font-size: 0.85rem; color: var(--color-muted); }
+  .btn-logout, .btn-member {
+    font-size: 0.85rem;
+    color: var(--color-muted);
+    text-decoration: none;
+    padding: 6px 10px;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .btn-logout:hover, .btn-member:hover { background: var(--color-bg); color: var(--color-text); }
+  .subnav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    gap: 4px;
+  }
+  .subnav-link {
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--color-muted);
+    text-decoration: none;
+    padding: 10px 14px;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .subnav-link:hover { color: var(--color-primary); }
+  .subnav-link.active { color: var(--color-primary); border-bottom-color: var(--color-primary-mid); font-weight: 600; }
+
+  main { padding: 48px 24px; }
+  .container { max-width: 1200px; margin: 0 auto; }
+
+  .page-header { margin-bottom: 32px; }
+  h1 { font-family: 'Playfair Display', serif; font-size: 2rem; color: var(--color-primary); margin-bottom: 6px; }
+  .sub { color: var(--color-muted); }
+
+  .toolbar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .toolbar input, .toolbar select {
+    padding: 8px 14px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    outline: none;
+    background: white;
+    color: var(--color-text);
+    transition: border-color 0.2s;
+  }
+  .toolbar input { width: 280px; }
+  .toolbar input:focus, .toolbar select:focus { border-color: var(--color-primary-mid); }
+
+  .table-wrapper { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    min-width: 800px;
+  }
+  th {
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-muted);
+    background: var(--color-bg);
+    border-bottom: 1px solid var(--color-border);
+  }
+  td {
+    padding: 11px 16px;
+    font-size: 0.88rem;
+    border-bottom: 1px solid var(--color-border-light);
+    color: var(--color-text);
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--color-surface); }
+  tr.hidden { display: none; }
+  .right { text-align: right; }
+  .bold { font-weight: 600; }
+  .muted { color: var(--color-muted); }
+
+  th.sortable { cursor: pointer; user-select: none; }
+  th.sortable:hover { background: var(--color-primary-hover); }
+  .sort-icon { font-size: 0.7rem; color: var(--color-subtle); }
+  th.sort-asc .sort-icon, th.sort-desc .sort-icon { color: var(--color-primary-mid); }
+  th.sort-asc .sort-icon::after { content: ' ↑'; }
+  th.sort-desc .sort-icon::after { content: ' ↓'; }
+
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
+  .badge-adhesion        { background: var(--badge-adhesion-bg);  color: var(--badge-adhesion-text); }
+  .badge-don             { background: var(--badge-don-bg);        color: var(--badge-don-text); }
+  .badge-don_defiscalise { background: var(--badge-don-def-bg);    color: var(--badge-don-def-text); }
+  .badge-apport_associatif { background: var(--badge-apport-bg);  color: var(--badge-apport-text); }
+
+  .pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+  }
+  .page-info { font-size: 0.85rem; color: var(--color-muted); margin-right: 8px; }
+  .pagination button {
+    min-width: 36px;
+    height: 36px;
+    padding: 0 8px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 8px;
+    background: white;
+    color: var(--color-text);
+    font-size: 0.88rem;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .pagination button:hover:not(:disabled) { border-color: var(--color-primary-mid); color: var(--color-primary-mid); }
+  .pagination button.active { background: var(--color-primary-mid); border-color: var(--color-primary-mid); color: white; }
+  .pagination button:disabled { opacity: 0.4; cursor: not-allowed; }
+  .dots { font-size: 0.88rem; color: var(--color-muted); padding: 0 4px; }
+
+  @media (max-width: 768px) {
+    .user-email { display: none; }
+    .toolbar { flex-direction: column; }
+    .toolbar input, .toolbar select { width: 100%; }
+  }
+</style>
