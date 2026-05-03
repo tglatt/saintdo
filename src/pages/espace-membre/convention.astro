@@ -25,10 +25,10 @@ const admin = createAdminClient();
 
 const { data: membre } = await admin
   .from('membres')
-  .select('id, nom, prenom, role, address, zip_code, city')
+  .select('id, nom, prenom, role, convention_enabled, address, zip_code, city')
   .eq('email', user.email)
   .single();
-if (!membre) return Astro.redirect('/login');
+if (!membre || !membre.convention_enabled) return Astro.redirect('/espace-membre');
 
 const { data: txs } = await admin
   .from('transactions')
@@ -37,7 +37,6 @@ const { data: txs } = await admin
   .eq('type', 'apport_associatif');
 
 const totalApport = txs?.reduce((s: number, t: { montant: number }) => s + t.montant, 0) ?? 0;
-if (totalApport === 0) return Astro.redirect('/espace-membre');
 
 // Vérifier si une convention a déjà été signée
 const { data: existingConvention } = await admin

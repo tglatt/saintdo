@@ -24,6 +24,7 @@ export type Membre = {
   city: string | null;
   country: string | null;
   structure: string | null;
+  convention_enabled: boolean;
   role: 'membre' | 'admin';
   created_at: string;
   updated_at: string;
