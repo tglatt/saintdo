@@ -9,7 +9,7 @@ const supabase = createAdminClient();
 
 const { data: membre } = await supabase
   .from('membres')
-  .select('nom, prenom, role, created_at')
+  .select('nom, prenom, role, created_at, address, zip_code, city')
   .eq('email', user.email)
   .single();
 
@@ -18,6 +18,8 @@ const { data: transactions } = await supabase
   .select('type, montant, date, paiement')
   .eq('membre_id', (await supabase.from('membres').select('id').eq('email', user.email).single()).data?.id)
   .order('date', { ascending: false });
+
+const needsAddress = !membre?.address || !membre?.zip_code || !membre?.city;
 
 const totalAdhesion = transactions?.filter(t => ['adhesion', 'don', 'don_defiscalise'].includes(t.type)).reduce((s, t) => s + t.montant, 0) ?? 0;
 const totalApport = transactions?.filter(t => t.type === 'apport_associatif').reduce((s, t) => s + t.montant, 0) ?? 0;
@@ -98,6 +100,62 @@ function fmtDate(iso: string | null) {
         <div class="stat-card">
           <div class="stat-label">Membre depuis</div>
           <div class="stat-value stat-value--sm">{fmtDate(membre?.created_at ?? null)}</div>
+        </div>
+      </div>
+
+      <!-- PROFIL -->
+      <section class="section section--profil">
+        <div class="section-header">
+          <h2>Mon profil</h2>
+          <button id="btn-edit-profil" class="btn-download">Modifier</button>
+        </div>
+        <div class="profil-card">
+          <div class="profil-row">
+            <span class="profil-label">Adresse</span>
+            <span class="profil-value" id="display-address">{membre?.address || <span class="muted">—</span>}</span>
+          </div>
+          <div class="profil-row">
+            <span class="profil-label">Code postal</span>
+            <span class="profil-value" id="display-zip">{membre?.zip_code || <span class="muted">—</span>}</span>
+          </div>
+          <div class="profil-row">
+            <span class="profil-label">Ville</span>
+            <span class="profil-value" id="display-city">{membre?.city || <span class="muted">—</span>}</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- MODAL PROFIL -->
+      <div id="profil-overlay" class="modal-overlay hidden">
+        <div class="modal">
+          <div class="modal-header">
+            <h2>Mon profil</h2>
+            <button id="profil-close" class="modal-close">✕</button>
+          </div>
+          <div class="modal-body">
+            <div id="profil-error" class="form-error hidden"></div>
+            {needsAddress && (
+              <p id="profil-notice" class="profil-notice">Merci de renseigner votre adresse pour accéder à votre espace membre.</p>
+            )}
+            <div class="form-group">
+              <label>Adresse</label>
+              <input id="pm-address" type="text" autocomplete="street-address" />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Code postal</label>
+                <input id="pm-zip" type="text" autocomplete="postal-code" />
+              </div>
+              <div class="form-group">
+                <label>Ville</label>
+                <input id="pm-city" type="text" autocomplete="address-level2" />
+              </div>
+            </div>
+            <div class="form-actions">
+              <button type="button" id="profil-cancel">Annuler</button>
+              <button type="submit" id="profil-submit">Enregistrer</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -313,6 +371,73 @@ function fmtDate(iso: string | null) {
     });
   </script>
 
+  <script>
+    const overlay   = document.getElementById('profil-overlay')!;
+    const errEl     = document.getElementById('profil-error')!;
+    const submitBtn = document.getElementById('profil-submit') as HTMLButtonElement;
+    const inputs    = ['pm-address', 'pm-zip', 'pm-city'].map(id => document.getElementById(id) as HTMLInputElement);
+    let required    = !!document.getElementById('profil-notice');
+
+    function checkFields() {
+      submitBtn.disabled = inputs.some(i => !i.value.trim());
+    }
+    inputs.forEach(i => i.addEventListener('input', checkFields));
+
+    function openProfil() {
+      (document.getElementById('pm-address') as HTMLInputElement).value = document.getElementById('display-address')!.textContent?.trim() === '—' ? '' : document.getElementById('display-address')!.textContent!.trim();
+      (document.getElementById('pm-zip')     as HTMLInputElement).value = document.getElementById('display-zip')!.textContent?.trim()     === '—' ? '' : document.getElementById('display-zip')!.textContent!.trim();
+      (document.getElementById('pm-city')    as HTMLInputElement).value = document.getElementById('display-city')!.textContent?.trim()    === '—' ? '' : document.getElementById('display-city')!.textContent!.trim();
+      errEl.classList.add('hidden');
+      overlay.classList.remove('hidden');
+      checkFields();
+    }
+
+    function closeProfil() {
+      if (required) return;
+      overlay.classList.add('hidden');
+    }
+
+    if (required) {
+      openProfil();
+      document.getElementById('profil-close')!.style.display = 'none';
+      document.getElementById('profil-cancel')!.style.display = 'none';
+    }
+
+    document.getElementById('btn-edit-profil')!.addEventListener('click', openProfil);
+    document.getElementById('profil-close')!.addEventListener('click', closeProfil);
+    document.getElementById('profil-cancel')!.addEventListener('click', closeProfil);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeProfil(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeProfil(); });
+
+    submitBtn.addEventListener('click', async () => {
+      const address  = (document.getElementById('pm-address') as HTMLInputElement).value.trim();
+      const zip_code = (document.getElementById('pm-zip')     as HTMLInputElement).value.trim();
+      const city     = (document.getElementById('pm-city')    as HTMLInputElement).value.trim();
+
+      submitBtn.disabled = true;
+      const res = await fetch('/api/membre/profil', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address, zip_code, city }),
+      });
+      if (!res.ok) submitBtn.disabled = false;
+
+      if (!res.ok) {
+        errEl.textContent = await res.text();
+        errEl.classList.remove('hidden');
+        return;
+      }
+
+      document.getElementById('display-address')!.textContent = address || '—';
+      document.getElementById('display-zip')!.textContent     = zip_code || '—';
+      document.getElementById('display-city')!.textContent    = city || '—';
+      required = false;
+      document.getElementById('profil-close')!.style.display = '';
+      document.getElementById('profil-cancel')!.style.display = '';
+      closeProfil();
+    });
+  </script>
+
 </body>
 </html>
 
@@ -468,6 +593,99 @@ function fmtDate(iso: string | null) {
     text-decoration: none;
   }
   .btn-download:hover { background: var(--color-success-bg); }
+
+  .section--profil { margin-bottom: 40px; }
+
+  .profil-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    overflow: hidden;
+  }
+  .profil-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--color-border-light);
+    font-size: 0.92rem;
+  }
+  .profil-row:last-child { border-bottom: none; }
+  .profil-label { width: 130px; flex-shrink: 0; color: var(--color-muted); font-size: 0.82rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
+  .profil-value { color: var(--color-text); }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .modal-overlay.hidden { display: none; }
+  .modal {
+    background: white;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 480px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 48px rgba(0,0,0,0.18);
+  }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 24px 28px 20px;
+    border-bottom: 1px solid var(--color-border-light);
+  }
+  .modal-header h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    color: var(--color-primary);
+    margin: 0;
+  }
+  .modal-close { background: none; border: none; font-size: 1.1rem; color: var(--color-muted); cursor: pointer; padding: 4px 8px; }
+  .modal-close:hover { color: var(--color-text); }
+  .modal-body { padding: 24px 28px; }
+
+  .form-group { margin-bottom: 18px; }
+  .form-group label { display: block; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-muted); margin-bottom: 6px; }
+  .form-group input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+    color: var(--color-text);
+  }
+  .form-group input:focus { border-color: var(--color-primary-mid); }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 8px; }
+  .form-actions button {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+  .form-actions button[type="button"] { background: var(--color-bg); color: var(--color-muted); }
+  .form-actions button[type="button"]:hover { background: var(--color-border); }
+  .form-actions button[type="submit"] { background: var(--color-primary-mid); color: white; }
+  .form-actions button[type="submit"]:hover:not(:disabled) { background: var(--color-primary); }
+  .form-actions button:disabled { opacity: 0.45; cursor: not-allowed; background: var(--color-subtle); color: white; }
+  .form-error { color: var(--color-error); font-size: 0.85rem; margin-bottom: 16px; padding: 10px 14px; background: #fef2f2; border-radius: 8px; }
+  .form-error.hidden { display: none; }
+  .profil-notice { font-size: 0.88rem; color: var(--color-primary); background: var(--color-success-bg); padding: 10px 14px; border-radius: 8px; margin-bottom: 20px; }
 
   @media (max-width: 640px) {
     .stats-grid { grid-template-columns: 1fr; }
