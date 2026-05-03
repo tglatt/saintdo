@@ -1,0 +1,597 @@
+---
+import { createAdminClient } from '../../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
+import { readFile } from 'fs/promises';
+import { join } from 'path';
+import '../../styles/theme.css';
+
+// ── Auth ─────────────────────────────────────────────────────────────────────
+const accessToken = Astro.cookies.get('sb-access-token')?.value;
+const refreshToken = Astro.cookies.get('sb-refresh-token')?.value;
+if (!accessToken || !refreshToken) return Astro.redirect('/login');
+
+const supabaseAnon = createClient(
+  import.meta.env.PUBLIC_SUPABASE_URL,
+  import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+);
+const { data: { user }, error: authError } = await supabaseAnon.auth.setSession({
+  access_token: accessToken,
+  refresh_token: refreshToken,
+});
+if (authError || !user) return Astro.redirect('/login');
+
+// ── Data ──────────────────────────────────────────────────────────────────────
+const admin = createAdminClient();
+
+const { data: membre } = await admin
+  .from('membres')
+  .select('id, nom, prenom, role')
+  .eq('email', user.email)
+  .single();
+if (!membre) return Astro.redirect('/login');
+
+const { data: txs } = await admin
+  .from('transactions')
+  .select('montant, date')
+  .eq('membre_id', membre.id)
+  .eq('type', 'apport_associatif');
+
+const totalApport = txs?.reduce((s: number, t: { montant: number }) => s + t.montant, 0) ?? 0;
+if (totalApport === 0) return Astro.redirect('/espace-membre');
+
+// Vérifier si une convention a déjà été signée
+const { data: existingConvention } = await admin
+  .from('conventions')
+  .select('signed_at')
+  .eq('membre_id', membre.id)
+  .order('signed_at', { ascending: false })
+  .limit(1)
+  .maybeSingle();
+
+const alreadySigned = !!existingConvention;
+const signedAt = existingConvention
+  ? new Date(existingConvention.signed_at).toLocaleDateString('fr-FR', {
+      day: '2-digit', month: 'long', year: 'numeric',
+    })
+  : null;
+
+const nom = [membre.nom, membre.prenom].filter(Boolean).join(' ') || (user.email ?? 'Adhérent');
+const montant = totalApport.toLocaleString('fr-FR', {
+  style: 'currency',
+  currency: 'EUR',
+  maximumFractionDigits: 0,
+});
+const lastTxDate = txs
+  ?.map((t: { date: string | null }) => t.date)
+  .filter(Boolean)
+  .sort()
+  .at(-1);
+const dateRef = lastTxDate ? new Date(lastTxDate) : new Date();
+const date = dateRef.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+
+// ── Markdown → HTML ───────────────────────────────────────────────────────────
+function parseInlineToHtml(text: string): string {
+  const parts = text.split('**');
+  return parts
+    .map((p, i) => {
+      const escaped = p.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      return i % 2 === 1 ? `<strong>${escaped}</strong>` : escaped;
+    })
+    .join('');
+}
+
+function parseMarkdownToHtml(md: string): string {
+  const rawBlocks = md.split(/\n{2,}/);
+  const htmlParts: string[] = [];
+  let inList = false;
+
+  for (const raw of rawBlocks) {
+    const trimmed = raw.trim();
+    if (!trimmed) continue;
+
+    // Skip signature placeholder entirely
+    if (trimmed === '[SIGNATURE]') continue;
+
+    if (trimmed === '---') {
+      if (inList) { htmlParts.push('</ul>'); inList = false; }
+      htmlParts.push('<hr>');
+      continue;
+    }
+
+    if (trimmed.startsWith('# ')) {
+      if (inList) { htmlParts.push('</ul>'); inList = false; }
+      htmlParts.push(`<h1>${parseInlineToHtml(trimmed.slice(2))}</h1>`);
+      continue;
+    }
+
+    if (trimmed.startsWith('## ')) {
+      if (inList) { htmlParts.push('</ul>'); inList = false; }
+      htmlParts.push(`<h2>${parseInlineToHtml(trimmed.slice(3))}</h2>`);
+      continue;
+    }
+
+    const lines = trimmed.split('\n');
+    if (lines.every(l => l.trimStart().startsWith('- '))) {
+      if (!inList) { htmlParts.push('<ul>'); inList = true; }
+      for (const l of lines) {
+        htmlParts.push(`<li>${parseInlineToHtml(l.trimStart().slice(2))}</li>`);
+      }
+      continue;
+    }
+
+    if (inList) { htmlParts.push('</ul>'); inList = false; }
+    htmlParts.push(`<p>${parseInlineToHtml(lines.join(' '))}</p>`);
+  }
+
+  if (inList) htmlParts.push('</ul>');
+  return htmlParts.join('\n');
+}
+
+const mdRaw = await readFile(join(process.cwd(), 'public', 'Saindo_convention_apport.md'), 'utf-8');
+const md = mdRaw
+  .replace('[NOM_ADHERENT]', nom)
+  .replace('[MONTANT_APPORT]', montant)
+  .replace('[DATE_JOUR]', date);
+
+const conventionHtml = parseMarkdownToHtml(md);
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Convention d'apport — Saint Domingue</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <nav>
+    <div class="nav-inner">
+      <a href="/" class="logo">Saint Domingue</a>
+      <div class="nav-right">
+        {membre?.role === 'admin' && <a href="/admin" class="btn-admin">Admin</a>}
+        <span class="user-email">{user.email}</span>
+        <a href="/auth/logout" class="btn-logout">Déconnexion</a>
+      </div>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+
+      <header class="page-header">
+        <a href="/espace-membre" class="back-link">← Retour à l'espace membre</a>
+        <h1>Convention d'apport</h1>
+        <p class="sub">Lisez la convention ci-dessous, signez puis téléchargez le document PDF.</p>
+      </header>
+
+      <div class="convention-layout">
+
+        <!-- Convention content -->
+        <div class="convention-card">
+          <div class="convention-body" set:html={conventionHtml} />
+        </div>
+
+        <!-- Signature pad ou état signé -->
+        <div class="sig-panel">
+          {alreadySigned ? (
+            <div class="sig-card">
+              <div class="signed-badge">✓ Convention signée</div>
+              <p class="signed-date">Signée le {signedAt}</p>
+              <a href="/api/convention" class="btn-primary btn-download-signed">
+                Télécharger le PDF
+              </a>
+            </div>
+          ) : (
+            <div class="sig-card">
+              <p class="sig-label">Votre signature</p>
+              <canvas id="sig-canvas" width="400" height="150"></canvas>
+              <div class="sig-actions">
+                <button id="btn-clear" class="btn-secondary">Effacer</button>
+                <button id="btn-sign" class="btn-primary" disabled>Signer et télécharger</button>
+              </div>
+              <p id="sig-error" class="sig-error" style="display:none">Veuillez d'abord dessiner votre signature.</p>
+              <p id="sig-loading" class="sig-loading" style="display:none">Génération du PDF en cours…</p>
+            </div>
+          )}
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <script>
+    const canvas = document.getElementById('sig-canvas') as HTMLCanvasElement;
+    const ctx = canvas.getContext('2d')!;
+
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = '#111';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    let isDrawing = false;
+    let hasDrawn = false;
+    let lastX = 0;
+    let lastY = 0;
+
+    function coords(clientX: number, clientY: number) {
+      const r = canvas.getBoundingClientRect();
+      return {
+        x: (clientX - r.left) * (canvas.width / r.width),
+        y: (clientY - r.top)  * (canvas.height / r.height),
+      };
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+      isDrawing = true;
+      const { x, y } = coords(e.clientX, e.clientY);
+      lastX = x; lastY = y;
+    });
+    canvas.addEventListener('mousemove', (e) => {
+      if (!isDrawing) return;
+      const { x, y } = coords(e.clientX, e.clientY);
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      lastX = x; lastY = y;
+      if (!hasDrawn) {
+        hasDrawn = true;
+        (document.getElementById('btn-sign') as HTMLButtonElement).disabled = false;
+      }
+    });
+    canvas.addEventListener('mouseup',    () => { isDrawing = false; });
+    canvas.addEventListener('mouseleave', () => { isDrawing = false; });
+
+    canvas.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      const t = e.touches[0];
+      const { x, y } = coords(t.clientX, t.clientY);
+      isDrawing = true;
+      lastX = x; lastY = y;
+    }, { passive: false });
+    canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      if (!isDrawing) return;
+      const t = e.touches[0];
+      const { x, y } = coords(t.clientX, t.clientY);
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      lastX = x; lastY = y;
+      if (!hasDrawn) {
+        hasDrawn = true;
+        (document.getElementById('btn-sign') as HTMLButtonElement).disabled = false;
+      }
+    }, { passive: false });
+    canvas.addEventListener('touchend', () => { isDrawing = false; });
+
+    document.getElementById('btn-clear')!.addEventListener('click', () => {
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      hasDrawn = false;
+      (document.getElementById('btn-sign') as HTMLButtonElement).disabled = true;
+      (document.getElementById('sig-error') as HTMLElement).style.display = 'none';
+    });
+
+    document.getElementById('btn-sign')!.addEventListener('click', async () => {
+      const errEl = document.getElementById('sig-error') as HTMLElement;
+      const loadEl = document.getElementById('sig-loading') as HTMLElement;
+      const btn = document.getElementById('btn-sign') as HTMLButtonElement;
+
+      if (!hasDrawn) {
+        errEl.style.display = 'block';
+        return;
+      }
+      errEl.style.display = 'none';
+
+      // Strip the data:image/png;base64, prefix
+      const dataUrl = canvas.toDataURL('image/png');
+      const base64 = dataUrl.replace(/^data:image\/png;base64,/, '');
+
+      btn.disabled = true;
+      loadEl.style.display = 'block';
+
+      try {
+        const res = await fetch('/api/convention', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ signature: base64 }),
+        });
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const cd = res.headers.get('Content-Disposition') ?? '';
+        const match = cd.match(/filename="([^"]+)"/);
+        a.download = match ? match[1] : 'convention-apport.pdf';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        // Basculer vers l'état "signé"
+        const today = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+        const card = document.querySelector('.sig-card') as HTMLElement;
+        card.innerHTML = `
+          <div class="signed-badge">✓ Convention signée</div>
+          <p class="signed-date">Signée le ${today}</p>
+          <a href="/api/convention" class="btn-primary btn-download-signed">Télécharger le PDF</a>
+        `;
+      } catch (err) {
+        console.error(err);
+        errEl.textContent = 'Une erreur est survenue. Veuillez réessayer.';
+        errEl.style.display = 'block';
+        btn.disabled = false;
+        loadEl.style.display = 'none';
+      }
+    });
+  </script>
+
+
+</body>
+</html>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--color-bg);
+    color: var(--color-text);
+    min-height: 100vh;
+  }
+
+  nav {
+    background: white;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .nav-inner {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 24px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    text-decoration: none;
+  }
+  .nav-right { display: flex; align-items: center; gap: 16px; }
+  .user-email { font-size: 0.85rem; color: var(--color-muted); }
+  .btn-logout {
+    font-size: 0.85rem;
+    color: var(--color-muted);
+    text-decoration: none;
+    padding: 6px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+  .btn-logout:hover { background: var(--color-bg); color: var(--color-text); }
+  .btn-admin {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: white;
+    background: var(--color-accent);
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: background 0.2s;
+  }
+  .btn-admin:hover { background: var(--color-accent-hover); }
+
+  main { padding: 48px 24px 80px; }
+  .container { max-width: 1000px; margin: 0 auto; }
+
+  .page-header { margin-bottom: 36px; }
+  .back-link {
+    display: inline-block;
+    font-size: 0.85rem;
+    color: var(--color-muted);
+    text-decoration: none;
+    margin-bottom: 16px;
+    transition: color 0.2s;
+  }
+  .back-link:hover { color: var(--color-primary); }
+
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    color: var(--color-primary);
+    margin-bottom: 8px;
+  }
+  .sub { color: var(--color-muted); font-size: 1rem; }
+
+  /* Layout: convention left, sig pad right on large screens */
+  .convention-layout {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 32px;
+    align-items: start;
+  }
+
+  @media (max-width: 768px) {
+    .convention-layout {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Convention text card */
+  .convention-card {
+    background: white;
+    border-radius: 12px;
+    padding: 40px 48px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+  }
+
+  .convention-body :global(h1) {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    color: var(--color-primary);
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .convention-body :global(h2) {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-primary);
+    margin-top: 28px;
+    margin-bottom: 10px;
+  }
+  .convention-body :global(p) {
+    font-size: 0.92rem;
+    line-height: 1.7;
+    color: var(--color-text);
+    margin-bottom: 12px;
+  }
+  .convention-body :global(ul) {
+    margin: 8px 0 16px 20px;
+  }
+  .convention-body :global(li) {
+    font-size: 0.92rem;
+    line-height: 1.7;
+    color: var(--color-text);
+    margin-bottom: 6px;
+  }
+  .convention-body :global(hr) {
+    border: none;
+    border-top: 1px solid var(--color-border);
+    margin: 28px 0;
+  }
+  .convention-body :global(strong) {
+    font-weight: 600;
+    color: var(--color-text);
+  }
+
+  /* Sticky signature panel */
+  .sig-panel {
+    position: sticky;
+    top: 80px;
+  }
+
+  .sig-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .sig-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-muted);
+  }
+
+  #sig-canvas {
+    width: 100%;
+    height: 150px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 8px;
+    cursor: crosshair;
+    touch-action: none;
+    background: white;
+    display: block;
+  }
+
+  .sig-actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  .btn-secondary {
+    flex: 0 0 auto;
+    padding: 8px 16px;
+    background: white;
+    color: var(--color-muted);
+    border: 1.5px solid var(--color-border);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-secondary:hover { background: var(--color-bg); color: var(--color-text); }
+
+  .btn-primary {
+    flex: 1 1 auto;
+    padding: 8px 16px;
+    background: var(--color-primary-mid);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .btn-primary:hover { background: var(--color-primary); }
+  .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  .sig-error {
+    font-size: 0.82rem;
+    color: var(--color-error-text);
+    background: var(--color-error-bg);
+    border: 1px solid var(--color-error-border);
+    border-radius: 6px;
+    padding: 8px 12px;
+  }
+
+  .sig-loading {
+    font-size: 0.82rem;
+    color: var(--color-muted);
+    text-align: center;
+  }
+
+  .signed-badge {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-success-text);
+    background: var(--color-success-bg);
+    border: 1px solid var(--color-success-border);
+    border-radius: 8px;
+    padding: 10px 16px;
+    text-align: center;
+  }
+  .signed-date {
+    font-size: 0.85rem;
+    color: var(--color-muted);
+    text-align: center;
+  }
+  .btn-download-signed {
+    display: block;
+    text-align: center;
+    text-decoration: none;
+  }
+
+  @media (max-width: 640px) {
+    .user-email { display: none; }
+    .convention-card { padding: 24px 20px; }
+  }
+</style>

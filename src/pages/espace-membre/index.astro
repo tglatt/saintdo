@@ -105,9 +105,14 @@ function fmtDate(iso: string | null) {
       <section class="section">
         <div class="section-header">
           <h2>Historique de vos transactions</h2>
-          {groups.length > 0 && (
-            <button id="btn-recu" class="btn-download">Télécharger le reçu (PDF)</button>
-          )}
+          <div class="section-actions">
+            {groups.length > 0 && (
+              <button id="btn-recu" class="btn-download">Télécharger le reçu</button>
+            )}
+            {totalApport > 0 && (
+              <a href="/espace-membre/convention" class="btn-download">Convention d'apport</a>
+            )}
+          </div>
         </div>
         {groups.length > 0 ? (
           <table>
@@ -444,9 +449,11 @@ function fmtDate(iso: string | null) {
 
   .empty { color: var(--color-muted); font-size: 0.9rem; padding: 24px 0; }
 
-  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
   .section-header h2 { margin-bottom: 0; }
+  .section-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .btn-download {
+    display: inline-block;
     padding: 8px 16px;
     background: white;
     color: var(--color-primary-mid);
@@ -458,6 +465,7 @@ function fmtDate(iso: string | null) {
     cursor: pointer;
     transition: all 0.2s;
     white-space: nowrap;
+    text-decoration: none;
   }
   .btn-download:hover { background: var(--color-success-bg); }
 

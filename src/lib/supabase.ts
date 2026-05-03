@@ -25,6 +25,15 @@ export type Membre = {
   updated_at: string;
 };
 
+export type Convention = {
+  id: string;
+  membre_id: string;
+  signed_at: string;
+  contenu_md: string;
+  signature_adherent: string;
+  created_at: string;
+};
+
 export type Transaction = {
   id: string;
   membre_id: string;
