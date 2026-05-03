@@ -789,6 +789,8 @@ function fmtDateTime(iso: string | null) {
     border-bottom: 1px solid var(--color-border-light);
   }
   .member-info-icon { flex-shrink: 0; }
+  .link-download { color: var(--color-primary-mid); font-weight: 600; text-decoration: none; }
+  .link-download:hover { text-decoration: underline; }
 
   th.sortable { cursor: pointer; user-select: none; }
   th.sortable:hover { background: var(--color-primary-hover); }
@@ -850,7 +852,7 @@ function fmtDateTime(iso: string | null) {
     modalBody.innerHTML = '<p class="loading">Chargement…</p>';
 
     const res = await fetch(`/api/admin/membre?id=${id}`);
-    const { membre, transactions } = await res.json();
+    const { membre, transactions, convention } = await res.json();
 
     currentMemberData = membre;
     currentMemberName = [membre.prenom, membre.nom].filter(Boolean).join(' ') || membre.email;
@@ -861,9 +863,12 @@ function fmtDateTime(iso: string | null) {
     const addrHtml = addrParts.length
       ? `<div class="member-info"><span class="member-info-icon">📍</span><span>${addrParts.join(', ')}</span></div>`
       : '';
+    const conventionHtml = convention
+      ? `<div class="member-info"><span class="member-info-icon">📄</span><span>Convention signée le ${fmtDate(convention.signed_at)} — <a href="/api/admin/convention?membre_id=${id}" target="_blank" class="link-download">Télécharger</a></span></div>`
+      : '';
 
     if (!transactions?.length) {
-      modalBody.innerHTML = addrHtml + '<p class="loading" style="margin-top:16px">Aucune transaction.</p>';
+      modalBody.innerHTML = addrHtml + conventionHtml + '<p class="loading" style="margin-top:16px">Aucune transaction.</p>';
       return;
     }
 
@@ -876,7 +881,7 @@ function fmtDateTime(iso: string | null) {
       virement: 'Virement',
     };
 
-    modalBody.innerHTML = addrHtml + `
+    modalBody.innerHTML = addrHtml + conventionHtml + `
       <table class="tx-table">
         <thead>
           <tr>

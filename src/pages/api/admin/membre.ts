@@ -89,7 +89,15 @@ export const GET: APIRoute = async ({ url }) => {
     .eq('membre_id', id)
     .order('date', { ascending: false });
 
-  return new Response(JSON.stringify({ membre, transactions }), {
+  const { data: convention } = await supabase
+    .from('conventions')
+    .select('signed_at')
+    .eq('membre_id', id)
+    .order('signed_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return new Response(JSON.stringify({ membre, transactions, convention }), {
     headers: { 'Content-Type': 'application/json' },
   });
 };
