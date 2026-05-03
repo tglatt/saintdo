@@ -19,6 +19,10 @@ export type Membre = {
   email: string;
   nom: string | null;
   prenom: string | null;
+  address: string | null;
+  zip_code: string | null;
+  city: string | null;
+  country: string | null;
   structure: string | null;
   role: 'membre' | 'admin';
   created_at: string;

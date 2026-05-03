@@ -37,6 +37,38 @@ export const POST: APIRoute = async ({ request }) => {
   });
 };
 
+export const PUT: APIRoute = async ({ request }) => {
+  const body = await request.json().catch(() => null);
+  if (!body) return new Response('Invalid JSON', { status: 400 });
+
+  const { id, nom, prenom, email, address, zip_code, city, country } = body;
+  if (!id) return new Response('Missing id', { status: 400 });
+  if (email !== undefined && !email?.trim()) return new Response('Email invalide', { status: 400 });
+
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase
+    .from('membres')
+    .update({
+      ...(nom     !== undefined && { nom:      nom     || null }),
+      ...(prenom  !== undefined && { prenom:   prenom  || null }),
+      ...(email   !== undefined && { email:    email.trim().toLowerCase() }),
+      ...(address !== undefined && { address:  address || null }),
+      ...(zip_code !== undefined && { zip_code: zip_code || null }),
+      ...(city    !== undefined && { city:     city    || null }),
+      ...(country !== undefined && { country:  country || null }),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) return new Response(error.message, { status: 500 });
+  return new Response(JSON.stringify({ membre: data }), {
+    headers: { 'Content-Type': 'application/json' },
+  });
+};
+
 export const GET: APIRoute = async ({ url }) => {
   const id = url.searchParams.get('id');
   if (!id) return new Response('Missing id', { status: 400 });
@@ -45,7 +77,7 @@ export const GET: APIRoute = async ({ url }) => {
 
   const { data: membre } = await supabase
     .from('membres')
-    .select('id, email, nom, prenom, role, created_at')
+    .select('id, email, nom, prenom, address, zip_code, city, country, role, structure, created_at')
     .eq('id', id)
     .single();
 
