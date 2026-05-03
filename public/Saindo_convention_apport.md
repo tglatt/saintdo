@@ -2,7 +2,7 @@
 
 Entre les soussignés :
 
-**[NOM_ADHERENT]**,
+**[NOM_ADHERENT] domicilé.e au [ADRESSE_ADHERENT]**,
 
 Ci-après désigné l'« Adhérent »,
 

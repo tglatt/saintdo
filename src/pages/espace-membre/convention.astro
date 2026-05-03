@@ -25,7 +25,7 @@ const admin = createAdminClient();
 
 const { data: membre } = await admin
   .from('membres')
-  .select('id, nom, prenom, role')
+  .select('id, nom, prenom, role, address, zip_code, city')
   .eq('email', user.email)
   .single();
 if (!membre) return Astro.redirect('/login');
@@ -128,10 +128,12 @@ function parseMarkdownToHtml(md: string): string {
 }
 
 const mdRaw = await readFile(join(process.cwd(), 'public', 'Saindo_convention_apport.md'), 'utf-8');
+const adresse = [membre.address, membre.zip_code, membre.city].filter(Boolean).join(' ');
 const md = mdRaw
   .replace('[NOM_ADHERENT]', nom)
+  .replace('[ADRESSE_ADHERENT]', adresse)
   .replace('[MONTANT_APPORT]', montant)
-  .replace('[DATE_JOUR]', date);
+  .replace('[DATE_APPORT]', date);
 
 const conventionHtml = parseMarkdownToHtml(md);
 ---

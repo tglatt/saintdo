@@ -202,7 +202,7 @@ async function loadConventionData(cookies: { get: (name: string) => { value: str
 
   const { data: membre } = await admin
     .from('membres')
-    .select('id, nom, prenom')
+    .select('id, nom, prenom, address, zip_code, city')
     .eq('email', user.email)
     .single();
   if (!membre) return null;
@@ -232,8 +232,12 @@ async function loadConventionData(cookies: { get: (name: string) => { value: str
     readFile(join(process.cwd(), 'public', 'signature.png')),
   ]);
 
+  const adresseParts = [membre.address, membre.zip_code, membre.city].filter(Boolean);
+  const adresse = adresseParts.join(' ') || '';
+
   const md = mdRaw
     .replace('[NOM_ADHERENT]', nom)
+    .replace('[ADRESSE_ADHERENT]', adresse)
     .replace('[MONTANT_APPORT]', montant)
     .replace('[DATE_APPORT]', dateApport);
 
