@@ -31,9 +31,7 @@ export const POST: APIRoute = async ({ request }) => {
     .in('id', pendingIds)
     .eq('convention_enabled', true);
 
-  const proto = request.headers.get('x-forwarded-proto') ?? 'https';
-  const host  = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? new URL(request.url).hostname;
-  const siteUrl = `${proto}://${host}`;
+  const siteUrl = import.meta.env.PUBLIC_SITE_URL ?? new URL(request.url).origin;
   const resend = new Resend(import.meta.env.RESEND_API_KEY);
   const from = import.meta.env.RESEND_FROM ?? 'Le Saint Domingue <noreply@saintdo.fr>';
 
