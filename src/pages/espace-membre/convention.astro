@@ -41,7 +41,7 @@ const totalApport = txs?.reduce((s: number, t: { montant: number }) => s + t.mon
 // Vérifier si une convention a déjà été signée
 const { data: existingConvention } = await admin
   .from('conventions')
-  .select('signed_at')
+  .select('signed_at, contenu_md')
   .eq('membre_id', membre.id)
   .order('signed_at', { ascending: false })
   .limit(1)
@@ -126,13 +126,18 @@ function parseMarkdownToHtml(md: string): string {
   return htmlParts.join('\n');
 }
 
-const mdRaw = await readFile(join(process.cwd(), 'public', 'Saindo_convention_apport.md'), 'utf-8');
-const adresse = [membre.address, membre.zip_code, membre.city].filter(Boolean).join(' ');
-const md = mdRaw
-  .replace('[NOM_ADHERENT]', nom)
-  .replace('[ADRESSE_ADHERENT]', adresse)
-  .replace('[MONTANT_APPORT]', montant)
-  .replace('[DATE_APPORT]', date);
+let md: string;
+if (existingConvention?.contenu_md) {
+  md = existingConvention.contenu_md;
+} else {
+  const mdRaw = await readFile(join(process.cwd(), 'public', 'Saindo_convention_apport.md'), 'utf-8');
+  const adresse = [membre.address, membre.zip_code, membre.city].filter(Boolean).join(' ');
+  md = mdRaw
+    .replace('[NOM_ADHERENT]', nom)
+    .replace('[ADRESSE_ADHERENT]', adresse)
+    .replace('[MONTANT_APPORT]', montant)
+    .replace('[DATE_APPORT]', date);
+}
 
 const conventionHtml = parseMarkdownToHtml(md);
 ---
