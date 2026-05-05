@@ -46,7 +46,8 @@
       });
 
       if (res.ok) {
-        window.location.href = '/espace-membre';
+        const next = new URLSearchParams(window.location.search).get('next');
+        window.location.href = next || '/espace-membre';
       } else {
         window.location.href = '/login';
       }

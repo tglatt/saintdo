@@ -77,7 +77,7 @@ export const GET: APIRoute = async ({ url }) => {
 
   const { data: membre } = await supabase
     .from('membres')
-    .select('id, email, nom, prenom, address, zip_code, city, country, role, structure, created_at')
+    .select('id, email, nom, prenom, address, zip_code, city, country, role, structure, convention_enabled, created_at')
     .eq('id', id)
     .single();
 

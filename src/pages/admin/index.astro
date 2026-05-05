@@ -355,6 +355,7 @@ function fmtDateTime(iso: string | null) {
         </div>
         <div class="modal-header-actions">
           <button id="btn-edit-member" class="btn-add-tx">Modifier</button>
+          <button id="btn-send-convention" class="btn-add-tx">Convention</button>
           <button id="btn-add-tx" class="btn-add-tx">+ Transaction</button>
           <button id="modal-close" class="modal-close">✕</button>
         </div>
@@ -932,6 +933,39 @@ function fmtDateTime(iso: string | null) {
   }
 
   function closeEditMember() { editMemberOverlay.classList.add('hidden'); }
+
+  // ── Envoi convention ──────────────────────────────────────────────────────
+  const btnSendConvention = document.getElementById('btn-send-convention')!;
+
+  btnSendConvention.addEventListener('click', async () => {
+    const label = btnSendConvention.textContent;
+    btnSendConvention.textContent = 'Envoi…';
+    (btnSendConvention as HTMLButtonElement).disabled = true;
+
+    try {
+      const res = await fetch('/api/admin/send-convention', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ membre_id: currentMemberId }),
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        alert(`Erreur : ${text}`);
+        return;
+      }
+
+      btnSendConvention.textContent = 'Envoyé ✓';
+      setTimeout(() => {
+        btnSendConvention.textContent = label;
+        (btnSendConvention as HTMLButtonElement).disabled = false;
+      }, 3000);
+    } catch {
+      alert("Erreur lors de l'envoi.");
+      btnSendConvention.textContent = label;
+      (btnSendConvention as HTMLButtonElement).disabled = false;
+    }
+  });
 
   btnEditMember.addEventListener('click', openEditMember);
   document.getElementById('edit-member-close')!.addEventListener('click', closeEditMember);
