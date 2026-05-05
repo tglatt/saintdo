@@ -47,6 +47,7 @@ const adresseParts = [
 ].filter(Boolean);
 
 const total = transactions?.reduce((s, t) => s + t.montant, 0) ?? 0;
+const hasApport = transactions?.some(t => t.type === 'apport_associatif') ?? false;
 
 const typeLabel: Record<string, string> = {
   adhesion: 'Adhésion',
@@ -113,9 +114,11 @@ const paiementLabel: Record<string, string> = {
         </div>
         <div class="member-header-actions">
           <button id="btn-edit" class="btn-secondary">Modifier</button>
-          <button id="btn-send-convention" class="btn-secondary">
-            {convention ? 'Renvoyer la convention' : 'Envoyer la convention'}
-          </button>
+          {hasApport && (
+            <button id="btn-send-convention" class="btn-secondary">
+              {convention ? 'Renvoyer la convention' : 'Envoyer la convention'}
+            </button>
+          )}
           {convention && (
             <a href={`/api/admin/convention?membre_id=${membre.id}`} target="_blank" class="btn-secondary">
               Télécharger la convention

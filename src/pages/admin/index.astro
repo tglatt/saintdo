@@ -23,6 +23,11 @@ const { data: lastSync } = await supabase
   .limit(1)
   .single();
 
+const { data: signedConventions } = await supabase
+  .from('conventions')
+  .select('membre_id');
+const signedMemberIds = new Set(signedConventions?.map(c => c.membre_id) ?? []);
+
 const totalMembres = membres?.length ?? 0;
 const totalAdhesion = transactions?.filter(t => t.type === 'adhesion').reduce((s, t) => s + t.montant, 0) ?? 0;
 const totalDon = transactions?.filter(t => t.type === 'don').reduce((s, t) => s + t.montant, 0) ?? 0;
@@ -163,7 +168,10 @@ function fmtDateTime(iso: string | null) {
                 const dateAdhesion = adhTxs.map(t => t.date).filter(Boolean).sort()[0] ?? null;
                 return (
                   <tr class="clickable" data-id={m.id}>
-                    <td class="bold">{[m.nom, m.prenom].filter(Boolean).join(' ') || '—'}</td>
+                    <td class="bold">
+                      {signedMemberIds.has(m.id) && <span class="convention-signed" title="Convention signée">✓</span>}
+                      {[m.nom, m.prenom].filter(Boolean).join(' ') || '—'}
+                    </td>
                     <td class="muted">{m.email}</td>
                     <td class="muted">{fmtDate(dateAdhesion)}</td>
                     <td class="right">{adh > 0 ? euros(adh) : '—'}</td>
@@ -535,6 +543,23 @@ function fmtDateTime(iso: string | null) {
   .form-actions button:disabled { opacity: 0.6; cursor: not-allowed; }
   .tx-error { color: var(--color-error); font-size: 0.85rem; margin-top: -12px; margin-bottom: 8px; }
   .tx-error.hidden { display: none; }
+
+  .convention-signed {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    background: var(--color-success-bg);
+    color: var(--color-success-text);
+    border: 1px solid var(--color-success-border);
+    border-radius: 50%;
+    font-size: 0.65rem;
+    font-weight: 700;
+    margin-left: 6px;
+    vertical-align: middle;
+    flex-shrink: 0;
+  }
 
   th.sortable { cursor: pointer; user-select: none; }
   th.sortable:hover { background: var(--color-primary-hover); }
