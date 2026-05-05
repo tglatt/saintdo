@@ -193,13 +193,42 @@ const conventionHtml = parseMarkdownToHtml(md);
             </div>
           ) : (
             <div class="sig-card">
+
+              <div class="profile-section">
+                <p class="sig-label">Vos informations</p>
+                <div class="profile-row">
+                  <div class="profile-field">
+                    <label for="f-prenom">Prénom <span class="required">*</span></label>
+                    <input id="f-prenom" type="text" value={membre.prenom ?? ''} autocomplete="given-name" />
+                  </div>
+                  <div class="profile-field">
+                    <label for="f-nom">Nom <span class="required">*</span></label>
+                    <input id="f-nom" type="text" value={membre.nom ?? ''} autocomplete="family-name" />
+                  </div>
+                </div>
+                <div class="profile-field">
+                  <label for="f-address">Adresse <span class="required">*</span></label>
+                  <input id="f-address" type="text" value={membre.address ?? ''} autocomplete="street-address" />
+                </div>
+                <div class="profile-row">
+                  <div class="profile-field">
+                    <label for="f-zip">Code postal <span class="required">*</span></label>
+                    <input id="f-zip" type="text" value={membre.zip_code ?? ''} autocomplete="postal-code" />
+                  </div>
+                  <div class="profile-field">
+                    <label for="f-city">Ville <span class="required">*</span></label>
+                    <input id="f-city" type="text" value={membre.city ?? ''} autocomplete="address-level2" />
+                  </div>
+                </div>
+              </div>
+
               <p class="sig-label">Votre signature</p>
               <canvas id="sig-canvas" width="400" height="150"></canvas>
               <div class="sig-actions">
                 <button id="btn-clear" class="btn-secondary">Effacer</button>
                 <button id="btn-sign" class="btn-primary" disabled>Signer et télécharger</button>
               </div>
-              <p id="sig-error" class="sig-error" style="display:none">Veuillez d'abord dessiner votre signature.</p>
+              <p id="sig-error" class="sig-error" style="display:none"></p>
               <p id="sig-loading" class="sig-loading" style="display:none">Génération du PDF en cours…</p>
             </div>
           )}
@@ -211,6 +240,7 @@ const conventionHtml = parseMarkdownToHtml(md);
 
   <script>
     const canvas = document.getElementById('sig-canvas') as HTMLCanvasElement;
+    if (!canvas) throw new Error('no canvas');
     const ctx = canvas.getContext('2d')!;
 
     ctx.fillStyle = '#fff';
@@ -219,6 +249,20 @@ const conventionHtml = parseMarkdownToHtml(md);
     ctx.lineWidth = 2.5;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
+
+    const fieldIds = ['f-prenom', 'f-nom', 'f-address', 'f-zip', 'f-city'];
+    const btnSign = document.getElementById('btn-sign') as HTMLButtonElement;
+
+    function fieldsValid() {
+      return fieldIds.every(id => (document.getElementById(id) as HTMLInputElement).value.trim() !== '');
+    }
+    function checkReady() {
+      btnSign.disabled = !(hasDrawn && fieldsValid());
+    }
+
+    fieldIds.forEach(id => {
+      document.getElementById(id)!.addEventListener('input', checkReady);
+    });
 
     let isDrawing = false;
     let hasDrawn = false;
@@ -248,7 +292,7 @@ const conventionHtml = parseMarkdownToHtml(md);
       lastX = x; lastY = y;
       if (!hasDrawn) {
         hasDrawn = true;
-        (document.getElementById('btn-sign') as HTMLButtonElement).disabled = false;
+        checkReady();
       }
     });
     canvas.addEventListener('mouseup',    () => { isDrawing = false; });
@@ -273,7 +317,7 @@ const conventionHtml = parseMarkdownToHtml(md);
       lastX = x; lastY = y;
       if (!hasDrawn) {
         hasDrawn = true;
-        (document.getElementById('btn-sign') as HTMLButtonElement).disabled = false;
+        checkReady();
       }
     }, { passive: false });
     canvas.addEventListener('touchend', () => { isDrawing = false; });
@@ -282,33 +326,41 @@ const conventionHtml = parseMarkdownToHtml(md);
       ctx.fillStyle = '#fff';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       hasDrawn = false;
-      (document.getElementById('btn-sign') as HTMLButtonElement).disabled = true;
+      checkReady();
       (document.getElementById('sig-error') as HTMLElement).style.display = 'none';
     });
 
-    document.getElementById('btn-sign')!.addEventListener('click', async () => {
+    btnSign.addEventListener('click', async () => {
       const errEl = document.getElementById('sig-error') as HTMLElement;
       const loadEl = document.getElementById('sig-loading') as HTMLElement;
-      const btn = document.getElementById('btn-sign') as HTMLButtonElement;
 
-      if (!hasDrawn) {
+      if (!hasDrawn || !fieldsValid()) {
+        errEl.textContent = !hasDrawn
+          ? 'Veuillez dessiner votre signature.'
+          : 'Veuillez remplir tous les champs obligatoires.';
         errEl.style.display = 'block';
         return;
       }
       errEl.style.display = 'none';
 
-      // Strip the data:image/png;base64, prefix
-      const dataUrl = canvas.toDataURL('image/png');
-      const base64 = dataUrl.replace(/^data:image\/png;base64,/, '');
-
-      btn.disabled = true;
+      const base64 = canvas.toDataURL('image/png').replace(/^data:image\/png;base64,/, '');
+      btnSign.disabled = true;
       loadEl.style.display = 'block';
+
+      const getValue = (id: string) => (document.getElementById(id) as HTMLInputElement).value.trim();
 
       try {
         const res = await fetch('/api/convention', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ signature: base64 }),
+          body: JSON.stringify({
+            signature: base64,
+            prenom:  getValue('f-prenom'),
+            nom:     getValue('f-nom'),
+            address: getValue('f-address'),
+            zip_code: getValue('f-zip'),
+            city:    getValue('f-city'),
+          }),
         });
 
         if (!res.ok) {
@@ -339,7 +391,7 @@ const conventionHtml = parseMarkdownToHtml(md);
         console.error(err);
         errEl.textContent = 'Une erreur est survenue. Veuillez réessayer.';
         errEl.style.display = 'block';
-        btn.disabled = false;
+        btnSign.disabled = false;
         loadEl.style.display = 'none';
       }
     });
@@ -512,6 +564,37 @@ const conventionHtml = parseMarkdownToHtml(md);
     letter-spacing: 0.06em;
     color: var(--color-muted);
   }
+
+  .profile-section {
+    padding-bottom: 20px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid var(--color-border-light);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .profile-row { display: grid; grid-template-columns: 1fr; gap: 10px; }
+  .profile-field { display: flex; flex-direction: column; gap: 4px; }
+  .profile-field label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-muted);
+  }
+  .profile-field input {
+    padding: 8px 12px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+    background: white;
+    color: var(--color-text);
+  }
+  .profile-field input:focus { border-color: var(--color-primary-mid); }
+  .required { color: var(--color-error); }
 
   #sig-canvas {
     width: 100%;

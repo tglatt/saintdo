@@ -90,17 +90,44 @@ export const GET: APIRoute = async ({ cookies, redirect }) => {
 };
 
 export const POST: APIRoute = async ({ cookies, request }) => {
+  let body: Record<string, string>;
+  try { body = await request.json(); } catch { return new Response('Invalid JSON body', { status: 400 }); }
+
+  const { signature, prenom, nom, address, zip_code, city } = body;
+  if (!signature) return new Response('Missing signature', { status: 400 });
+  if (!prenom?.trim() || !nom?.trim() || !address?.trim() || !zip_code?.trim() || !city?.trim())
+    return new Response('Champs obligatoires manquants', { status: 400 });
+
+  // Retrieve member id from session
+  const accessToken = cookies.get('sb-access-token')?.value;
+  const refreshToken = cookies.get('sb-refresh-token')?.value;
+  if (!accessToken || !refreshToken) return new Response('Unauthorized', { status: 401 });
+
+  const supabaseAnon = createClient(
+    import.meta.env.PUBLIC_SUPABASE_URL,
+    import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+  );
+  const { data: { user }, error } = await supabaseAnon.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+  if (error || !user) return new Response('Unauthorized', { status: 401 });
+
+  // Update member profile before loading convention data
+  const adminClient = createClient(
+    import.meta.env.PUBLIC_SUPABASE_URL,
+    import.meta.env.SUPABASE_SERVICE_ROLE_KEY,
+    { auth: { autoRefreshToken: false, persistSession: false } },
+  );
+  await adminClient.from('membres').update({
+    prenom: prenom.trim(),
+    nom: nom.trim(),
+    address: address.trim(),
+    zip_code: zip_code.trim(),
+    city: city.trim(),
+    updated_at: new Date().toISOString(),
+  }).eq('email', user.email);
+
+  // Load fresh convention data (picks up updated profile)
   const data = await loadConventionData(cookies);
   if (!data) return new Response('Unauthorized', { status: 401 });
-
-  let signature: string | undefined;
-  try {
-    const body = await request.json();
-    signature = body.signature;
-  } catch {
-    return new Response('Invalid JSON body', { status: 400 });
-  }
-  if (!signature) return new Response('Missing signature', { status: 400 });
 
   await data.admin.from('conventions').insert({
     membre_id:          data.membreId,
