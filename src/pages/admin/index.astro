@@ -9,7 +9,7 @@ const supabase = createAdminClient();
 
 const { data: membres } = await supabase
   .from('membres')
-  .select('id, email, nom, prenom, structure, role, created_at')
+  .select('id, email, nom, prenom, structure, role, convention_enabled, created_at')
   .order('nom', { ascending: true });
 
 const { data: transactions } = await supabase
@@ -27,6 +27,16 @@ const { data: signedConventions } = await supabase
   .from('conventions')
   .select('membre_id');
 const signedMemberIds = new Set(signedConventions?.map(c => c.membre_id) ?? []);
+
+const conventionEnabledIds = new Set(
+  membres?.filter(m => m.convention_enabled).map(m => m.id) ?? []
+);
+const apportMemberIds = new Set(
+  transactions?.filter(t => t.type === 'apport_associatif').map(t => t.membre_id) ?? []
+);
+const pendingConventionCount = [...apportMemberIds].filter(
+  id => conventionEnabledIds.has(id) && !signedMemberIds.has(id)
+).length;
 
 const totalMembres = membres?.length ?? 0;
 const totalAdhesion = transactions?.filter(t => t.type === 'adhesion').reduce((s, t) => s + t.montant, 0) ?? 0;
@@ -140,6 +150,9 @@ function fmtDateTime(iso: string | null) {
           <h2>Membres ({totalMembres})</h2>
           <div class="section-header-right">
             <input type="text" id="search" placeholder="Rechercher par nom ou email…" autocomplete="off" />
+            {pendingConventionCount > 0 && (
+              <button id="btn-send-conventions" class="btn-create btn-create--secondary">Envoyer les conventions ({pendingConventionCount})</button>
+            )}
             <button id="btn-create-membre" class="btn-create">+ Nouveau membre</button>
           </div>
         </div>
@@ -193,6 +206,29 @@ function fmtDateTime(iso: string | null) {
 
     </div>
   </main>
+
+  <!-- MODAL ENVOI CONVENTIONS EN MASSE -->
+  <div id="bulk-convention-overlay" class="modal-overlay hidden">
+    <div class="modal tx-modal">
+      <div class="modal-header">
+        <div>
+          <h2>Envoyer les conventions</h2>
+        </div>
+        <button id="bulk-convention-close" class="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="bulk-description">
+          <strong>{pendingConventionCount} membre{pendingConventionCount > 1 ? 's' : ''}</strong>
+          {pendingConventionCount > 1 ? ' recevront' : ' recevra'} un email avec son lien de signature de convention d'apport.
+        </p>
+        <p id="bulk-error" class="tx-error hidden"></p>
+        <div class="form-actions">
+          <button type="button" id="bulk-convention-cancel">Annuler</button>
+          <button type="button" id="bulk-convention-submit">Envoyer</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- MODAL NOUVEAU MEMBRE -->
   <div id="membre-overlay" class="modal-overlay hidden">
@@ -424,6 +460,13 @@ function fmtDateTime(iso: string | null) {
     white-space: nowrap;
   }
   .btn-create:hover { background: var(--color-primary); }
+  .btn-create--secondary {
+    background: white;
+    color: var(--color-primary-mid);
+    border: 1.5px solid var(--color-primary-mid);
+  }
+  .btn-create--secondary:hover { background: var(--color-success-bg); }
+  .bulk-description { font-size: 0.9rem; color: var(--color-text); margin-bottom: 24px; line-height: 1.6; }
   .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   .required { color: var(--color-error); }
 
@@ -631,6 +674,46 @@ function fmtDateTime(iso: string | null) {
       membreSubmit.textContent = 'Créer';
     }
   });
+
+  // ── Envoi conventions en masse ────────────────────────────────────────────
+  const bulkOverlay  = document.getElementById('bulk-convention-overlay');
+  const bulkError    = document.getElementById('bulk-error')!;
+  const bulkSubmit   = document.getElementById('bulk-convention-submit') as HTMLButtonElement | null;
+  const btnSendBulk  = document.getElementById('btn-send-conventions');
+
+  if (btnSendBulk && bulkOverlay) {
+    btnSendBulk.addEventListener('click', () => {
+      bulkError.classList.add('hidden');
+      bulkOverlay.classList.remove('hidden');
+    });
+    document.getElementById('bulk-convention-close')!.addEventListener('click', () => bulkOverlay.classList.add('hidden'));
+    document.getElementById('bulk-convention-cancel')!.addEventListener('click', () => bulkOverlay.classList.add('hidden'));
+    bulkOverlay.addEventListener('click', e => { if (e.target === bulkOverlay) bulkOverlay.classList.add('hidden'); });
+
+    bulkSubmit?.addEventListener('click', async () => {
+      bulkSubmit.disabled = true;
+      bulkSubmit.textContent = 'Envoi en cours…';
+      bulkError.classList.add('hidden');
+
+      const res = await fetch('/api/admin/send-conventions-bulk', { method: 'POST' });
+
+      if (!res.ok) {
+        bulkError.textContent = await res.text();
+        bulkError.classList.remove('hidden');
+        bulkSubmit.disabled = false;
+        bulkSubmit.textContent = 'Envoyer';
+        return;
+      }
+
+      const { sent } = await res.json();
+      bulkSubmit.textContent = `${sent} email${sent > 1 ? 's' : ''} envoyé${sent > 1 ? 's' : ''} ✓`;
+      setTimeout(() => {
+        bulkOverlay.classList.add('hidden');
+        bulkSubmit.disabled = false;
+        bulkSubmit.textContent = 'Envoyer';
+      }, 2500);
+    });
+  }
 
   // ── Filtrage ──────────────────────────────────────────────────────────────
   const search = document.getElementById('search') as HTMLInputElement;
