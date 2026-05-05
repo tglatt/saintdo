@@ -12,7 +12,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   const apportIds = [...new Set(apportTxs?.map(t => t.membre_id) ?? [])];
   if (apportIds.length === 0) {
-    return new Response(JSON.stringify({ sent: 0 }), { headers: { 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ sent: 0, errors: [] }), { headers: { 'Content-Type': 'application/json' } });
   }
 
   const { data: signed } = await supabase
@@ -22,7 +22,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   const pendingIds = apportIds.filter(id => !signedIds.has(id));
   if (pendingIds.length === 0) {
-    return new Response(JSON.stringify({ sent: 0 }), { headers: { 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ sent: 0, errors: [] }), { headers: { 'Content-Type': 'application/json' } });
   }
 
   const { data: membres } = await supabase
@@ -31,18 +31,16 @@ export const POST: APIRoute = async ({ request }) => {
     .in('id', pendingIds)
     .eq('convention_enabled', true);
 
-  const siteUrl = new URL(request.url).origin;
+  const proto = request.headers.get('x-forwarded-proto') ?? 'https';
+  const host  = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? new URL(request.url).hostname;
+  const siteUrl = `${proto}://${host}`;
   const resend = new Resend(import.meta.env.RESEND_API_KEY);
   const from = import.meta.env.RESEND_FROM ?? 'Le Saint Domingue <noreply@saintdo.fr>';
 
   let sent = 0;
+  const errors: { email: string; step: string; detail: string }[] = [];
 
   for (const membre of membres ?? []) {
-    await supabase
-      .from('membres')
-      .update({ convention_enabled: true, updated_at: new Date().toISOString() })
-      .eq('id', membre.id);
-
     const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
       type: 'magiclink',
       email: membre.email,
@@ -50,7 +48,7 @@ export const POST: APIRoute = async ({ request }) => {
     });
 
     if (linkError || !linkData?.properties?.action_link) {
-      console.error(`[send-conventions-bulk] generateLink failed for ${membre.email}:`, linkError);
+      errors.push({ email: membre.email, step: 'generateLink', detail: linkError?.message ?? 'action_link manquant' });
       continue;
     }
 
@@ -67,7 +65,7 @@ export const POST: APIRoute = async ({ request }) => {
 <body style="font-family: system-ui, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px; color: #3a3a3a;">
   <p style="font-family: Georgia, serif; font-size: 1.3rem; font-weight: 700; color: #2C4A3E; margin: 0 0 24px;">Le Saint Domingue</p>
   <p>Bonjour ${nomComplet},</p>
-  <p>L'association Le Saint Domingue vous invite à signer votre convention d'apport associatif.</p>
+  <p>À la suite de votre apport associatif, l'association Le Saint Domingue vous invite à signer votre convention d'apport.</p>
   <p>Cliquez sur le bouton ci-dessous pour accéder à votre convention et la signer en ligne :</p>
   <p style="text-align: center; margin: 32px 0;">
     <a href="${actionLink}" style="background: #2C7A6E; color: white; padding: 14px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 0.95rem; display: inline-block;">
@@ -81,14 +79,14 @@ export const POST: APIRoute = async ({ request }) => {
     });
 
     if (emailError) {
-      console.error(`[send-conventions-bulk] Resend error for ${membre.email}:`, emailError);
+      errors.push({ email: membre.email, step: 'resend', detail: emailError.message });
       continue;
     }
 
     sent++;
   }
 
-  return new Response(JSON.stringify({ sent }), {
+  return new Response(JSON.stringify({ sent, errors }), {
     headers: { 'Content-Type': 'application/json' },
   });
 };

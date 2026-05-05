@@ -21,7 +21,9 @@ export const POST: APIRoute = async ({ request }) => {
     .update({ convention_enabled: true, updated_at: new Date().toISOString() })
     .eq('id', body.membre_id);
 
-  const siteUrl = new URL(request.url).origin;
+  const proto = request.headers.get('x-forwarded-proto') ?? 'https';
+  const host  = request.headers.get('x-forwarded-host') ?? request.headers.get('host') ?? new URL(request.url).hostname;
+  const siteUrl = `${proto}://${host}`;
   const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
     type: 'magiclink',
     email: membre.email,
