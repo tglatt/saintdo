@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 import { createClient } from '@supabase/supabase-js';
 import { readFile } from 'fs/promises';
 import { join } from 'path';
-import { buildPdf, pdfResponse, fmtDate } from '../../../lib/convention-pdf';
+import { buildPdf, pdfResponse, fmtDate } from '../../lib/convention-pdf';
 
 // ── Auth + data loader ────────────────────────────────────────────────────────
 
