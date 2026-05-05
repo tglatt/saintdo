@@ -22,6 +22,11 @@ const { data: transactions } = await supabase
 const needsProfile = !membre?.address || !membre?.zip_code || !membre?.city
   || !membre?.date_naissance || !membre?.ville_naissance || !membre?.departement_naissance;
 
+const membreId = (await supabase.from('membres').select('id').eq('email', user.email).single()).data?.id;
+const { data: conventionSignee } = membre?.convention_enabled
+  ? await supabase.from('conventions').select('signed_at').eq('membre_id', membreId).limit(1).maybeSingle()
+  : { data: null };
+
 const totalAdhesion = transactions?.filter(t => ['adhesion', 'don', 'don_defiscalise'].includes(t.type)).reduce((s, t) => s + t.montant, 0) ?? 0;
 const totalApport = transactions?.filter(t => t.type === 'apport_associatif').reduce((s, t) => s + t.montant, 0) ?? 0;
 
@@ -189,7 +194,9 @@ function fmtDate(iso: string | null) {
               <button id="btn-recu" class="btn-download">Télécharger le reçu</button>
             )}
             {membre?.convention_enabled && (
-              <a href="/espace-membre/convention" class="btn-download">Convention d'apport</a>
+              conventionSignee
+                ? <a href="/espace-membre/convention" class="btn-download btn-download--signed">Convention signée</a>
+                : <a href="/espace-membre/convention" class="btn-download btn-download--pending">Convention à signer</a>
             )}
           </div>
         </div>
@@ -630,6 +637,17 @@ function fmtDate(iso: string | null) {
     text-decoration: none;
   }
   .btn-download:hover { background: var(--color-success-bg); }
+  .btn-download--signed {
+    color: var(--color-success-text);
+    border-color: var(--color-success-border);
+    background: var(--color-success-bg);
+  }
+  .btn-download--signed:hover { background: var(--color-success-bg); opacity: 0.85; }
+  .btn-download--pending {
+    color: var(--color-error);
+    border-color: var(--color-error);
+  }
+  .btn-download--pending:hover { background: #fef2f2; }
 
   .section--profil { margin-bottom: 40px; }
 

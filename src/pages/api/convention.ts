@@ -140,6 +140,7 @@ export const POST: APIRoute = async ({ cookies, request }) => {
     signature_adherent: signature,
   });
 
-  const pdfBytes = await buildPdf(data.nom, data.md, data.sigBuffer, signature);
-  return pdfResponse(pdfBytes, data.nom);
+  return new Response(JSON.stringify({ ok: true }), {
+    headers: { 'Content-Type': 'application/json' },
+  });
 };

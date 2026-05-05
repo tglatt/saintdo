@@ -229,7 +229,7 @@ const conventionHtml = parseMarkdownToHtml(md);
                   <input id="f-villenais" type="text" value={membre.ville_naissance ?? ''} autocomplete="off" />
                 </div>
                 <div class="profile-field">
-                  <label for="f-deptnais">Département de naissance <span class="required">*</span></label>
+                  <label for="f-deptnais">Dépt. de naissance <span class="required">*</span></label>
                   <input id="f-deptnais" type="text" value={membre.departement_naissance ?? ''} autocomplete="off" />
                 </div>
               </div>
@@ -382,19 +382,6 @@ const conventionHtml = parseMarkdownToHtml(md);
           throw new Error(`HTTP ${res.status}`);
         }
 
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        const cd = res.headers.get('Content-Disposition') ?? '';
-        const match = cd.match(/filename="([^"]+)"/);
-        a.download = match ? match[1] : 'convention-apport.pdf';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-
-        // Basculer vers l'état "signé"
         const today = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
         const card = document.querySelector('.sig-card') as HTMLElement;
         card.innerHTML = `
