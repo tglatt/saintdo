@@ -25,7 +25,7 @@ const admin = createAdminClient();
 
 const { data: membre } = await admin
   .from('membres')
-  .select('id, nom, prenom, role, convention_enabled, address, zip_code, city')
+  .select('id, nom, prenom, role, convention_enabled, address, zip_code, city, date_naissance, ville_naissance, departement_naissance')
   .eq('email', user.email)
   .single();
 if (!membre || !membre.convention_enabled) return Astro.redirect('/espace-membre');
@@ -220,6 +220,18 @@ const conventionHtml = parseMarkdownToHtml(md);
                     <input id="f-city" type="text" value={membre.city ?? ''} autocomplete="address-level2" />
                   </div>
                 </div>
+                <div class="profile-field">
+                  <label for="f-datenais">Date de naissance <span class="required">*</span></label>
+                  <input id="f-datenais" type="date" value={membre.date_naissance ?? ''} autocomplete="bday" />
+                </div>
+                <div class="profile-field">
+                  <label for="f-villenais">Ville de naissance <span class="required">*</span></label>
+                  <input id="f-villenais" type="text" value={membre.ville_naissance ?? ''} autocomplete="off" />
+                </div>
+                <div class="profile-field">
+                  <label for="f-deptnais">Département de naissance <span class="required">*</span></label>
+                  <input id="f-deptnais" type="text" value={membre.departement_naissance ?? ''} autocomplete="off" />
+                </div>
               </div>
 
               <p class="sig-label">Votre signature</p>
@@ -250,7 +262,7 @@ const conventionHtml = parseMarkdownToHtml(md);
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
 
-    const fieldIds = ['f-prenom', 'f-nom', 'f-address', 'f-zip', 'f-city'];
+    const fieldIds = ['f-prenom', 'f-nom', 'f-address', 'f-zip', 'f-city', 'f-datenais', 'f-villenais', 'f-deptnais'];
     const btnSign = document.getElementById('btn-sign') as HTMLButtonElement;
 
     function fieldsValid() {
@@ -354,12 +366,15 @@ const conventionHtml = parseMarkdownToHtml(md);
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            signature: base64,
-            prenom:  getValue('f-prenom'),
-            nom:     getValue('f-nom'),
-            address: getValue('f-address'),
-            zip_code: getValue('f-zip'),
-            city:    getValue('f-city'),
+            signature:             base64,
+            prenom:                getValue('f-prenom'),
+            nom:                   getValue('f-nom'),
+            address:               getValue('f-address'),
+            zip_code:              getValue('f-zip'),
+            city:                  getValue('f-city'),
+            date_naissance:        getValue('f-datenais'),
+            ville_naissance:       getValue('f-villenais'),
+            departement_naissance: getValue('f-deptnais'),
           }),
         });
 

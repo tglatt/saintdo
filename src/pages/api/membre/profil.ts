@@ -19,7 +19,7 @@ export const PUT: APIRoute = async ({ cookies, request }) => {
   const body = await request.json().catch(() => null);
   if (!body) return new Response('Invalid JSON', { status: 400 });
 
-  const { address, zip_code, city } = body;
+  const { address, zip_code, city, date_naissance, ville_naissance, departement_naissance } = body;
 
   const admin = createClient(
     import.meta.env.PUBLIC_SUPABASE_URL,
@@ -30,9 +30,12 @@ export const PUT: APIRoute = async ({ cookies, request }) => {
   const { error: updateError } = await admin
     .from('membres')
     .update({
-      address:  address  ?? null,
-      zip_code: zip_code ?? null,
-      city:     city     ?? null,
+      address:               address               || null,
+      zip_code:              zip_code              || null,
+      city:                  city                  || null,
+      date_naissance:        date_naissance        || null,
+      ville_naissance:       ville_naissance       || null,
+      departement_naissance: departement_naissance || null,
       updated_at: new Date().toISOString(),
     })
     .eq('email', user.email);

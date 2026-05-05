@@ -41,7 +41,7 @@ export const PUT: APIRoute = async ({ request }) => {
   const body = await request.json().catch(() => null);
   if (!body) return new Response('Invalid JSON', { status: 400 });
 
-  const { id, nom, prenom, email, address, zip_code, city, country } = body;
+  const { id, nom, prenom, email, address, zip_code, city, country, date_naissance, ville_naissance, departement_naissance } = body;
   if (!id) return new Response('Missing id', { status: 400 });
   if (email !== undefined && !email?.trim()) return new Response('Email invalide', { status: 400 });
 
@@ -57,6 +57,9 @@ export const PUT: APIRoute = async ({ request }) => {
       ...(zip_code !== undefined && { zip_code: zip_code || null }),
       ...(city    !== undefined && { city:     city    || null }),
       ...(country !== undefined && { country:  country || null }),
+      ...(date_naissance        !== undefined && { date_naissance:        date_naissance        || null }),
+      ...(ville_naissance       !== undefined && { ville_naissance:       ville_naissance       || null }),
+      ...(departement_naissance !== undefined && { departement_naissance: departement_naissance || null }),
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)

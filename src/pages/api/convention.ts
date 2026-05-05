@@ -93,9 +93,10 @@ export const POST: APIRoute = async ({ cookies, request }) => {
   let body: Record<string, string>;
   try { body = await request.json(); } catch { return new Response('Invalid JSON body', { status: 400 }); }
 
-  const { signature, prenom, nom, address, zip_code, city } = body;
+  const { signature, prenom, nom, address, zip_code, city, date_naissance, ville_naissance, departement_naissance } = body;
   if (!signature) return new Response('Missing signature', { status: 400 });
-  if (!prenom?.trim() || !nom?.trim() || !address?.trim() || !zip_code?.trim() || !city?.trim())
+  if (!prenom?.trim() || !nom?.trim() || !address?.trim() || !zip_code?.trim() || !city?.trim()
+    || !date_naissance?.trim() || !ville_naissance?.trim() || !departement_naissance?.trim())
     return new Response('Champs obligatoires manquants', { status: 400 });
 
   // Retrieve member id from session
@@ -117,12 +118,15 @@ export const POST: APIRoute = async ({ cookies, request }) => {
     { auth: { autoRefreshToken: false, persistSession: false } },
   );
   await adminClient.from('membres').update({
-    prenom: prenom.trim(),
-    nom: nom.trim(),
-    address: address.trim(),
-    zip_code: zip_code.trim(),
-    city: city.trim(),
-    updated_at: new Date().toISOString(),
+    prenom:                prenom.trim(),
+    nom:                   nom.trim(),
+    address:               address.trim(),
+    zip_code:              zip_code.trim(),
+    city:                  city.trim(),
+    date_naissance:        date_naissance.trim(),
+    ville_naissance:       ville_naissance.trim(),
+    departement_naissance: departement_naissance.trim(),
+    updated_at:            new Date().toISOString(),
   }).eq('email', user.email);
 
   // Load fresh convention data (picks up updated profile)

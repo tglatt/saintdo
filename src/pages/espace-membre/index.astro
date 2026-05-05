@@ -9,7 +9,7 @@ const supabase = createAdminClient();
 
 const { data: membre } = await supabase
   .from('membres')
-  .select('nom, prenom, role, convention_enabled, created_at, address, zip_code, city')
+  .select('nom, prenom, role, convention_enabled, created_at, address, zip_code, city, date_naissance, ville_naissance, departement_naissance')
   .eq('email', user.email)
   .single();
 
@@ -19,7 +19,8 @@ const { data: transactions } = await supabase
   .eq('membre_id', (await supabase.from('membres').select('id').eq('email', user.email).single()).data?.id)
   .order('date', { ascending: false });
 
-const needsAddress = !membre?.address || !membre?.zip_code || !membre?.city;
+const needsProfile = !membre?.address || !membre?.zip_code || !membre?.city
+  || !membre?.date_naissance || !membre?.ville_naissance || !membre?.departement_naissance;
 
 const totalAdhesion = transactions?.filter(t => ['adhesion', 'don', 'don_defiscalise'].includes(t.type)).reduce((s, t) => s + t.montant, 0) ?? 0;
 const totalApport = transactions?.filter(t => t.type === 'apport_associatif').reduce((s, t) => s + t.montant, 0) ?? 0;
@@ -112,15 +113,21 @@ function fmtDate(iso: string | null) {
         <div class="profil-card">
           <div class="profil-row">
             <span class="profil-label">Adresse</span>
-            <span class="profil-value" id="display-address">{membre?.address || <span class="muted">—</span>}</span>
+            <span class="profil-value" id="display-adresse">
+              {[membre?.address, membre?.zip_code && membre?.city ? `${membre.zip_code} ${membre.city}` : (membre?.zip_code || membre?.city)].filter(Boolean).join(', ') || <span class="muted">—</span>}
+            </span>
           </div>
           <div class="profil-row">
-            <span class="profil-label">Code postal</span>
-            <span class="profil-value" id="display-zip">{membre?.zip_code || <span class="muted">—</span>}</span>
-          </div>
-          <div class="profil-row">
-            <span class="profil-label">Ville</span>
-            <span class="profil-value" id="display-city">{membre?.city || <span class="muted">—</span>}</span>
+            <span class="profil-label">Naissance</span>
+            <span class="profil-value" id="display-naissance">
+              {(() => {
+                const parts = [];
+                if (membre?.date_naissance) parts.push(`le ${new Date(membre.date_naissance).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}`);
+                if (membre?.ville_naissance) parts.push(`à ${membre.ville_naissance}`);
+                if (membre?.departement_naissance) parts.push(`(${membre.departement_naissance})`);
+                return parts.length ? parts.join(' ') : <span class="muted">—</span>;
+              })()}
+            </span>
           </div>
         </div>
       </section>
@@ -134,21 +141,35 @@ function fmtDate(iso: string | null) {
           </div>
           <div class="modal-body">
             <div id="profil-error" class="form-error hidden"></div>
-            {needsAddress && (
-              <p id="profil-notice" class="profil-notice">Merci de renseigner votre adresse pour accéder à votre espace membre.</p>
+            {needsProfile && (
+              <p id="profil-notice" class="profil-notice">Merci de compléter votre profil pour accéder à toutes les fonctionnalités.</p>
             )}
             <div class="form-group">
               <label>Adresse</label>
-              <input id="pm-address" type="text" autocomplete="street-address" />
+              <input id="pm-address" type="text" value={membre?.address ?? ''} autocomplete="street-address" />
             </div>
             <div class="form-row">
               <div class="form-group">
                 <label>Code postal</label>
-                <input id="pm-zip" type="text" autocomplete="postal-code" />
+                <input id="pm-zip" type="text" value={membre?.zip_code ?? ''} autocomplete="postal-code" />
               </div>
               <div class="form-group">
                 <label>Ville</label>
-                <input id="pm-city" type="text" autocomplete="address-level2" />
+                <input id="pm-city" type="text" value={membre?.city ?? ''} autocomplete="address-level2" />
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Date de naissance</label>
+              <input id="pm-datenais" type="date" value={membre?.date_naissance ?? ''} autocomplete="bday" />
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>Ville de naissance</label>
+                <input id="pm-villenais" type="text" value={membre?.ville_naissance ?? ''} autocomplete="off" />
+              </div>
+              <div class="form-group">
+                <label>Dépt. de naissance</label>
+                <input id="pm-deptnais" type="text" value={membre?.departement_naissance ?? ''} autocomplete="off" />
               </div>
             </div>
             <div class="form-actions">
@@ -375,18 +396,19 @@ function fmtDate(iso: string | null) {
     const overlay   = document.getElementById('profil-overlay')!;
     const errEl     = document.getElementById('profil-error')!;
     const submitBtn = document.getElementById('profil-submit') as HTMLButtonElement;
-    const inputs    = ['pm-address', 'pm-zip', 'pm-city'].map(id => document.getElementById(id) as HTMLInputElement);
+    const inputIds  = ['pm-address', 'pm-zip', 'pm-city', 'pm-datenais', 'pm-villenais', 'pm-deptnais'];
+    const inputs    = inputIds.map(id => document.getElementById(id) as HTMLInputElement);
     let required    = !!document.getElementById('profil-notice');
 
+    function val(id: string) { return (document.getElementById(id) as HTMLInputElement).value.trim(); }
     function checkFields() {
       submitBtn.disabled = inputs.some(i => !i.value.trim());
     }
     inputs.forEach(i => i.addEventListener('input', checkFields));
 
     function openProfil() {
-      (document.getElementById('pm-address') as HTMLInputElement).value = document.getElementById('display-address')!.textContent?.trim() === '—' ? '' : document.getElementById('display-address')!.textContent!.trim();
-      (document.getElementById('pm-zip')     as HTMLInputElement).value = document.getElementById('display-zip')!.textContent?.trim()     === '—' ? '' : document.getElementById('display-zip')!.textContent!.trim();
-      (document.getElementById('pm-city')    as HTMLInputElement).value = document.getElementById('display-city')!.textContent?.trim()    === '—' ? '' : document.getElementById('display-city')!.textContent!.trim();
+      // Les champs sont pré-remplis via les attributs value côté serveur,
+      // pas besoin de les relire depuis le DOM
       errEl.classList.add('hidden');
       overlay.classList.remove('hidden');
       checkFields();
@@ -410,27 +432,42 @@ function fmtDate(iso: string | null) {
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeProfil(); });
 
     submitBtn.addEventListener('click', async () => {
-      const address  = (document.getElementById('pm-address') as HTMLInputElement).value.trim();
-      const zip_code = (document.getElementById('pm-zip')     as HTMLInputElement).value.trim();
-      const city     = (document.getElementById('pm-city')    as HTMLInputElement).value.trim();
-
       submitBtn.disabled = true;
       const res = await fetch('/api/membre/profil', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address, zip_code, city }),
+        body: JSON.stringify({
+          address:               val('pm-address'),
+          zip_code:              val('pm-zip'),
+          city:                  val('pm-city'),
+          date_naissance:        val('pm-datenais'),
+          ville_naissance:       val('pm-villenais'),
+          departement_naissance: val('pm-deptnais'),
+        }),
       });
-      if (!res.ok) submitBtn.disabled = false;
 
       if (!res.ok) {
         errEl.textContent = await res.text();
         errEl.classList.remove('hidden');
+        submitBtn.disabled = false;
         return;
       }
 
-      document.getElementById('display-address')!.textContent = address || '—';
-      document.getElementById('display-zip')!.textContent     = zip_code || '—';
-      document.getElementById('display-city')!.textContent    = city || '—';
+      const address  = val('pm-address');
+      const zip      = val('pm-zip');
+      const city     = val('pm-city');
+      const dn       = val('pm-datenais');
+      const villeN   = val('pm-villenais');
+      const deptN    = val('pm-deptnais');
+
+      const adresseParts = [address, zip && city ? `${zip} ${city}` : (zip || city)].filter(Boolean);
+      document.getElementById('display-adresse')!.textContent = adresseParts.join(', ') || '—';
+
+      const naissanceParts = [];
+      if (dn) naissanceParts.push(`le ${new Date(dn).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })}`);
+      if (villeN) naissanceParts.push(`à ${villeN}`);
+      if (deptN)  naissanceParts.push(`(${deptN})`);
+      document.getElementById('display-naissance')!.textContent = naissanceParts.join(' ') || '—';
       required = false;
       document.getElementById('profil-close')!.style.display = '';
       document.getElementById('profil-cancel')!.style.display = '';
