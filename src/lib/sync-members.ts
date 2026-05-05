@@ -183,7 +183,7 @@ export async function syncMembers(): Promise<{ ok: boolean; message: string }> {
 
     const { error: membresError } = await supabase
       .from('membres')
-      .upsert(membresRows, { onConflict: 'email', ignoreDuplicates: false });
+      .upsert(membresRows, { onConflict: 'email', ignoreDuplicates: true });
 
     if (membresError) {
       console.error('[sync-members] upsert membres:', membresError);
