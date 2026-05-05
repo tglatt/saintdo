@@ -23,18 +23,12 @@ const { data: lastSync } = await supabase
   .limit(1)
   .single();
 
-// Calculs globaux
 const totalMembres = membres?.length ?? 0;
-const totalAdhesion = transactions?.filter(t => t.type === 'adhesion')
-  .reduce((s, t) => s + t.montant, 0) ?? 0;
-const totalDon = transactions?.filter(t => t.type === 'don')
-  .reduce((s, t) => s + t.montant, 0) ?? 0;
-const totalDonDefiscalise = transactions?.filter(t => t.type === 'don_defiscalise')
-  .reduce((s, t) => s + t.montant, 0) ?? 0;
-const totalApport = transactions?.filter(t => t.type === 'apport_associatif')
-  .reduce((s, t) => s + t.montant, 0) ?? 0;
+const totalAdhesion = transactions?.filter(t => t.type === 'adhesion').reduce((s, t) => s + t.montant, 0) ?? 0;
+const totalDon = transactions?.filter(t => t.type === 'don').reduce((s, t) => s + t.montant, 0) ?? 0;
+const totalDonDefiscalise = transactions?.filter(t => t.type === 'don_defiscalise').reduce((s, t) => s + t.montant, 0) ?? 0;
+const totalApport = transactions?.filter(t => t.type === 'apport_associatif').reduce((s, t) => s + t.montant, 0) ?? 0;
 
-// Index transactions par membre
 const txByMembre = new Map<string, typeof transactions>();
 for (const tx of transactions ?? []) {
   if (!txByMembre.has(tx.membre_id)) txByMembre.set(tx.membre_id, []);
@@ -140,12 +134,7 @@ function fmtDateTime(iso: string | null) {
         <div class="section-header">
           <h2>Membres ({totalMembres})</h2>
           <div class="section-header-right">
-            <input
-              type="text"
-              id="search"
-              placeholder="Rechercher par nom ou email…"
-              autocomplete="off"
-            />
+            <input type="text" id="search" placeholder="Rechercher par nom ou email…" autocomplete="off" />
             <button id="btn-create-membre" class="btn-create">+ Nouveau membre</button>
           </div>
         </div>
@@ -239,129 +228,6 @@ function fmtDateTime(iso: string | null) {
             <button type="submit" id="membre-submit">Créer</button>
           </div>
         </form>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL NOUVELLE TRANSACTION -->
-  <div id="tx-overlay" class="modal-overlay hidden">
-    <div class="modal tx-modal">
-      <div class="modal-header">
-        <div>
-          <h2 id="tx-modal-title">Nouvelle transaction</h2>
-          <p id="tx-member-name" class="modal-email"></p>
-        </div>
-        <button id="tx-close" class="modal-close">✕</button>
-      </div>
-      <div class="modal-body">
-        <form id="tx-form">
-          <div class="form-group">
-            <label for="tx-type">Type</label>
-            <select id="tx-type" required>
-              <option value="">— Sélectionner —</option>
-              <option value="adhesion">Adhésion</option>
-              <option value="don">Don</option>
-              <option value="don_defiscalise">Don défiscalisé</option>
-              <option value="apport_associatif">Apport associatif</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="tx-montant">Montant (€)</label>
-            <input type="number" id="tx-montant" min="1" step="1" required placeholder="100" />
-          </div>
-          <div class="form-group">
-            <label for="tx-date">Date</label>
-            <input type="date" id="tx-date" />
-          </div>
-          <div class="form-group">
-            <label for="tx-paiement">Moyen de paiement</label>
-            <select id="tx-paiement">
-              <option value="">— Sélectionner —</option>
-              <option value="helloasso">HelloAsso</option>
-              <option value="cheque">Chèque</option>
-              <option value="virement">Virement</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label for="tx-detail">Détail</label>
-            <textarea id="tx-detail" rows="3" placeholder="Informations complémentaires…"></textarea>
-          </div>
-          <p id="tx-error" class="tx-error hidden"></p>
-          <div class="form-actions">
-            <button type="button" id="tx-cancel">Annuler</button>
-            <button type="submit" id="tx-submit">Créer</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL ÉDITION MEMBRE -->
-  <div id="edit-member-overlay" class="modal-overlay hidden">
-    <div class="modal tx-modal">
-      <div class="modal-header">
-        <h2>Modifier le membre</h2>
-        <button id="edit-member-close" class="modal-close">✕</button>
-      </div>
-      <div class="modal-body">
-        <div id="edit-member-error" class="tx-error hidden"></div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Prénom</label>
-            <input id="em-prenom" type="text" autocomplete="off" />
-          </div>
-          <div class="form-group">
-            <label>Nom</label>
-            <input id="em-nom" type="text" autocomplete="off" />
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Email <span class="required">*</span></label>
-          <input id="em-email" type="email" autocomplete="off" />
-        </div>
-        <div class="form-group">
-          <label>Adresse</label>
-          <input id="em-address" type="text" autocomplete="off" />
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Code postal</label>
-            <input id="em-zip" type="text" autocomplete="off" />
-          </div>
-          <div class="form-group">
-            <label>Ville</label>
-            <input id="em-city" type="text" autocomplete="off" />
-          </div>
-        </div>
-        <div class="form-group">
-          <label>Pays</label>
-          <input id="em-country" type="text" autocomplete="off" />
-        </div>
-        <div class="form-actions">
-          <button type="button" id="edit-member-cancel">Annuler</button>
-          <button type="submit" id="edit-member-submit">Enregistrer</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL -->
-  <div id="modal-overlay" class="modal-overlay hidden">
-    <div class="modal">
-      <div class="modal-header">
-        <div>
-          <h2 id="modal-name"></h2>
-          <p id="modal-email" class="modal-email"></p>
-        </div>
-        <div class="modal-header-actions">
-          <button id="btn-edit-member" class="btn-add-tx">Modifier</button>
-          <button id="btn-send-convention" class="btn-add-tx">Convention</button>
-          <button id="btn-add-tx" class="btn-add-tx">+ Transaction</button>
-          <button id="modal-close" class="modal-close">✕</button>
-        </div>
-      </div>
-      <div id="modal-body" class="modal-body">
-        <p class="loading">Chargement…</p>
       </div>
     </div>
   </div>
@@ -581,28 +447,6 @@ function fmtDateTime(iso: string | null) {
   }
   .modal-overlay.hidden { display: none; }
 
-  #tx-overlay { z-index: 200; }
-  #edit-member-overlay { z-index: 200; }
-
-  #modal-overlay {
-    padding: 0;
-    align-items: stretch;
-    justify-content: flex-end;
-    background: rgba(0,0,0,0.3);
-  }
-  #modal-overlay .modal {
-    width: 440px;
-    max-width: 92vw;
-    height: 100vh;
-    max-height: none;
-    border-radius: 20px 0 0 20px;
-    animation: drawerIn 0.24s cubic-bezier(0.32, 0, 0.08, 1);
-  }
-  @keyframes drawerIn {
-    from { transform: translateX(100%); opacity: 0.6; }
-    to   { transform: translateX(0);    opacity: 1; }
-  }
-
   .modal {
     background: white;
     border-radius: 16px;
@@ -630,7 +474,6 @@ function fmtDateTime(iso: string | null) {
     color: var(--color-primary);
     margin: 0 0 4px;
   }
-  .modal-email { font-size: 0.85rem; color: var(--color-muted); }
   .modal-close {
     background: none;
     border: none;
@@ -642,78 +485,6 @@ function fmtDateTime(iso: string | null) {
   }
   .modal-close:hover { color: var(--color-text); }
   .modal-body { padding: 24px 28px; }
-  .loading { color: var(--color-subtle); font-size: 0.9rem; }
-
-  .tx-table { width: 100%; border-collapse: collapse; }
-  .tx-table th {
-    text-align: left;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--color-muted);
-    padding: 8px 12px;
-    background: var(--color-bg);
-    border-bottom: 1px solid var(--color-border);
-  }
-  .tx-table td {
-    padding: 10px 12px;
-    font-size: 0.88rem;
-    border-bottom: 1px solid var(--color-border-light);
-    color: var(--color-text);
-  }
-  .tx-table tr:last-child td { border-bottom: none; }
-  .tx-table .right { text-align: right; }
-  .tx-actions { width: 32px; text-align: right; }
-  .btn-edit-tx {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 0.85rem;
-    color: var(--color-subtle);
-    padding: 2px 4px;
-    border-radius: 4px;
-    transition: all 0.15s;
-    opacity: 0;
-  }
-  .tx-table tr:hover .btn-edit-tx { opacity: 1; }
-  .btn-edit-tx:hover { color: var(--color-primary-mid); background: var(--color-success-bg); }
-  .tx-date { color: var(--color-muted); white-space: nowrap; }
-  .tx-paiement { font-size: 0.82rem; color: var(--color-muted); }
-  .tx-montant { font-weight: 600; white-space: nowrap; }
-  .tx-detail-row td { padding-top: 0 !important; padding-bottom: 10px !important; }
-  .tx-detail {
-    font-size: 0.8rem;
-    color: var(--color-muted);
-    font-style: italic;
-    padding-left: 12px !important;
-    border-left: 2px solid var(--color-border);
-    margin-left: 4px;
-  }
-  .tx-total {
-    display: flex;
-    justify-content: space-between;
-    padding: 16px 12px 0;
-    font-weight: 700;
-    font-size: 0.95rem;
-    color: var(--color-primary);
-    border-top: 2px solid var(--color-border);
-    margin-top: 4px;
-  }
-
-  .modal-header-actions { display: flex; align-items: center; gap: 12px; }
-  .btn-add-tx {
-    padding: 6px 14px;
-    border-radius: 8px;
-    font-size: 0.82rem;
-    font-weight: 600;
-    cursor: pointer;
-    border: 1.5px solid var(--color-primary-mid);
-    color: var(--color-primary-mid);
-    background: white;
-    transition: all 0.2s;
-  }
-  .btn-add-tx:hover { background: var(--color-success-bg); }
 
   .tx-modal { max-width: 440px; }
   .form-group { margin-bottom: 20px; }
@@ -726,20 +497,6 @@ function fmtDateTime(iso: string | null) {
     color: var(--color-muted);
     margin-bottom: 6px;
   }
-  .form-group textarea {
-    width: 100%;
-    padding: 10px 14px;
-    border: 1.5px solid var(--color-border);
-    border-radius: 8px;
-    font-size: 0.9rem;
-    font-family: inherit;
-    outline: none;
-    transition: border-color 0.2s;
-    background: white;
-    color: var(--color-text);
-    resize: vertical;
-  }
-  .form-group textarea:focus { border-color: var(--color-primary-mid); }
   .form-group input,
   .form-group select {
     width: 100%;
@@ -779,20 +536,6 @@ function fmtDateTime(iso: string | null) {
   .tx-error { color: var(--color-error); font-size: 0.85rem; margin-top: -12px; margin-bottom: 8px; }
   .tx-error.hidden { display: none; }
 
-  .member-info {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    font-size: 0.88rem;
-    color: var(--color-muted);
-    margin-bottom: 20px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid var(--color-border-light);
-  }
-  .member-info-icon { flex-shrink: 0; }
-  .link-download { color: var(--color-primary-mid); font-weight: 600; text-decoration: none; }
-  .link-download:hover { text-decoration: underline; }
-
   th.sortable { cursor: pointer; user-select: none; }
   th.sortable:hover { background: var(--color-primary-hover); }
   th.sort-asc .sort-icon::after { content: ' ↑'; }
@@ -806,254 +549,33 @@ function fmtDateTime(iso: string | null) {
   @media (max-width: 768px) {
     .user-email { display: none; }
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
-    .user-email { display: none; }
     #search { width: 100%; }
-    #modal-overlay .modal {
-      width: 100vw;
-      max-width: 100vw;
-      border-radius: 0;
-    }
   }
 </style>
 
 <script>
-  // ── Modal ─────────────────────────────────────────────────────────────────
-  const overlay = document.getElementById('modal-overlay')!;
-  const modalName = document.getElementById('modal-name')!;
-  const modalEmail = document.getElementById('modal-email')!;
-  const modalBody = document.getElementById('modal-body')!;
-  const modalClose = document.getElementById('modal-close')!;
-
-  const typeLabel: Record<string, string> = {
-    adhesion: 'Adhésion',
-    don: 'Don',
-    don_defiscalise: 'Don défiscalisé',
-    apport_associatif: 'Apport associatif',
-  };
-
-  function euros(n: number) {
-    return n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
-  }
-  function fmtDate(iso: string | null) {
-    if (!iso) return '—';
-    return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  }
-
-  let currentMemberId = '';
-  let currentMemberName = '';
-  let currentMemberData: any = null;
-  let currentTxId: string | null = null;
-  let currentTransactions: any[] = [];
-
-  async function openModal(id: string) {
-    currentMemberId = id;
-    overlay.classList.remove('hidden');
-    modalName.textContent = '…';
-    modalEmail.textContent = '';
-    modalBody.innerHTML = '<p class="loading">Chargement…</p>';
-
-    const res = await fetch(`/api/admin/membre?id=${id}`);
-    const { membre, transactions, convention } = await res.json();
-
-    currentMemberData = membre;
-    currentMemberName = [membre.prenom, membre.nom].filter(Boolean).join(' ') || membre.email;
-    modalName.textContent = currentMemberName;
-    modalEmail.textContent = membre.email;
-
-    const addrParts = [membre.address, membre.zip_code && membre.city ? `${membre.zip_code} ${membre.city}` : (membre.zip_code || membre.city), membre.country].filter(Boolean);
-    const addrHtml = addrParts.length
-      ? `<div class="member-info"><span class="member-info-icon">📍</span><span>${addrParts.join(', ')}</span></div>`
-      : '';
-    const conventionHtml = convention
-      ? `<div class="member-info"><span class="member-info-icon">📄</span><span>Convention signée le ${fmtDate(convention.signed_at)} — <a href="/api/admin/convention?membre_id=${id}" target="_blank" class="link-download">Télécharger</a></span></div>`
-      : '';
-
-    if (!transactions?.length) {
-      modalBody.innerHTML = addrHtml + conventionHtml + '<p class="loading" style="margin-top:16px">Aucune transaction.</p>';
-      return;
-    }
-
-    currentTransactions = transactions;
-    const total = transactions.reduce((s: number, t: any) => s + t.montant, 0);
-
-    const paiementLabel: Record<string, string> = {
-      helloasso: 'HelloAsso',
-      cheque: 'Chèque',
-      virement: 'Virement',
-    };
-
-    modalBody.innerHTML = addrHtml + conventionHtml + `
-      <table class="tx-table">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Type</th>
-            <th>Paiement</th>
-            <th class="right">Montant</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          ${transactions.map((t: any) => `
-            <tr data-tx-id="${t.id}">
-              <td class="tx-date">${fmtDate(t.date)}</td>
-              <td><span class="badge badge-${t.type}">${typeLabel[t.type] ?? t.type}</span></td>
-              <td class="tx-paiement">${t.paiement ? paiementLabel[t.paiement] ?? t.paiement : '<span class="muted">—</span>'}</td>
-              <td class="right tx-montant">${euros(t.montant)}</td>
-              <td class="tx-actions">${t.helloasso_order_id?.startsWith('manual_') ? `<button class="btn-edit-tx" data-tx-id="${t.id}">✏</button>` : ''}</td>
-            </tr>
-            ${t.detail ? `<tr class="tx-detail-row"><td colspan="5" class="tx-detail">${t.detail}</td></tr>` : ''}
-          `).join('')}
-        </tbody>
-      </table>
-      <div class="tx-total">
-        <span>Total</span>
-        <span>${euros(total)}</span>
-      </div>
-    `;
-
-  }
-
-  // ── Modal édition membre ───────────────────────────────────────────────────
-  const editMemberOverlay = document.getElementById('edit-member-overlay')!;
-  const editMemberError   = document.getElementById('edit-member-error')!;
-  const btnEditMember     = document.getElementById('btn-edit-member')!;
-
-  function openEditMember() {
-    const m = currentMemberData;
-    (document.getElementById('em-prenom') as HTMLInputElement).value  = m?.prenom  ?? '';
-    (document.getElementById('em-nom')    as HTMLInputElement).value  = m?.nom     ?? '';
-    (document.getElementById('em-email')  as HTMLInputElement).value  = m?.email   ?? '';
-    (document.getElementById('em-address') as HTMLInputElement).value = m?.address ?? '';
-    (document.getElementById('em-zip')    as HTMLInputElement).value  = m?.zip_code ?? '';
-    (document.getElementById('em-city')   as HTMLInputElement).value  = m?.city    ?? '';
-    (document.getElementById('em-country') as HTMLInputElement).value = m?.country ?? '';
-    editMemberError.classList.add('hidden');
-    editMemberOverlay.classList.remove('hidden');
-  }
-
-  function closeEditMember() { editMemberOverlay.classList.add('hidden'); }
-
-  // ── Envoi convention ──────────────────────────────────────────────────────
-  const btnSendConvention = document.getElementById('btn-send-convention')!;
-
-  btnSendConvention.addEventListener('click', async () => {
-    const label = btnSendConvention.textContent;
-    btnSendConvention.textContent = 'Envoi…';
-    (btnSendConvention as HTMLButtonElement).disabled = true;
-
-    try {
-      const res = await fetch('/api/admin/send-convention', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ membre_id: currentMemberId }),
-      });
-
-      if (!res.ok) {
-        const text = await res.text();
-        alert(`Erreur : ${text}`);
-        return;
-      }
-
-      btnSendConvention.textContent = 'Envoyé ✓';
-      setTimeout(() => {
-        btnSendConvention.textContent = label;
-        (btnSendConvention as HTMLButtonElement).disabled = false;
-      }, 3000);
-    } catch {
-      alert("Erreur lors de l'envoi.");
-      btnSendConvention.textContent = label;
-      (btnSendConvention as HTMLButtonElement).disabled = false;
-    }
-  });
-
-  btnEditMember.addEventListener('click', openEditMember);
-  document.getElementById('edit-member-close')!.addEventListener('click', closeEditMember);
-  document.getElementById('edit-member-cancel')!.addEventListener('click', closeEditMember);
-  editMemberOverlay.addEventListener('click', (e) => { if (e.target === editMemberOverlay) closeEditMember(); });
-
-  document.getElementById('edit-member-submit')!.addEventListener('click', async () => {
-    const submit = document.getElementById('edit-member-submit') as HTMLButtonElement;
-    const email = (document.getElementById('em-email') as HTMLInputElement).value.trim();
-    if (!email) { editMemberError.textContent = 'Email requis'; editMemberError.classList.remove('hidden'); return; }
-
-    submit.disabled = true;
-    const res = await fetch('/api/admin/membre', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id:       currentMemberId,
-        prenom:   (document.getElementById('em-prenom')  as HTMLInputElement).value,
-        nom:      (document.getElementById('em-nom')     as HTMLInputElement).value,
-        email,
-        address:  (document.getElementById('em-address') as HTMLInputElement).value,
-        zip_code: (document.getElementById('em-zip')     as HTMLInputElement).value,
-        city:     (document.getElementById('em-city')    as HTMLInputElement).value,
-        country:  (document.getElementById('em-country') as HTMLInputElement).value,
-      }),
-    });
-    submit.disabled = false;
-
-    if (!res.ok) {
-      editMemberError.textContent = await res.text();
-      editMemberError.classList.remove('hidden');
-      return;
-    }
-
-    closeEditMember();
-    await openModal(currentMemberId);
-  });
-
+  // ── Navigation vers le détail membre ──────────────────────────────────────
   document.querySelectorAll<HTMLTableRowElement>('tr.clickable').forEach(row => {
     row.addEventListener('click', () => {
       const id = row.dataset.id;
-      if (id) openModal(id);
+      if (id) window.location.href = `/admin/membres/${id}`;
     });
-  });
-
-  modalBody.addEventListener('click', (e) => {
-    const btn = (e.target as Element).closest('.btn-edit-tx') as HTMLElement | null;
-    if (!btn) return;
-    const txId = btn.dataset.txId;
-    const tx = currentTransactions.find(t => t.id === txId);
-    if (tx) openTxModal('edit', tx);
-  });
-
-  modalClose.addEventListener('click', () => overlay.classList.add('hidden'));
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) overlay.classList.add('hidden');
-  });
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      txOverlay.classList.add('hidden');
-      editMemberOverlay.classList.add('hidden');
-      overlay.classList.add('hidden');
-      membreOverlay.classList.add('hidden');
-    }
   });
 
   // ── Modal nouveau membre ───────────────────────────────────────────────────
   const membreOverlay = document.getElementById('membre-overlay')!;
-  const membreClose = document.getElementById('membre-close')!;
-  const membreCancel = document.getElementById('membre-cancel')!;
   const membreForm = document.getElementById('membre-form') as HTMLFormElement;
   const membreError = document.getElementById('membre-error')!;
   const membreSubmit = document.getElementById('membre-submit') as HTMLButtonElement;
-  const btnCreateMembre = document.getElementById('btn-create-membre')!;
 
-  function openMembreModal() {
-    membreForm.reset();
-    membreError.classList.add('hidden');
-    membreOverlay.classList.remove('hidden');
-  }
+  function openMembreModal() { membreForm.reset(); membreError.classList.add('hidden'); membreOverlay.classList.remove('hidden'); }
   function closeMembreModal() { membreOverlay.classList.add('hidden'); }
 
-  btnCreateMembre.addEventListener('click', openMembreModal);
-  membreClose.addEventListener('click', closeMembreModal);
-  membreCancel.addEventListener('click', closeMembreModal);
-  membreOverlay.addEventListener('click', (e) => {
-    if (e.target === membreOverlay) closeMembreModal();
-  });
+  document.getElementById('btn-create-membre')!.addEventListener('click', openMembreModal);
+  document.getElementById('membre-close')!.addEventListener('click', closeMembreModal);
+  document.getElementById('membre-cancel')!.addEventListener('click', closeMembreModal);
+  membreOverlay.addEventListener('click', e => { if (e.target === membreOverlay) closeMembreModal(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMembreModal(); });
 
   membreForm.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1073,12 +595,7 @@ function fmtDateTime(iso: string | null) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, nom: nom || null, prenom: prenom || null, structure: structure || null, role }),
       });
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || 'Erreur serveur');
-      }
-
+      if (!res.ok) throw new Error(await res.text() || 'Erreur serveur');
       closeMembreModal();
       window.location.reload();
     } catch (err: any) {
@@ -1090,91 +607,10 @@ function fmtDateTime(iso: string | null) {
     }
   });
 
-  // ── Modal nouvelle transaction ─────────────────────────────────────────────
-  const txOverlay = document.getElementById('tx-overlay')!;
-  const txClose = document.getElementById('tx-close')!;
-  const txCancel = document.getElementById('tx-cancel')!;
-  const txForm = document.getElementById('tx-form') as HTMLFormElement;
-  const txModalTitle = document.getElementById('tx-modal-title')!;
-  const txTypeEl = document.getElementById('tx-type') as HTMLSelectElement;
-  const txMontant = document.getElementById('tx-montant') as HTMLInputElement;
-  const txDate = document.getElementById('tx-date') as HTMLInputElement;
-  const txPaiement = document.getElementById('tx-paiement') as HTMLSelectElement;
-  const txDetail = document.getElementById('tx-detail') as HTMLTextAreaElement;
-  const txError = document.getElementById('tx-error')!;
-  const txMemberName = document.getElementById('tx-member-name')!;
-  const txSubmit = document.getElementById('tx-submit') as HTMLButtonElement;
-  const btnAddTx = document.getElementById('btn-add-tx')!;
-
-  function openTxModal(mode: 'create' | 'edit' = 'create', tx?: any) {
-    currentTxId = mode === 'edit' ? (tx?.id ?? null) : null;
-    const isEdit = mode === 'edit';
-
-    txModalTitle.textContent = isEdit ? 'Modifier la transaction' : 'Nouvelle transaction';
-    txSubmit.textContent = isEdit ? 'Enregistrer' : 'Créer';
-    txMemberName.textContent = currentMemberName;
-    txTypeEl.value = tx?.type ?? '';
-    txMontant.value = tx?.montant?.toString() ?? '';
-    txDate.value = tx?.date ? tx.date.split('T')[0] : new Date().toISOString().split('T')[0];
-    txPaiement.value = tx?.paiement ?? '';
-    txDetail.value = tx?.detail ?? '';
-    txError.classList.add('hidden');
-    txError.textContent = '';
-    txOverlay.classList.remove('hidden');
-  }
-
-  function closeTxModal() {
-    txOverlay.classList.add('hidden');
-  }
-
-  btnAddTx.addEventListener('click', () => openTxModal('create'));
-  txClose.addEventListener('click', closeTxModal);
-  txCancel.addEventListener('click', closeTxModal);
-  txOverlay.addEventListener('click', (e) => {
-    if (e.target === txOverlay) closeTxModal();
-  });
-
-  txForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    txSubmit.disabled = true;
-    txSubmit.textContent = 'Enregistrement…';
-    txError.classList.add('hidden');
-
-    const isEdit = currentTxId !== null;
-    const payload = isEdit
-      ? { id: currentTxId, type: txTypeEl.value, montant: Number(txMontant.value), date: txDate.value || null, paiement: txPaiement.value || null, detail: txDetail.value.trim() || null }
-      : { membre_id: currentMemberId, type: txTypeEl.value, montant: Number(txMontant.value), date: txDate.value || null, paiement: txPaiement.value || null, detail: txDetail.value.trim() || null };
-
-    try {
-      const res = await fetch('/api/admin/transaction', {
-        method: isEdit ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || 'Erreur serveur');
-      }
-
-      closeTxModal();
-      openModal(currentMemberId);
-    } catch (err: any) {
-      txError.textContent = err.message;
-      txError.classList.remove('hidden');
-    } finally {
-      txSubmit.disabled = false;
-      txSubmit.textContent = isEdit ? 'Enregistrer' : 'Créer';
-    }
-  });
-
   // ── Filtrage ──────────────────────────────────────────────────────────────
   const search = document.getElementById('search') as HTMLInputElement;
   const tbody = document.querySelector<HTMLTableSectionElement>('#membres-table tbody')!;
-
-  function getRows() {
-    return Array.from(tbody.querySelectorAll<HTMLTableRowElement>('tr'));
-  }
+  const getRows = () => Array.from(tbody.querySelectorAll<HTMLTableRowElement>('tr'));
 
   search.addEventListener('input', () => {
     const q = search.value.toLowerCase().trim();
@@ -1192,32 +628,19 @@ function fmtDateTime(iso: string | null) {
   document.querySelectorAll<HTMLTableCellElement>('th.sortable').forEach(th => {
     th.addEventListener('click', () => {
       const col = parseInt(th.dataset.col ?? '0');
-      if (sortCol === col) {
-        sortAsc = !sortAsc;
-      } else {
-        sortCol = col;
-        sortAsc = true;
-      }
-
-      // Mettre à jour les classes des en-têtes
+      if (sortCol === col) { sortAsc = !sortAsc; } else { sortCol = col; sortAsc = true; }
       document.querySelectorAll('th').forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
       th.classList.add(sortAsc ? 'sort-asc' : 'sort-desc');
 
-      // Trier les lignes
       const rows = getRows();
       rows.sort((a, b) => {
         const aText = a.cells[col]?.textContent?.trim() ?? '';
         const bText = b.cells[col]?.textContent?.trim() ?? '';
-
-        // Détecter si c'est un montant (contient €)
         const aNum = parseFloat(aText.replace(/[^0-9,.-]/g, '').replace(',', '.'));
         const bNum = parseFloat(bText.replace(/[^0-9,.-]/g, '').replace(',', '.'));
         const isNum = !isNaN(aNum) && !isNaN(bNum);
-
-        // Détecter si c'est une date (format JJ/MM/AAAA)
         const dateRe = /^\d{2}\/\d{2}\/\d{4}$/;
         const isDate = dateRe.test(aText) && dateRe.test(bText);
-
         let cmp = 0;
         if (isDate) {
           const [ad, am, ay] = aText.split('/');
@@ -1228,10 +651,8 @@ function fmtDateTime(iso: string | null) {
         } else {
           cmp = aText.localeCompare(bText, 'fr');
         }
-
         return sortAsc ? cmp : -cmp;
       });
-
       rows.forEach(row => tbody.appendChild(row));
     });
   });

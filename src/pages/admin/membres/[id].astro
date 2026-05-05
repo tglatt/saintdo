@@ -1,0 +1,805 @@
+---
+import { createAdminClient } from '../../../lib/supabase';
+import '../../../styles/theme.css';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/login');
+
+const { id } = Astro.params;
+if (!id) return Astro.redirect('/admin');
+
+const supabase = createAdminClient();
+
+const { data: membre } = await supabase
+  .from('membres')
+  .select('id, email, nom, prenom, address, zip_code, city, country, role, structure, convention_enabled, created_at')
+  .eq('id', id)
+  .single();
+if (!membre) return Astro.redirect('/admin');
+
+const { data: transactions } = await supabase
+  .from('transactions')
+  .select('id, type, montant, date, paiement, detail, helloasso_order_id')
+  .eq('membre_id', id)
+  .order('date', { ascending: false });
+
+const { data: convention } = await supabase
+  .from('conventions')
+  .select('signed_at')
+  .eq('membre_id', id)
+  .order('signed_at', { ascending: false })
+  .limit(1)
+  .maybeSingle();
+
+function euros(n: number) {
+  return n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+}
+function fmtDate(iso: string | null) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+const nomComplet = [membre.prenom, membre.nom].filter(Boolean).join(' ') || membre.email;
+const adresseParts = [
+  membre.address,
+  membre.zip_code && membre.city ? `${membre.zip_code} ${membre.city}` : (membre.zip_code || membre.city),
+  membre.country,
+].filter(Boolean);
+
+const total = transactions?.reduce((s, t) => s + t.montant, 0) ?? 0;
+
+const typeLabel: Record<string, string> = {
+  adhesion: 'Adhésion',
+  don: 'Don',
+  don_defiscalise: 'Don défiscalisé',
+  apport_associatif: 'Apport associatif',
+};
+const paiementLabel: Record<string, string> = {
+  helloasso: 'HelloAsso',
+  cheque: 'Chèque',
+  virement: 'Virement',
+};
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{nomComplet} — Admin Saint Domingue</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <nav>
+    <div class="nav-inner">
+      <a href="/" class="logo">Saint Domingue</a>
+      <div class="nav-right">
+        <a href="/espace-membre" class="btn-member">Mon espace</a>
+        <span class="user-email">{user.email}</span>
+        <a href="/auth/logout" class="btn-logout">Déconnexion</a>
+      </div>
+    </div>
+  </nav>
+
+  <subnav>
+    <div class="subnav-inner">
+      <a href="/admin" class="subnav-link active">Membres</a>
+      <a href="/admin/transactions" class="subnav-link">Transactions</a>
+    </div>
+  </subnav>
+
+  <main>
+    <div class="container">
+
+      <a href="/admin" class="back-link">← Retour aux membres</a>
+
+      <!-- HEADER MEMBRE -->
+      <div class="member-header">
+        <div class="member-header-left">
+          <h1>{nomComplet}</h1>
+          <div class="member-meta">
+            <span class="member-email">{membre.email}</span>
+            {membre.structure && <span class="sep">·</span>}
+            {membre.structure && <span class="member-structure">{membre.structure}</span>}
+            <span class="sep">·</span>
+            <span class={`badge badge-${membre.role}`}>{membre.role === 'admin' ? 'Admin' : 'Membre'}</span>
+          </div>
+          {adresseParts.length > 0 && (
+            <div class="member-address">{adresseParts.join(', ')}</div>
+          )}
+        </div>
+        <div class="member-header-actions">
+          <button id="btn-edit" class="btn-secondary">Modifier</button>
+          <button id="btn-send-convention" class="btn-secondary">
+            {convention ? 'Renvoyer la convention' : 'Envoyer la convention'}
+          </button>
+          {convention && (
+            <a href={`/api/admin/convention?membre_id=${membre.id}`} target="_blank" class="btn-secondary">
+              Télécharger la convention
+            </a>
+          )}
+          <button id="btn-add-tx" class="btn-primary">+ Transaction</button>
+        </div>
+      </div>
+
+      <!-- CONVENTION STATUS -->
+      {convention ? (
+        <div class="convention-badge convention-badge--signed">
+          ✓ Convention signée le {fmtDate(convention.signed_at)}
+        </div>
+      ) : membre.convention_enabled ? (
+        <div class="convention-badge convention-badge--pending">
+          Convention activée — en attente de signature
+        </div>
+      ) : null}
+
+      <!-- TRANSACTIONS -->
+      <section class="section">
+        <div class="section-header">
+          <h2>Transactions</h2>
+        </div>
+
+        {transactions?.length ? (
+          <div class="table-wrapper">
+            <table class="tx-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Type</th>
+                  <th>Paiement</th>
+                  <th class="right">Montant</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {transactions.map(t => (
+                  <>
+                    <tr data-tx-id={t.id}>
+                      <td class="tx-date">{fmtDate(t.date)}</td>
+                      <td><span class={`badge badge-${t.type}`}>{typeLabel[t.type] ?? t.type}</span></td>
+                      <td class="tx-paiement">{t.paiement ? (paiementLabel[t.paiement] ?? t.paiement) : <span class="muted">—</span>}</td>
+                      <td class="right tx-montant">{euros(t.montant)}</td>
+                      <td class="tx-actions">
+                        {t.helloasso_order_id?.startsWith('manual_') && (
+                          <button class="btn-edit-tx" data-tx-id={t.id}>✏</button>
+                        )}
+                      </td>
+                    </tr>
+                    {t.detail && (
+                      <tr class="tx-detail-row">
+                        <td colspan="5" class="tx-detail">{t.detail}</td>
+                      </tr>
+                    )}
+                  </>
+                ))}
+              </tbody>
+            </table>
+            <div class="tx-total">
+              <span>Total</span>
+              <span>{euros(total)}</span>
+            </div>
+          </div>
+        ) : (
+          <p class="empty">Aucune transaction.</p>
+        )}
+      </section>
+
+    </div>
+  </main>
+
+  <!-- MODAL MODIFIER MEMBRE -->
+  <div id="edit-overlay" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Modifier le membre</h2>
+        <button id="edit-close" class="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="edit-error" class="form-error hidden"></div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Prénom</label>
+            <input id="em-prenom" type="text" value={membre.prenom ?? ''} autocomplete="off" />
+          </div>
+          <div class="form-group">
+            <label>Nom</label>
+            <input id="em-nom" type="text" value={membre.nom ?? ''} autocomplete="off" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Email <span class="required">*</span></label>
+          <input id="em-email" type="email" value={membre.email} autocomplete="off" />
+        </div>
+        <div class="form-group">
+          <label>Adresse</label>
+          <input id="em-address" type="text" value={membre.address ?? ''} autocomplete="off" />
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Code postal</label>
+            <input id="em-zip" type="text" value={membre.zip_code ?? ''} autocomplete="off" />
+          </div>
+          <div class="form-group">
+            <label>Ville</label>
+            <input id="em-city" type="text" value={membre.city ?? ''} autocomplete="off" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Pays</label>
+          <input id="em-country" type="text" value={membre.country ?? ''} autocomplete="off" />
+        </div>
+        <div class="form-actions">
+          <button type="button" id="edit-cancel">Annuler</button>
+          <button type="button" id="edit-submit">Enregistrer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL TRANSACTION -->
+  <div id="tx-overlay" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="tx-title">Nouvelle transaction</h2>
+        <button id="tx-close" class="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Type</label>
+          <select id="tx-type" required>
+            <option value="">— Sélectionner —</option>
+            <option value="adhesion">Adhésion</option>
+            <option value="don">Don</option>
+            <option value="don_defiscalise">Don défiscalisé</option>
+            <option value="apport_associatif">Apport associatif</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Montant (€)</label>
+          <input type="number" id="tx-montant" min="1" step="1" required placeholder="100" />
+        </div>
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" id="tx-date" />
+        </div>
+        <div class="form-group">
+          <label>Moyen de paiement</label>
+          <select id="tx-paiement">
+            <option value="">— Sélectionner —</option>
+            <option value="helloasso">HelloAsso</option>
+            <option value="cheque">Chèque</option>
+            <option value="virement">Virement</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Détail</label>
+          <textarea id="tx-detail" rows="3" placeholder="Informations complémentaires…"></textarea>
+        </div>
+        <p id="tx-error" class="form-error hidden"></p>
+        <div class="form-actions">
+          <button type="button" id="tx-cancel">Annuler</button>
+          <button type="button" id="tx-submit">Créer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--color-bg);
+    color: var(--color-text);
+    min-height: 100vh;
+  }
+
+  nav {
+    background: white;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    text-decoration: none;
+  }
+  .nav-right { display: flex; align-items: center; gap: 12px; }
+  .user-email { font-size: 0.85rem; color: var(--color-muted); }
+  .btn-logout, .btn-member {
+    font-size: 0.85rem;
+    color: var(--color-muted);
+    text-decoration: none;
+    padding: 6px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+  .btn-logout:hover, .btn-member:hover { background: var(--color-bg); color: var(--color-text); }
+
+  subnav {
+    background: white;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .subnav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    gap: 4px;
+  }
+  .subnav-link {
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--color-muted);
+    text-decoration: none;
+    padding: 10px 14px;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .subnav-link:hover { color: var(--color-primary); }
+  .subnav-link.active { color: var(--color-primary); border-bottom-color: var(--color-primary-mid); font-weight: 600; }
+
+  main { padding: 32px 24px 80px; }
+  .container { max-width: 900px; margin: 0 auto; }
+
+  .back-link {
+    display: inline-block;
+    font-size: 0.85rem;
+    color: var(--color-muted);
+    text-decoration: none;
+    margin-bottom: 24px;
+    transition: color 0.2s;
+  }
+  .back-link:hover { color: var(--color-primary); }
+
+  /* Header */
+  .member-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    background: white;
+    border-radius: 12px;
+    padding: 28px 32px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .member-header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+    color: var(--color-primary);
+    margin-bottom: 8px;
+  }
+  .member-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .member-email { font-size: 0.9rem; color: var(--color-muted); }
+  .member-structure { font-size: 0.9rem; color: var(--color-muted); }
+  .sep { color: var(--color-subtle); }
+  .member-address { font-size: 0.85rem; color: var(--color-subtle); margin-top: 4px; }
+  .member-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
+  .badge-membre { background: var(--badge-membre-bg); color: var(--badge-membre-text); }
+  .badge-admin  { background: var(--badge-admin-bg);  color: var(--badge-admin-text); }
+  .badge-adhesion        { background: var(--badge-adhesion-bg);        color: var(--badge-adhesion-text); }
+  .badge-don             { background: var(--badge-don-bg);             color: var(--badge-don-text); }
+  .badge-don_defiscalise { background: var(--badge-don_defiscalise-bg); color: var(--badge-don_defiscalise-text); }
+  .badge-apport_associatif { background: var(--badge-apport_associatif-bg); color: var(--badge-apport_associatif-text); }
+
+  /* Convention status */
+  .convention-badge {
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 500;
+    margin-bottom: 24px;
+  }
+  .convention-badge--signed {
+    background: var(--color-success-bg);
+    color: var(--color-success-text);
+    border: 1px solid var(--color-success-border);
+  }
+  .convention-badge--pending {
+    background: var(--color-surface);
+    color: var(--color-muted);
+    border: 1px solid var(--color-border);
+  }
+
+  /* Section */
+  .section { margin-bottom: 32px; }
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .section-header h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    color: var(--color-primary);
+  }
+
+  .table-wrapper { overflow-x: auto; }
+  .tx-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    min-width: 500px;
+  }
+  .tx-table th {
+    text-align: left;
+    padding: 10px 16px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-muted);
+    background: var(--color-bg);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .tx-table td {
+    padding: 10px 16px;
+    font-size: 0.88rem;
+    border-bottom: 1px solid var(--color-border-light);
+  }
+  .tx-table tr:last-child td { border-bottom: none; }
+  .right { text-align: right; }
+  .muted { color: var(--color-muted); }
+  .tx-date { color: var(--color-muted); white-space: nowrap; }
+  .tx-paiement { font-size: 0.82rem; color: var(--color-muted); }
+  .tx-montant { font-weight: 600; white-space: nowrap; }
+  .tx-actions { width: 32px; text-align: right; }
+  .btn-edit-tx {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.85rem;
+    color: var(--color-subtle);
+    padding: 2px 4px;
+    border-radius: 4px;
+    transition: all 0.15s;
+    opacity: 0;
+  }
+  .tx-table tr:hover .btn-edit-tx { opacity: 1; }
+  .btn-edit-tx:hover { color: var(--color-primary-mid); background: var(--color-success-bg); }
+  .tx-detail-row td { padding-top: 0 !important; padding-bottom: 10px !important; }
+  .tx-detail {
+    font-size: 0.8rem;
+    color: var(--color-muted);
+    font-style: italic;
+    padding-left: 16px !important;
+    border-left: 2px solid var(--color-border);
+  }
+  .tx-total {
+    display: flex;
+    justify-content: space-between;
+    padding: 14px 16px 0;
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--color-primary);
+    border-top: 2px solid var(--color-border);
+    margin-top: 4px;
+  }
+  .empty { font-size: 0.9rem; color: var(--color-subtle); padding: 16px 0; }
+
+  /* Buttons */
+  .btn-primary {
+    padding: 8px 16px;
+    background: var(--color-primary-mid);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    text-decoration: none;
+    transition: background 0.2s;
+    white-space: nowrap;
+  }
+  .btn-primary:hover { background: var(--color-primary); }
+  .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+  .btn-secondary {
+    padding: 8px 16px;
+    background: white;
+    color: var(--color-text);
+    border: 1.5px solid var(--color-border);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .btn-secondary:hover { background: var(--color-bg); border-color: var(--color-primary-mid); }
+  .btn-secondary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  /* Modals */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .modal-overlay.hidden { display: none; }
+  .modal {
+    background: white;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 480px;
+    max-height: 88vh;
+    overflow-y: auto;
+    box-shadow: 0 8px 48px rgba(0,0,0,0.18);
+  }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 24px 28px 20px;
+    border-bottom: 1px solid var(--color-border-light);
+    position: sticky;
+    top: 0;
+    background: white;
+  }
+  .modal-header h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    color: var(--color-primary);
+  }
+  .modal-close {
+    background: none;
+    border: none;
+    font-size: 1.1rem;
+    color: var(--color-subtle);
+    cursor: pointer;
+    padding: 4px 8px;
+  }
+  .modal-close:hover { color: var(--color-text); }
+  .modal-body { padding: 24px 28px; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-group { margin-bottom: 18px; }
+  .form-group label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-muted);
+    margin-bottom: 6px;
+  }
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+    background: white;
+    color: var(--color-text);
+  }
+  .form-group input:focus,
+  .form-group select:focus,
+  .form-group textarea:focus { border-color: var(--color-primary-mid); }
+  .form-group textarea { resize: vertical; }
+  .required { color: var(--color-error); }
+  .form-error {
+    color: var(--color-error);
+    font-size: 0.85rem;
+    margin-bottom: 12px;
+  }
+  .form-error.hidden { display: none; }
+  .form-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 8px;
+  }
+  .form-actions button {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+  .form-actions button:first-child { background: var(--color-bg); color: var(--color-muted); }
+  .form-actions button:first-child:hover { background: var(--color-border); }
+  .form-actions button:last-child { background: var(--color-primary-mid); color: white; }
+  .form-actions button:last-child:hover { background: var(--color-primary); }
+  .form-actions button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  @media (max-width: 640px) {
+    .user-email { display: none; }
+    .member-header { flex-direction: column; }
+    .member-header-actions { width: 100%; }
+    .form-row { grid-template-columns: 1fr; }
+  }
+</style>
+
+<script define:vars={{ membreId: membre.id }}>
+  // ── Edit member ──────────────────────────────────────────────────────────────
+  const editOverlay = document.getElementById('edit-overlay');
+  const editError   = document.getElementById('edit-error');
+
+  document.getElementById('btn-edit').addEventListener('click', () => {
+    editError.classList.add('hidden');
+    editOverlay.classList.remove('hidden');
+  });
+  document.getElementById('edit-close').addEventListener('click', () => editOverlay.classList.add('hidden'));
+  document.getElementById('edit-cancel').addEventListener('click', () => editOverlay.classList.add('hidden'));
+  editOverlay.addEventListener('click', e => { if (e.target === editOverlay) editOverlay.classList.add('hidden'); });
+
+  document.getElementById('edit-submit').addEventListener('click', async () => {
+    const btn = document.getElementById('edit-submit');
+    const email = document.getElementById('em-email').value.trim();
+    if (!email) { editError.textContent = 'Email requis'; editError.classList.remove('hidden'); return; }
+
+    btn.disabled = true;
+    const res = await fetch('/api/admin/membre', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: membreId,
+        prenom:  document.getElementById('em-prenom').value,
+        nom:     document.getElementById('em-nom').value,
+        email,
+        address: document.getElementById('em-address').value,
+        zip_code: document.getElementById('em-zip').value,
+        city:    document.getElementById('em-city').value,
+        country: document.getElementById('em-country').value,
+      }),
+    });
+    btn.disabled = false;
+
+    if (!res.ok) {
+      editError.textContent = await res.text();
+      editError.classList.remove('hidden');
+      return;
+    }
+    window.location.reload();
+  });
+
+  // ── Transaction modal ─────────────────────────────────────────────────────────
+  const txOverlay = document.getElementById('tx-overlay');
+  const txError   = document.getElementById('tx-error');
+  const txTitle   = document.getElementById('tx-title');
+  const txSubmit  = document.getElementById('tx-submit');
+  let currentTxId = null;
+
+  function openTxModal(mode = 'create', tx = null) {
+    currentTxId = mode === 'edit' ? tx?.id ?? null : null;
+    txTitle.textContent = mode === 'edit' ? 'Modifier la transaction' : 'Nouvelle transaction';
+    txSubmit.textContent = mode === 'edit' ? 'Enregistrer' : 'Créer';
+    document.getElementById('tx-type').value    = tx?.type ?? '';
+    document.getElementById('tx-montant').value = tx?.montant?.toString() ?? '';
+    document.getElementById('tx-date').value    = tx?.date ? tx.date.split('T')[0] : new Date().toISOString().split('T')[0];
+    document.getElementById('tx-paiement').value = tx?.paiement ?? '';
+    document.getElementById('tx-detail').value  = tx?.detail ?? '';
+    txError.classList.add('hidden');
+    txOverlay.classList.remove('hidden');
+  }
+
+  document.getElementById('btn-add-tx').addEventListener('click', () => openTxModal('create'));
+  document.getElementById('tx-close').addEventListener('click', () => txOverlay.classList.add('hidden'));
+  document.getElementById('tx-cancel').addEventListener('click', () => txOverlay.classList.add('hidden'));
+  txOverlay.addEventListener('click', e => { if (e.target === txOverlay) txOverlay.classList.add('hidden'); });
+
+  document.querySelectorAll('.btn-edit-tx').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const txId = btn.dataset.txId;
+      const row = document.querySelector(`tr[data-tx-id="${txId}"]`);
+      const detailRow = row?.nextElementSibling?.classList.contains('tx-detail-row') ? row.nextElementSibling : null;
+      const type = row?.querySelector('.badge')?.className.match(/badge-(\S+)/)?.[1];
+      const montant = parseFloat(row?.querySelector('.tx-montant')?.textContent?.replace(/[^0-9,]/g, '').replace(',', '.') ?? '0');
+      openTxModal('edit', { id: txId, type, montant, detail: detailRow?.querySelector('.tx-detail')?.textContent ?? '' });
+    });
+  });
+
+  txSubmit.addEventListener('click', async () => {
+    txSubmit.disabled = true;
+    const isEdit = currentTxId !== null;
+    const payload = isEdit
+      ? { id: currentTxId, type: document.getElementById('tx-type').value, montant: Number(document.getElementById('tx-montant').value), date: document.getElementById('tx-date').value || null, paiement: document.getElementById('tx-paiement').value || null, detail: document.getElementById('tx-detail').value.trim() || null }
+      : { membre_id: membreId, type: document.getElementById('tx-type').value, montant: Number(document.getElementById('tx-montant').value), date: document.getElementById('tx-date').value || null, paiement: document.getElementById('tx-paiement').value || null, detail: document.getElementById('tx-detail').value.trim() || null };
+
+    const res = await fetch('/api/admin/transaction', {
+      method: isEdit ? 'PUT' : 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    txSubmit.disabled = false;
+
+    if (!res.ok) {
+      txError.textContent = await res.text();
+      txError.classList.remove('hidden');
+      return;
+    }
+    window.location.reload();
+  });
+
+  // ── Envoyer convention ────────────────────────────────────────────────────────
+  const btnConvention = document.getElementById('btn-send-convention');
+
+  btnConvention.addEventListener('click', async () => {
+    const label = btnConvention.textContent;
+    btnConvention.disabled = true;
+    btnConvention.textContent = 'Envoi…';
+
+    const res = await fetch('/api/admin/send-convention', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ membre_id: membreId }),
+    });
+
+    if (!res.ok) {
+      alert(`Erreur : ${await res.text()}`);
+      btnConvention.textContent = label;
+      btnConvention.disabled = false;
+      return;
+    }
+
+    btnConvention.textContent = 'Envoyé ✓';
+    setTimeout(() => {
+      btnConvention.textContent = label;
+      btnConvention.disabled = false;
+    }, 3000);
+  });
+
+  // ── Escape ────────────────────────────────────────────────────────────────────
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      editOverlay.classList.add('hidden');
+      txOverlay.classList.add('hidden');
+    }
+  });
+</script>
