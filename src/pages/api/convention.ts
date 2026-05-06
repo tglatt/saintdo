@@ -59,7 +59,8 @@ async function loadConventionData(cookies: { get: (name: string) => { value: str
     readFile(join(process.cwd(), 'public', 'signature.png')),
   ]);
 
-  const adresse = [membre.address, membre.zip_code, membre.city].filter(Boolean).join(' ');
+  const codePostalVille = [membre.zip_code, membre.city?.toUpperCase()].filter(Boolean).join(' ');
+  const adresse = [membre.address, codePostalVille].filter(Boolean).join(', ');
   const md = mdRaw
     .replace('[NOM_ADHERENT]', nom)
     .replace('[ADRESSE_ADHERENT]', adresse)

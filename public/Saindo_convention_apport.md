@@ -10,7 +10,7 @@ D'une part,
 
 Et
 
-L'association "Le Saint-Domingue", association déclarée dont le siège est 85 IMPASSE DE LA GELIBAUDIERE, 26150 DIE, et représentée par Thomas GLATT, son Président.
+L'association "Le Saint-Domingue", association déclarée dont le siège est au 85 impasse de la Gélibaudière, 26150 DIE, et représentée par Thomas GLATT, son Président.
 
 Ci-après désignée l'« Association »,
 
@@ -24,7 +24,7 @@ Afin de participer aux objectifs poursuivis par l'Association dont il reconnaît
 
 ## Article 2 : Montant de l'apport avec droit de reprise
 
-L'Apporteur apporte ce jour, le [DATE_APPORT] , à l'association le montant enregistré lors de la souscription. Ce montant est de **[MONTANT_APPORT]**.
+L'Apporteur apporte ce jour, le [DATE_APPORT], à l'association le montant enregistré lors de la souscription. Ce montant est de **[MONTANT_APPORT]**.
 
 ## Article 3 : Caractéristiques de l'apport
 
@@ -36,12 +36,12 @@ L'Association s'engage à utiliser la somme d'argent apportée par l'Apporteur c
 
 ## Article 4 : Transformation de l'association en SCIC
 
-L'apport sera transformé en parts sociales en cas de transformation de l'association en SCIC. L'apporteur pourra dès lors demander leur remboursement, conformément aux statuts de la SCIC, à leur valeur de remboursement arrêté à la clôture de l'exercice durant lequel l'apporteur (devenu associé) aura fait la demande. La SCIC dispose alors de 5 ans pour effectuer le remboursement.
+L'apport sera transformé en parts sociales en cas de transformation de l'association en SCIC. L'apporteur pourra dès lors demander leur remboursement, conformément aux statuts de la SCIC, à leur valeur de remboursement arrêté à la clôture de l'exercice durant lequel l'apporteur (devenu sociétaire) aura fait la demande. La SCIC dispose alors de 5 ans pour effectuer le remboursement.
 
 ## Article 5 : Modalités d'exercice du droit de reprise
 
-L'apport sera restitué au Souscripteur en cas de :
+L'apport sera restitué à l'Apporteur en cas de :
 
-- Demande de remboursement envoyée par l'Apporteur à l'Association, sous réserve de validation préalable par l'Assemblée Générale Ordinaire ;
-- Décision unilatérale de l'Association.
+- demande de remboursement envoyée par l'Apporteur à l'Association, sous réserve de validation préalable par l'Assemblée Générale Ordinaire ;
+- décision unilatérale de l'Association.
 
