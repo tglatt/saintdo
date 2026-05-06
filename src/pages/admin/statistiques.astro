@@ -39,25 +39,60 @@ const totalDon            = txs.filter(t => t.type === 'don').reduce((s, t) => s
 const totalDonDefiscalise = txs.filter(t => t.type === 'don_defiscalise').reduce((s, t) => s + t.montant, 0);
 const totalApport         = txs.filter(t => t.type === 'apport_associatif').reduce((s, t) => s + t.montant, 0);
 
+// Objectif : 300 000 € le 15 septembre 2026
+const TARGET_AMOUNT = 300_000;
+const targetDateUTC = new Date('2026-09-15T00:00:00Z');
+const targetDow = targetDateUTC.getUTCDay();
+const targetMonday = new Date(targetDateUTC);
+targetMonday.setUTCDate(targetDateUTC.getUTCDate() + (targetDow === 0 ? -6 : 1 - targetDow));
+const targetWeekKey = targetMonday.toISOString().split('T')[0];
+
 // Totaux par semaine (lundi comme début de semaine)
 const weeklyTotals = new Map<string, number>();
 for (const tx of txs) {
   if (!tx.date) continue;
   const d = new Date(tx.date.split('T')[0] + 'T00:00:00Z');
   const dow = d.getUTCDay();
-  const daysToMonday = dow === 0 ? -6 : 1 - dow;
   const monday = new Date(d);
-  monday.setUTCDate(d.getUTCDate() + daysToMonday);
+  monday.setUTCDate(d.getUTCDate() + (dow === 0 ? -6 : 1 - dow));
   const key = monday.toISOString().split('T')[0];
   weeklyTotals.set(key, (weeklyTotals.get(key) ?? 0) + tx.montant);
 }
 const sortedWeeks = [...weeklyTotals.entries()].sort(([a], [b]) => a.localeCompare(b));
-const chartLabels = sortedWeeks.map(([dateStr]) =>
-  new Date(dateStr + 'T00:00:00Z').toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', timeZone: 'UTC' })
+
+// Toutes les semaines depuis le début de campagne (9 avril 2026) jusqu'à l'objectif
+const campaignStart = new Date('2026-04-09T00:00:00Z');
+const campaignDow = campaignStart.getUTCDay();
+const campaignMonday = new Date(campaignStart);
+campaignMonday.setUTCDate(campaignStart.getUTCDate() + (campaignDow === 0 ? -6 : 1 - campaignDow));
+const firstWeekKey = campaignMonday.toISOString().split('T')[0];
+const allWeekKeys: string[] = [];
+const cur = new Date(firstWeekKey + 'T00:00:00Z');
+const endDate = new Date(targetWeekKey + 'T00:00:00Z');
+while (cur <= endDate) {
+  allWeekKeys.push(cur.toISOString().split('T')[0]);
+  cur.setUTCDate(cur.getUTCDate() + 7);
+}
+
+const totalWeeks = allWeekKeys.length;
+const chartLabels = allWeekKeys.map(k =>
+  new Date(k + 'T00:00:00Z').toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', timeZone: 'UTC' })
 );
-const chartData = sortedWeeks.map(([, v]) => v);
-let cumul = 0;
-const chartDataCumul = sortedWeeks.map(([, v]) => { cumul += v; return cumul; });
+
+// Barres : montant hebdo (null pour les semaines futures → pas de barre)
+const chartData: (number | null)[] = allWeekKeys.map(k => weeklyTotals.get(k) ?? null);
+
+// Ligne cumulé : s'arrête à la dernière semaine connue
+let cumulVal = 0;
+const chartDataCumul: (number | null)[] = allWeekKeys.map(k => {
+  if (weeklyTotals.has(k)) { cumulVal += weeklyTotals.get(k)!; return cumulVal; }
+  return null;
+});
+
+// Ligne objectif : interpolation linéaire de 0 à 300 000 €
+const chartDataTarget = allWeekKeys.map((_, i) =>
+  Math.round(TARGET_AMOUNT * i / Math.max(totalWeeks - 1, 1))
+);
 
 const conventionsSignedCount = signedMemberIds.size;
 const conventionsToSignCount = [...apportMemberIds].filter(
@@ -365,7 +400,7 @@ function fmtDateTime(iso: string | null) {
   }
 </style>
 
-<script is:inline define:vars={{ chartLabels, chartData, chartDataCumul }}>
+<script is:inline define:vars={{ chartLabels, chartData, chartDataCumul, chartDataTarget }}>
   const canvas = document.getElementById('weekly-chart');
   if (canvas) {
     new Chart(canvas, {
@@ -380,7 +415,7 @@ function fmtDateTime(iso: string | null) {
             borderColor: 'rgba(45, 106, 79, 0)',
             borderRadius: 4,
             yAxisID: 'y',
-            order: 2,
+            order: 3,
           },
           {
             type: 'line',
@@ -392,6 +427,20 @@ function fmtDateTime(iso: string | null) {
             pointRadius: 2,
             pointHoverRadius: 4,
             tension: 0.3,
+            spanGaps: false,
+            yAxisID: 'yCumul',
+            order: 2,
+          },
+          {
+            type: 'line',
+            label: 'Objectif 300 k€',
+            data: chartDataTarget,
+            borderColor: '#dc2626',
+            backgroundColor: 'transparent',
+            borderWidth: 1.5,
+            borderDash: [6, 4],
+            pointRadius: 0,
+            tension: 0,
             yAxisID: 'yCumul',
             order: 1,
           },
@@ -411,10 +460,12 @@ function fmtDateTime(iso: string | null) {
           tooltip: {
             callbacks: {
               label: (ctx) => {
+                if (ctx.parsed.y === null || ctx.parsed.y === undefined) return null;
                 const v = ctx.parsed.y;
                 return ` ${ctx.dataset.label} : ${v.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}`;
               },
             },
+            filter: (item) => item.parsed.y !== null && item.parsed.y !== undefined,
           },
         },
         scales: {
@@ -435,10 +486,11 @@ function fmtDateTime(iso: string | null) {
           yCumul: {
             beginAtZero: true,
             position: 'right',
+            suggestedMax: 300_000,
             grid: { drawOnChartArea: false },
             ticks: {
               font: { family: 'Inter, system-ui, sans-serif', size: 11 },
-              color: '#E76F51',
+              color: '#9CA3AF',
               callback: (v) => v.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }),
             },
           },
