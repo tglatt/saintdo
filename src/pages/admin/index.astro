@@ -398,14 +398,14 @@ function fmtDateTime(iso: string | null) {
   .stat-card--accent { border-top: 3px solid var(--color-primary-mid); }
   .stat-card--total { border-top: 3px solid var(--color-accent); }
   .stat-card--signed { border-top: 3px solid var(--color-success); }
-  .stat-card--pending { border-top: 3px solid var(--color-warning, #f59e0b); }
+  .stat-card--pending { border-top: 3px solid #f59e0b; }
   .stat-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-muted); margin-bottom: 8px; }
   .stat-value { font-family: 'Playfair Display', serif; font-size: 1.6rem; color: var(--color-primary); }
   .stat-value--sm { font-size: 2rem; }
 
   .stats-grid--conventions {
     grid-template-columns: repeat(2, 1fr);
-    max-width: calc(2 * (100% / 5) + 16px);
+    max-width: 420px;
   }
 
   .sync-status {
