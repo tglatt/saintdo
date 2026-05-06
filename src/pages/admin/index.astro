@@ -44,6 +44,11 @@ const pendingConventionCount = [...apportMemberIds].filter(
   id => conventionEnabledIds.has(id) && !signedMemberIds.has(id) && !recentEmailIds.has(id)
 ).length;
 
+const conventionsSignedCount = signedMemberIds.size;
+const conventionsToSignCount = [...apportMemberIds].filter(
+  id => conventionEnabledIds.has(id) && !signedMemberIds.has(id)
+).length;
+
 const totalMembres = membres?.length ?? 0;
 const totalAdhesion = transactions?.filter(t => t.type === 'adhesion').reduce((s, t) => s + t.montant, 0) ?? 0;
 const totalDon = transactions?.filter(t => t.type === 'don').reduce((s, t) => s + t.montant, 0) ?? 0;
@@ -132,6 +137,17 @@ function fmtDateTime(iso: string | null) {
         <div class="stat-card stat-card--total">
           <div class="stat-label">Total collecté</div>
           <div class="stat-value">{euros(totalAdhesion + totalDon + totalDonDefiscalise + totalApport)}</div>
+        </div>
+      </div>
+
+      <div class="stats-grid stats-grid--conventions">
+        <div class="stat-card stat-card--signed">
+          <div class="stat-label">Conventions signées</div>
+          <div class="stat-value stat-value--sm">{conventionsSignedCount}</div>
+        </div>
+        <div class={`stat-card ${conventionsToSignCount > 0 ? 'stat-card--pending' : ''}`}>
+          <div class="stat-label">Conventions à signer</div>
+          <div class="stat-value stat-value--sm">{conventionsToSignCount}</div>
         </div>
       </div>
 
@@ -381,8 +397,16 @@ function fmtDateTime(iso: string | null) {
   }
   .stat-card--accent { border-top: 3px solid var(--color-primary-mid); }
   .stat-card--total { border-top: 3px solid var(--color-accent); }
+  .stat-card--signed { border-top: 3px solid var(--color-success); }
+  .stat-card--pending { border-top: 3px solid var(--color-warning, #f59e0b); }
   .stat-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-muted); margin-bottom: 8px; }
   .stat-value { font-family: 'Playfair Display', serif; font-size: 1.6rem; color: var(--color-primary); }
+  .stat-value--sm { font-size: 2rem; }
+
+  .stats-grid--conventions {
+    grid-template-columns: repeat(2, 1fr);
+    max-width: calc(2 * (100% / 5) + 16px);
+  }
 
   .sync-status {
     margin-bottom: 32px;
