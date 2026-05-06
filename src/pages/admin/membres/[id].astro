@@ -122,10 +122,8 @@ const paiementLabel: Record<string, string> = {
         </div>
         <div class="member-header-actions">
           <button id="btn-edit" class="btn-secondary">Modifier</button>
-          {hasApport && (
-            <button id="btn-send-convention" class="btn-secondary">
-              {convention ? 'Renvoyer la convention' : 'Envoyer la convention'}
-            </button>
+          {hasApport && !convention && (
+            <button id="btn-send-convention" class="btn-secondary">Envoyer la convention</button>
           )}
           {convention && (
             <a href={`/api/admin/convention?membre_id=${membre.id}`} target="_blank" class="btn-secondary">
