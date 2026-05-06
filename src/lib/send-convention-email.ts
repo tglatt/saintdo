@@ -1,24 +1,23 @@
 import { Resend } from 'resend';
-import { createAdminClient } from './supabase';
+import { createHmac } from 'crypto';
 
 type Membre = { id: string; email: string; nom: string | null; prenom: string | null };
-type Result = { ok: true } | { ok: false; step: 'generateLink' | 'resend'; detail: string };
+type Result = { ok: true } | { ok: false; step: 'resend'; detail: string };
+
+function createConventionToken(email: string): string {
+  const secret = import.meta.env.CONVENTION_SECRET;
+  const payload = Buffer.from(JSON.stringify({
+    email,
+    exp: Date.now() + 7 * 24 * 60 * 60 * 1000,
+  })).toString('base64url');
+  const sig = createHmac('sha256', secret).update(payload).digest('base64url');
+  return `${payload}.${sig}`;
+}
 
 export async function sendConventionEmail(membre: Membre, siteUrl: string): Promise<Result> {
-  const supabase = createAdminClient();
-
-  const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
-    type: 'magiclink',
-    email: membre.email,
-    options: { redirectTo: `${siteUrl}/auth/callback?next=/espace-membre/convention` },
-  });
-
-  if (linkError || !linkData?.properties?.action_link) {
-    return { ok: false, step: 'generateLink', detail: linkError?.message ?? 'action_link manquant' };
-  }
-
   const nomComplet = [membre.prenom, membre.nom].filter(Boolean).join(' ') || membre.email;
-  const actionLink = linkData.properties.action_link;
+  const token = createConventionToken(membre.email);
+  const actionLink = `${siteUrl}/auth/convention-link?t=${token}`;
   const from = import.meta.env.RESEND_FROM ?? 'Le Saint Domingue <noreply@saintdo.fr>';
 
   const resend = new Resend(import.meta.env.RESEND_API_KEY);
@@ -39,7 +38,7 @@ export async function sendConventionEmail(membre: Membre, siteUrl: string): Prom
       Signer ma convention d'apport
     </a>
   </p>
-  <p style="color: #888; font-size: 0.85rem;">Ce lien est à usage unique et expirera après utilisation.</p>
+  <p style="color: #888; font-size: 0.85rem;">Ce lien est valable 7 jours.</p>
   <p style="color: #888; font-size: 0.85rem;">Cordialement,<br>L'équipe du Saint Domingue</p>
 </body>
 </html>`,
