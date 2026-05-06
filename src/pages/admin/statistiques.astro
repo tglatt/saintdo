@@ -1,0 +1,315 @@
+---
+import { createAdminClient } from '../../lib/supabase';
+import '../../styles/theme.css';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/login');
+
+const supabase = createAdminClient();
+
+const [
+  membresCountRes,
+  txRes,
+  signedRes,
+  apportRes,
+  enabledRes,
+  lastSyncRes,
+] = await Promise.all([
+  supabase.from('membres').select('*', { count: 'exact', head: true }),
+  supabase.from('transactions').select('type, montant'),
+  supabase.from('conventions').select('membre_id'),
+  supabase.from('transactions').select('membre_id').eq('type', 'apport_associatif'),
+  supabase.from('membres').select('id').eq('convention_enabled', true),
+  supabase.from('syncs')
+    .select('ended_at, status, nb_membres, nb_transactions, message')
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .single(),
+]);
+
+const totalMembres = membresCountRes.count ?? 0;
+const txs = txRes.data ?? [];
+const signedMemberIds = new Set(signedRes.data?.map(c => c.membre_id) ?? []);
+const apportMemberIds = new Set(apportRes.data?.map(t => t.membre_id) ?? []);
+const enabledMemberIds = new Set(enabledRes.data?.map(m => m.id) ?? []);
+const lastSync = lastSyncRes.data;
+
+const totalAdhesion       = txs.filter(t => t.type === 'adhesion').reduce((s, t) => s + t.montant, 0);
+const totalDon            = txs.filter(t => t.type === 'don').reduce((s, t) => s + t.montant, 0);
+const totalDonDefiscalise = txs.filter(t => t.type === 'don_defiscalise').reduce((s, t) => s + t.montant, 0);
+const totalApport         = txs.filter(t => t.type === 'apport_associatif').reduce((s, t) => s + t.montant, 0);
+
+const conventionsSignedCount = signedMemberIds.size;
+const conventionsToSignCount = [...apportMemberIds].filter(
+  id => enabledMemberIds.has(id) && !signedMemberIds.has(id)
+).length;
+
+function euros(n: number) {
+  return n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+}
+function fmtDateTime(iso: string | null) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString('fr-FR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+    timeZone: 'Europe/Paris',
+  });
+}
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Statistiques — Admin Saint Domingue</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <nav>
+    <div class="nav-inner">
+      <a href="/" class="logo">Saint Domingue</a>
+      <div class="nav-right">
+        <a href="/espace-membre" class="btn-member">Mon espace</a>
+        <span class="user-email">{user.email}</span>
+        <a href="/auth/logout" class="btn-logout">Déconnexion</a>
+      </div>
+    </div>
+  </nav>
+
+  <subnav>
+    <div class="subnav-inner">
+      <a href="/admin" class="subnav-link">Membres</a>
+      <a href="/admin/transactions" class="subnav-link">Transactions</a>
+      <a href="/admin/statistiques" class="subnav-link active">Statistiques</a>
+    </div>
+  </subnav>
+
+  <main>
+    <div class="container">
+
+      <header class="page-header">
+        <h1>Statistiques</h1>
+        <p class="sub">Vue d'ensemble de la collecte et des conventions.</p>
+      </header>
+
+      <div class="stats-section">
+        <h2 class="stats-section-title">Collecte</h2>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Adhésions</div>
+            <div class="stat-value">{euros(totalAdhesion)}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Dons</div>
+            <div class="stat-value">{euros(totalDon)}</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Dons défiscalisés</div>
+            <div class="stat-value">{euros(totalDonDefiscalise)}</div>
+          </div>
+          <div class="stat-card stat-card--accent">
+            <div class="stat-label">Apports associatifs</div>
+            <div class="stat-value">{euros(totalApport)}</div>
+          </div>
+          <div class="stat-card stat-card--total">
+            <div class="stat-label">Total collecté</div>
+            <div class="stat-value">{euros(totalAdhesion + totalDon + totalDonDefiscalise + totalApport)}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-section">
+        <h2 class="stats-section-title">Membres & conventions</h2>
+        <div class="stats-grid stats-grid--members">
+          <div class="stat-card">
+            <div class="stat-label">Membres</div>
+            <div class="stat-value stat-value--count">{totalMembres}</div>
+          </div>
+          <div class="stat-card stat-card--signed">
+            <div class="stat-label">Conventions signées</div>
+            <div class="stat-value stat-value--count">{conventionsSignedCount}</div>
+          </div>
+          <div class={`stat-card ${conventionsToSignCount > 0 ? 'stat-card--pending' : ''}`}>
+            <div class="stat-label">Conventions à signer</div>
+            <div class="stat-value stat-value--count">{conventionsToSignCount}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class={`sync-status sync-status--${lastSync?.status ?? 'none'}`}>
+        <span class="sync-dot"></span>
+        <span>
+          {lastSync ? (
+            <>
+              Dernière sync : <strong>{fmtDateTime(lastSync.ended_at)}</strong>
+              {lastSync.status === 'success'
+                ? ` — ${lastSync.nb_membres} membres, ${lastSync.nb_transactions} transactions`
+                : ` — Erreur : ${lastSync.message}`}
+            </>
+          ) : 'Aucune synchronisation effectuée'}
+        </span>
+      </div>
+
+    </div>
+  </main>
+
+</body>
+</html>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--color-bg);
+    color: var(--color-text);
+    min-height: 100vh;
+  }
+
+  nav {
+    background: white;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    text-decoration: none;
+  }
+  .nav-right { display: flex; align-items: center; gap: 12px; }
+
+  subnav {
+    background: white;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .subnav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    gap: 4px;
+  }
+  .subnav-link {
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--color-muted);
+    text-decoration: none;
+    padding: 10px 14px;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .subnav-link:hover { color: var(--color-primary); }
+  .subnav-link.active { color: var(--color-primary); border-bottom-color: var(--color-primary-mid); font-weight: 600; }
+  .user-email { font-size: 0.85rem; color: var(--color-muted); }
+  .btn-logout, .btn-member {
+    font-size: 0.85rem;
+    color: var(--color-muted);
+    text-decoration: none;
+    padding: 6px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+  .btn-logout:hover, .btn-member:hover { background: var(--color-bg); color: var(--color-text); }
+
+  main { padding: 48px 24px; }
+  .container { max-width: 1200px; margin: 0 auto; }
+
+  .page-header { margin-bottom: 40px; }
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    color: var(--color-primary);
+    margin-bottom: 8px;
+  }
+  .sub { color: var(--color-muted); }
+
+  .stats-section { margin-bottom: 40px; }
+  .stats-section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: var(--color-muted);
+    font-weight: 700;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.78rem;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+  }
+  .stats-grid--members {
+    grid-template-columns: repeat(3, 1fr);
+    max-width: calc((3 / 5) * (100% + 16px) - 16px);
+  }
+
+  .stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px 20px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+  }
+  .stat-card--accent  { border-top: 3px solid var(--color-primary-mid); }
+  .stat-card--total   { border-top: 3px solid var(--color-accent); }
+  .stat-card--signed  { border-top: 3px solid var(--color-success); }
+  .stat-card--pending { border-top: 3px solid #f59e0b; }
+
+  .stat-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-muted);
+    margin-bottom: 8px;
+  }
+  .stat-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    color: var(--color-primary);
+  }
+  .stat-value--count { font-size: 2rem; }
+
+  .sync-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    color: var(--color-muted);
+    margin-top: 8px;
+  }
+  .sync-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .sync-status--success .sync-dot { background: var(--color-success); }
+  .sync-status--error   .sync-dot { background: var(--color-error); }
+  .sync-status--none    .sync-dot { background: var(--color-subtle); }
+  .sync-status strong { color: var(--color-text); }
+
+  @media (max-width: 1024px) {
+    .stats-grid { grid-template-columns: repeat(3, 1fr); }
+    .stats-grid--members { grid-template-columns: repeat(3, 1fr); max-width: none; }
+  }
+  @media (max-width: 768px) {
+    .user-email { display: none; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>

@@ -44,16 +44,7 @@ const pendingConventionCount = [...apportMemberIds].filter(
   id => conventionEnabledIds.has(id) && !signedMemberIds.has(id) && !recentEmailIds.has(id)
 ).length;
 
-const conventionsSignedCount = signedMemberIds.size;
-const conventionsToSignCount = [...apportMemberIds].filter(
-  id => conventionEnabledIds.has(id) && !signedMemberIds.has(id)
-).length;
-
 const totalMembres = membres?.length ?? 0;
-const totalAdhesion = transactions?.filter(t => t.type === 'adhesion').reduce((s, t) => s + t.montant, 0) ?? 0;
-const totalDon = transactions?.filter(t => t.type === 'don').reduce((s, t) => s + t.montant, 0) ?? 0;
-const totalDonDefiscalise = transactions?.filter(t => t.type === 'don_defiscalise').reduce((s, t) => s + t.montant, 0) ?? 0;
-const totalApport = transactions?.filter(t => t.type === 'apport_associatif').reduce((s, t) => s + t.montant, 0) ?? 0;
 
 const txByMembre = new Map<string, typeof transactions>();
 for (const tx of transactions ?? []) {
@@ -105,6 +96,7 @@ function fmtDateTime(iso: string | null) {
     <div class="subnav-inner">
       <a href="/admin" class="subnav-link active">Membres</a>
       <a href="/admin/transactions" class="subnav-link">Transactions</a>
+      <a href="/admin/statistiques" class="subnav-link">Statistiques</a>
     </div>
   </subnav>
 
@@ -115,41 +107,6 @@ function fmtDateTime(iso: string | null) {
         <h1>Administration</h1>
         <p class="sub">Vue d'ensemble des membres et des transactions.</p>
       </header>
-
-      <!-- STATS GLOBALES -->
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-label">Adhésions</div>
-          <div class="stat-value">{euros(totalAdhesion)}</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Dons</div>
-          <div class="stat-value">{euros(totalDon)}</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-label">Dons défiscalisés</div>
-          <div class="stat-value">{euros(totalDonDefiscalise)}</div>
-        </div>
-        <div class="stat-card stat-card--accent">
-          <div class="stat-label">Apports associatifs</div>
-          <div class="stat-value">{euros(totalApport)}</div>
-        </div>
-        <div class="stat-card stat-card--total">
-          <div class="stat-label">Total collecté</div>
-          <div class="stat-value">{euros(totalAdhesion + totalDon + totalDonDefiscalise + totalApport)}</div>
-        </div>
-      </div>
-
-      <div class="stats-grid stats-grid--conventions">
-        <div class="stat-card stat-card--signed">
-          <div class="stat-label">Conventions signées</div>
-          <div class="stat-value stat-value--sm">{conventionsSignedCount}</div>
-        </div>
-        <div class={`stat-card ${conventionsToSignCount > 0 ? 'stat-card--pending' : ''}`}>
-          <div class="stat-label">Conventions à signer</div>
-          <div class="stat-value stat-value--sm">{conventionsToSignCount}</div>
-        </div>
-      </div>
 
       <!-- SYNC STATUS -->
       <div class={`sync-status sync-status--${lastSync?.status ?? 'none'}`}>
@@ -382,31 +339,6 @@ function fmtDateTime(iso: string | null) {
     margin-bottom: 8px;
   }
   .sub { color: var(--color-muted); }
-
-  .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-    gap: 16px;
-    margin-bottom: 32px;
-  }
-  .stat-card {
-    background: white;
-    border-radius: 12px;
-    padding: 24px 20px;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
-  }
-  .stat-card--accent { border-top: 3px solid var(--color-primary-mid); }
-  .stat-card--total { border-top: 3px solid var(--color-accent); }
-  .stat-card--signed { border-top: 3px solid var(--color-success); }
-  .stat-card--pending { border-top: 3px solid #f59e0b; }
-  .stat-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-muted); margin-bottom: 8px; }
-  .stat-value { font-family: 'Playfair Display', serif; font-size: 1.6rem; color: var(--color-primary); }
-  .stat-value--sm { font-size: 2rem; }
-
-  .stats-grid--conventions {
-    grid-template-columns: repeat(2, 1fr);
-    max-width: 420px;
-  }
 
   .sync-status {
     margin-bottom: 32px;
@@ -641,12 +573,8 @@ function fmtDateTime(iso: string | null) {
   .sort-icon { font-size: 0.7rem; color: var(--color-subtle); }
   th.sort-asc .sort-icon, th.sort-desc .sort-icon { color: var(--color-primary-mid); }
 
-  @media (max-width: 1024px) {
-    .stats-grid { grid-template-columns: repeat(3, 1fr); }
-  }
   @media (max-width: 768px) {
     .user-email { display: none; }
-    .stats-grid { grid-template-columns: repeat(2, 1fr); }
     #search { width: 100%; }
   }
 </style>
