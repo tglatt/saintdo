@@ -18,7 +18,7 @@ export const GET: APIRoute = async ({ request, redirect }) => {
     if (Date.now() > exp) return redirect('/login?expired=convention');
 
     const supabase = createAdminClient();
-    const siteUrl = new URL(request.url).origin;
+    const siteUrl = import.meta.env.PUBLIC_SITE_URL ?? new URL(request.url).origin;
     const { data, error } = await supabase.auth.admin.generateLink({
       type: 'magiclink',
       email,
