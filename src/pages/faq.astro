@@ -1,0 +1,189 @@
+---
+import { marked } from 'marked';
+import Nav from '../components/Nav.astro';
+
+let faqHtml = '';
+const faqUrl = import.meta.env.FAQ_NEXTCLOUD_URL;
+if (faqUrl) {
+  try {
+    const md = await fetch(faqUrl).then(r => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.text();
+    });
+    faqHtml = marked.parse(md) as string;
+  } catch {
+    // Nextcloud indisponible
+  }
+}
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <title>FAQ — Hôtel Saint Domingue</title>
+  <meta name="description" content="Questions fréquentes sur le projet de foncière citoyenne de l'Hôtel Saint Domingue à Die." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <Nav activePage="faq" />
+
+  <main>
+    <div class="container">
+
+      <header class="page-header">
+        <p class="section-label">Questions fréquentes</p>
+        <h1>FAQ</h1>
+      </header>
+
+      <p class="wip">En cours d'élaboration…</p>
+
+      {faqHtml ? (
+        <div class="faq-content">
+          <Fragment set:html={faqHtml} />
+        </div>
+      ) : (
+        <p class="empty">Le contenu de la FAQ est momentanément indisponible.</p>
+      )}
+
+    </div>
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+      <a href="/" class="footer-back">← Retour au site</a>
+      <span>Hôtel Saint Domingue · Die (26)</span>
+    </div>
+  </footer>
+
+
+</body>
+</html>
+
+<style>
+  :root {
+    --green: #6663A0;
+    --green-dark: #2D2A68;
+    --green-light: #B0ADD4;
+    --bg: #F7F6FB;
+    --bg-alt: #EEEDF6;
+    --text: #1C1C1E;
+    --text-muted: #5C5C6B;
+    --amber: #A07C10;
+    --radius: 12px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.65;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+
+  main { flex: 1; padding: 64px 24px 96px; }
+  .container { max-width: 760px; margin: 0 auto; }
+
+  .page-header { margin-bottom: 48px; }
+  .section-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 4vw, 2.8rem);
+    color: var(--green-dark);
+    line-height: 1.2;
+  }
+
+  .faq-content { display: flex; flex-direction: column; }
+
+  .faq-content :global(h2),
+  .faq-content :global(h3) {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.15rem;
+    color: var(--green-dark);
+    margin: 0;
+    padding: 28px 0 12px;
+    border-top: 1px solid rgba(0,0,0,0.08);
+    line-height: 1.4;
+  }
+  .faq-content :global(h2:first-child),
+  .faq-content :global(h3:first-child) { border-top: none; padding-top: 0; }
+
+  .faq-content :global(p) {
+    color: var(--text-muted);
+    font-size: 0.97rem;
+    margin: 0 0 8px;
+    line-height: 1.75;
+  }
+  .faq-content :global(ul),
+  .faq-content :global(ol) {
+    padding-left: 20px;
+    color: var(--text-muted);
+    font-size: 0.97rem;
+    margin-bottom: 12px;
+  }
+  .faq-content :global(li) { margin-bottom: 6px; line-height: 1.65; }
+  .faq-content :global(strong) { color: var(--text); }
+  .faq-content :global(a) { color: var(--green); text-decoration: underline; }
+  .faq-content :global(a:hover) { color: var(--green-dark); }
+  .faq-content :global(blockquote) {
+    border-left: 3px solid var(--green-light);
+    padding: 8px 16px;
+    margin: 8px 0 16px;
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  .wip {
+    font-style: italic;
+    color: var(--text-muted);
+    margin-bottom: 40px;
+  }
+
+  .empty {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    padding: 48px 0;
+    text-align: center;
+  }
+
+  footer {
+    background: var(--green-dark);
+    padding: 20px 24px;
+  }
+  .footer-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: rgba(255,255,255,0.5);
+    font-size: 0.875rem;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .footer-back {
+    color: var(--green-light);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .footer-back:hover { color: white; }
+
+</style>

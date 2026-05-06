@@ -1,5 +1,6 @@
 ---
 import { createAdminClient } from '../lib/supabase';
+import Nav from '../components/Nav.astro';
 
 const ctaAdhesion = "https://www.helloasso.com/associations/le-saint-domingue/adhesions/adhesion";
 const ctaDon = "https://www.helloasso.com/associations/graine-de-moutarde-fonds-de-dotation/collectes/rehabilitation-de-l-hotel-saint-domingue";
@@ -89,16 +90,7 @@ function euros(n: number) {
 </head>
 <body>
 
-  <!-- NAV -->
-  <nav>
-    <div class="nav-inner">
-      <span class="logo">Le Saindo</span>
-      <div class="nav-actions">
-        <a href="#contact" class="btn btn-nav">Contact</a>
-        <a href="/login" class="btn btn-nav btn-nav-outline">Se connecter</a>
-      </div>
-    </div>
-  </nav>
+  <Nav activePage="home" />
 
   <!-- HERO -->
   <section class="hero">
@@ -425,31 +417,6 @@ function euros(n: number) {
     line-height: 1.65;
   }
 
-  /* NAV */
-  nav {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: rgba(247,243,238,0.92);
-    backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(0,0,0,0.06);
-  }
-  .nav-inner {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 0 24px;
-    height: 64px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .logo {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.2rem;
-    color: var(--green-dark);
-    font-weight: 700;
-  }
-
   /* BUTTONS */
   .btn {
     display: inline-block;
@@ -466,11 +433,6 @@ function euros(n: number) {
     color: var(--white);
   }
   .btn-primary:hover { background: var(--amber-dark); transform: translateY(-1px); }
-  .nav-actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
   .btn-nav {
     background: var(--green);
     color: var(--white);
