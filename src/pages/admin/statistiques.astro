@@ -16,7 +16,7 @@ const [
   lastSyncRes,
 ] = await Promise.all([
   supabase.from('membres').select('*', { count: 'exact', head: true }),
-  supabase.from('transactions').select('type, montant'),
+  supabase.from('transactions').select('type, montant, date'),
   supabase.from('conventions').select('membre_id'),
   supabase.from('transactions').select('membre_id').eq('type', 'apport_associatif'),
   supabase.from('membres').select('id').eq('convention_enabled', true),
@@ -38,6 +38,26 @@ const totalAdhesion       = txs.filter(t => t.type === 'adhesion').reduce((s, t)
 const totalDon            = txs.filter(t => t.type === 'don').reduce((s, t) => s + t.montant, 0);
 const totalDonDefiscalise = txs.filter(t => t.type === 'don_defiscalise').reduce((s, t) => s + t.montant, 0);
 const totalApport         = txs.filter(t => t.type === 'apport_associatif').reduce((s, t) => s + t.montant, 0);
+
+// Totaux par semaine (lundi comme début de semaine)
+const weeklyTotals = new Map<string, number>();
+for (const tx of txs) {
+  if (!tx.date) continue;
+  const d = new Date(tx.date.split('T')[0] + 'T00:00:00Z');
+  const dow = d.getUTCDay();
+  const daysToMonday = dow === 0 ? -6 : 1 - dow;
+  const monday = new Date(d);
+  monday.setUTCDate(d.getUTCDate() + daysToMonday);
+  const key = monday.toISOString().split('T')[0];
+  weeklyTotals.set(key, (weeklyTotals.get(key) ?? 0) + tx.montant);
+}
+const sortedWeeks = [...weeklyTotals.entries()].sort(([a], [b]) => a.localeCompare(b));
+const chartLabels = sortedWeeks.map(([dateStr]) =>
+  new Date(dateStr + 'T00:00:00Z').toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', timeZone: 'UTC' })
+);
+const chartData = sortedWeeks.map(([, v]) => v);
+let cumul = 0;
+const chartDataCumul = sortedWeeks.map(([, v]) => { cumul += v; return cumul; });
 
 const conventionsSignedCount = signedMemberIds.size;
 const conventionsToSignCount = [...apportMemberIds].filter(
@@ -66,6 +86,7 @@ function fmtDateTime(iso: string | null) {
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <script is:inline src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
 <body>
 
@@ -137,6 +158,17 @@ function fmtDateTime(iso: string | null) {
             <div class="stat-label">Conventions à signer</div>
             <div class="stat-value stat-value--count">{conventionsToSignCount}</div>
           </div>
+        </div>
+      </div>
+
+      <div class="stats-section">
+        <h2 class="stats-section-title">Évolution hebdomadaire</h2>
+        <div class="chart-card">
+          {chartData.length > 0 ? (
+            <canvas id="weekly-chart"></canvas>
+          ) : (
+            <p class="chart-empty">Aucune transaction enregistrée.</p>
+          )}
         </div>
       </div>
 
@@ -290,6 +322,24 @@ function fmtDateTime(iso: string | null) {
   }
   .stat-value--count { font-size: 2rem; }
 
+  .chart-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px 20px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    position: relative;
+    height: 340px;
+  }
+  .chart-card canvas { width: 100% !important; height: 100% !important; }
+  .chart-empty {
+    color: var(--color-muted);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+  }
+
   .sync-status {
     display: flex;
     align-items: center;
@@ -311,5 +361,89 @@ function fmtDateTime(iso: string | null) {
   @media (max-width: 768px) {
     .user-email { display: none; }
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .chart-card { height: 260px; }
   }
 </style>
+
+<script is:inline define:vars={{ chartLabels, chartData, chartDataCumul }}>
+  const canvas = document.getElementById('weekly-chart');
+  if (canvas) {
+    new Chart(canvas, {
+      data: {
+        labels: chartLabels,
+        datasets: [
+          {
+            type: 'bar',
+            label: 'Semaine',
+            data: chartData,
+            backgroundColor: 'rgba(45, 106, 79, 0.7)',
+            borderColor: 'rgba(45, 106, 79, 0)',
+            borderRadius: 4,
+            yAxisID: 'y',
+            order: 2,
+          },
+          {
+            type: 'line',
+            label: 'Cumulé',
+            data: chartDataCumul,
+            borderColor: '#E76F51',
+            backgroundColor: 'transparent',
+            borderWidth: 2,
+            pointRadius: 2,
+            pointHoverRadius: 4,
+            tension: 0.3,
+            yAxisID: 'yCumul',
+            order: 1,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            display: true,
+            position: 'top',
+            align: 'end',
+            labels: { font: { family: 'Inter, system-ui, sans-serif', size: 12 }, boxWidth: 12, padding: 16 },
+          },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => {
+                const v = ctx.parsed.y;
+                return ` ${ctx.dataset.label} : ${v.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}`;
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            grid: { display: false },
+            ticks: { font: { family: 'Inter, system-ui, sans-serif', size: 11 }, color: '#5C5C6B' },
+          },
+          y: {
+            beginAtZero: true,
+            position: 'left',
+            grid: { color: 'rgba(0,0,0,0.05)' },
+            ticks: {
+              font: { family: 'Inter, system-ui, sans-serif', size: 11 },
+              color: '#5C5C6B',
+              callback: (v) => v.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }),
+            },
+          },
+          yCumul: {
+            beginAtZero: true,
+            position: 'right',
+            grid: { drawOnChartArea: false },
+            ticks: {
+              font: { family: 'Inter, system-ui, sans-serif', size: 11 },
+              color: '#E76F51',
+              callback: (v) => v.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }),
+            },
+          },
+        },
+      },
+    });
+  }
+</script>
