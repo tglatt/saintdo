@@ -27,18 +27,26 @@ export const POST: APIRoute = async ({ request }) => {
 
   const { data: membres } = await supabase
     .from('membres')
-    .select('id, email, nom, prenom')
+    .select('id, email, nom, prenom, convention_email_sent_at')
     .in('id', pendingIds)
     .eq('convention_enabled', true);
 
   const siteUrl = import.meta.env.PUBLIC_SITE_URL ?? new URL(request.url).origin;
+  const cutoff = Date.now() - 24 * 60 * 60 * 1000;
 
   let sent = 0;
   const errors: { email: string; step: string; detail: string }[] = [];
 
   for (const membre of membres ?? []) {
+    if (membre.convention_email_sent_at && new Date(membre.convention_email_sent_at).getTime() > cutoff) {
+      continue;
+    }
     const result = await sendConventionEmail(membre, siteUrl);
     if (result.ok) {
+      await supabase
+        .from('membres')
+        .update({ convention_email_sent_at: new Date().toISOString() })
+        .eq('id', membre.id);
       sent++;
     } else {
       errors.push({ email: membre.email, step: result.step, detail: result.detail });
