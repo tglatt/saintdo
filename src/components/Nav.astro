@@ -7,8 +7,8 @@ const { activePage } = Astro.props;
 
 <nav>
   <div class="nav-inner">
+    <a href="/" class="brand">Le Saindo</a>
     <div class="nav-links">
-      <a href="/" class={`nav-link ${activePage === 'home' ? 'nav-link--active' : ''}`}>Le Saindo</a>
       <a href="/faq" class={`nav-link ${activePage === 'faq' ? 'nav-link--active' : ''}`}>Je questionne</a>
     </div>
     <div class="nav-actions">
@@ -22,7 +22,6 @@ const { activePage } = Astro.props;
 </nav>
 
 <div class="mobile-menu" id="mobile-menu" aria-hidden="true">
-  <a href="/" class={`mobile-link ${activePage === 'home' ? 'mobile-link--active' : ''}`}>Le Saindo</a>
   <a href="/faq" class={`mobile-link ${activePage === 'faq' ? 'mobile-link--active' : ''}`}>Je questionne</a>
   <div class="mobile-sep"></div>
   <a href="/#contact" class="mobile-link">Contact</a>
@@ -46,6 +45,16 @@ const { activePage } = Astro.props;
     display: flex;
     align-items: center;
     justify-content: space-between;
+  }
+
+  .brand {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #2D2A68;
+    text-decoration: none;
+    padding: 6px 14px 6px 0;
+    flex-shrink: 0;
   }
 
   .nav-links { display: flex; align-items: center; gap: 4px; }
@@ -133,6 +142,7 @@ const { activePage } = Astro.props;
   @media (max-width: 640px) {
     .nav-links, .nav-actions { display: none; }
     .hamburger { display: flex; }
+    .brand { padding-left: 0; }
   }
 </style>
 
