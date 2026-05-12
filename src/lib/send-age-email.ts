@@ -32,7 +32,7 @@ export async function sendAgeEmail(
   <p style="font-family: Georgia, serif; font-size: 1.3rem; font-weight: 700; color: #2C4A3E; margin: 0 0 24px;">Le Saint Domingue</p>
   <p>Bonjour ${nomComplet},</p>
   <p>L'association Le Saint Domingue vous convoque à une <strong>Assemblée Générale Extraordinaire (AGE)</strong> afin de procéder à la modification des statuts de l'association pour permettre l'achat de l'hôtel.</p>
-  <p>Vous trouverez la convocation officielle en pièce jointe de cet email.</p>
+  <p>Vous trouverez la convocation en pièce-jointe de ce mail avec l'ordre du jour qui concerne des ajustements administratifs liés aux démarches notariales.</p>
   <p style="margin: 20px 0; line-height: 1.8;">
     <strong>Le Jeudi 28 Mai de 18H à 19H</strong><br>
     <strong>À La maison commune d'Habiterre</strong><br>
