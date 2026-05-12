@@ -1,0 +1,550 @@
+---
+import { createAdminClient } from '../../lib/supabase';
+import { verifyAgeToken } from '../../lib/age-token';
+import '../../styles/theme.css';
+
+const token = Astro.url.searchParams.get('t') ?? '';
+const verified = verifyAgeToken(token);
+
+let membre: { id: string; nom: string | null; prenom: string | null; email: string } | null = null;
+let existingReponse: { presence: boolean; pouvoir_a: string | null; updated_at: string } | null = null;
+let tokenError = '';
+
+if (!verified) {
+  tokenError = 'Ce lien est invalide ou a expiré.';
+} else {
+  const supabase = createAdminClient();
+
+  const { data } = await supabase
+    .from('membres')
+    .select('id, nom, prenom, email')
+    .eq('email', verified.email)
+    .single();
+
+  if (!data) {
+    tokenError = 'Membre introuvable. Contactez l\'association.';
+  } else {
+    membre = data;
+
+    const { data: reponse } = await supabase
+      .from('age_reponses')
+      .select('presence, pouvoir_a, updated_at')
+      .eq('email', verified.email)
+      .maybeSingle();
+
+    existingReponse = reponse ?? null;
+  }
+}
+
+const nomComplet = membre
+  ? [membre.prenom, membre.nom].filter(Boolean).join(' ') || membre.email
+  : '';
+
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString('fr-FR', {
+    day: '2-digit', month: 'long', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+    timeZone: 'Europe/Paris',
+  });
+}
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Convocation AGE — Le Saint Domingue</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <nav>
+    <div class="nav-inner">
+      <a href="/" class="logo">Le Saindo</a>
+    </div>
+  </nav>
+
+  <main>
+    <div class="container">
+
+      {tokenError ? (
+        <div class="state-card error-card">
+          <p class="state-icon">⚠️</p>
+          <h1>Lien invalide</h1>
+          <p class="state-desc">{tokenError}</p>
+        </div>
+      ) : existingReponse ? (
+        <div class="state-card confirmed-card">
+          <p class="state-icon">{existingReponse.presence ? '✓' : '📋'}</p>
+          <h1>Réponse enregistrée</h1>
+          {existingReponse.presence ? (
+            <p class="state-desc">Vous avez indiqué que vous <strong>serez présent(e)</strong> à l'AGE.</p>
+          ) : (
+            <>
+              <p class="state-desc">
+                Vous avez indiqué que vous <strong>ne serez pas présent(e)</strong> et avez donné pouvoir à <strong>{existingReponse.pouvoir_a}</strong>.
+              </p>
+              <a href={`/api/age/pouvoir?t=${token}`} class="btn-download">
+                Télécharger mon pouvoir (PDF)
+              </a>
+            </>
+          )}
+          <p class="state-date">Répondu le {fmtDate(existingReponse.updated_at)}</p>
+        </div>
+      ) : (
+        <div class="form-card">
+          <header class="form-header">
+            <h1>Assemblée Générale Extraordinaire</h1>
+            <p class="subtitle">Bonjour <strong>{nomComplet}</strong>, merci d'indiquer votre présence à l'AGE.</p>
+          </header>
+
+          <form id="rsvp-form">
+            <input type="hidden" id="rsvp-token" value={token} />
+
+            <fieldset>
+              <legend>Serez-vous présent(e) ?</legend>
+
+              <label class="radio-card">
+                <input type="radio" name="presence" value="present" required />
+                <span class="radio-body">
+                  <span class="radio-title">Je serai présent(e)</span>
+                  <span class="radio-desc">Je participerai à l'AGE en personne.</span>
+                </span>
+              </label>
+
+              <label class="radio-card">
+                <input type="radio" name="presence" value="absent" />
+                <span class="radio-body">
+                  <span class="radio-title">Je ne serai pas présent(e)</span>
+                  <span class="radio-desc">Je souhaite donner pouvoir à un(e) autre membre.</span>
+                </span>
+              </label>
+            </fieldset>
+
+            <div id="pouvoir-section" class="pouvoir-section hidden">
+              <div class="form-group">
+                <label for="pouvoir-a">Nom du/de la mandataire <span class="required">*</span></label>
+                <input
+                  type="text"
+                  id="pouvoir-a"
+                  placeholder="Prénom Nom de la personne à qui vous donnez pouvoir"
+                  autocomplete="off"
+                />
+                <p class="field-hint">Cette personne votera en votre nom lors de l'AGE. Vous pouvez indiquer <strong>Thomas Glatt</strong>, président de l'association.</p>
+              </div>
+
+              <div class="sig-group">
+                <p class="sig-label">Votre signature <span class="required">*</span></p>
+                <canvas id="sig-canvas" width="500" height="150"></canvas>
+                <div class="sig-actions">
+                  <button type="button" id="btn-clear-sig">Effacer</button>
+                </div>
+              </div>
+            </div>
+
+            <p id="form-error" class="form-error hidden"></p>
+
+            <div class="form-actions">
+              <button type="submit" id="btn-submit" disabled>Confirmer ma réponse</button>
+            </div>
+          </form>
+
+          <div id="success-state" class="state-card confirmed-card hidden">
+            <p class="state-icon">✓</p>
+            <h2>Réponse enregistrée</h2>
+            <p id="success-desc" class="state-desc"></p>
+          </div>
+        </div>
+      )}
+
+    </div>
+  </main>
+
+</body>
+</html>
+
+<script>
+  const form = document.getElementById('rsvp-form') as HTMLFormElement | null;
+  if (!form) throw new Error('no form');
+
+  const pouvoirSection = document.getElementById('pouvoir-section')!;
+  const pouvoirInput = document.getElementById('pouvoir-a') as HTMLInputElement;
+  const btnSubmit = document.getElementById('btn-submit') as HTMLButtonElement;
+  const formError = document.getElementById('form-error')!;
+  const successState = document.getElementById('success-state')!;
+  const successDesc = document.getElementById('success-desc')!;
+  const token = (document.getElementById('rsvp-token') as HTMLInputElement).value;
+
+  // ── Signature pad ─────────────────────────────────────────────────────────
+  const canvas = document.getElementById('sig-canvas') as HTMLCanvasElement | null;
+  let hasDrawn = false;
+
+  if (canvas) {
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = '#111';
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    let isDrawing = false;
+    let lastX = 0;
+    let lastY = 0;
+
+    function coords(clientX: number, clientY: number) {
+      const r = canvas!.getBoundingClientRect();
+      return {
+        x: (clientX - r.left) * (canvas!.width / r.width),
+        y: (clientY - r.top)  * (canvas!.height / r.height),
+      };
+    }
+
+    canvas.addEventListener('mousedown', e => {
+      isDrawing = true;
+      const { x, y } = coords(e.clientX, e.clientY);
+      lastX = x; lastY = y;
+    });
+    canvas.addEventListener('mousemove', e => {
+      if (!isDrawing) return;
+      const { x, y } = coords(e.clientX, e.clientY);
+      ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(x, y); ctx.stroke();
+      lastX = x; lastY = y;
+      hasDrawn = true;
+    });
+    canvas.addEventListener('mouseup', () => { isDrawing = false; });
+    canvas.addEventListener('mouseleave', () => { isDrawing = false; });
+    canvas.addEventListener('touchstart', e => {
+      e.preventDefault();
+      const t = e.touches[0];
+      const { x, y } = coords(t.clientX, t.clientY);
+      isDrawing = true; lastX = x; lastY = y;
+    }, { passive: false });
+    canvas.addEventListener('touchmove', e => {
+      e.preventDefault();
+      if (!isDrawing) return;
+      const t = e.touches[0];
+      const { x, y } = coords(t.clientX, t.clientY);
+      ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(x, y); ctx.stroke();
+      lastX = x; lastY = y;
+      hasDrawn = true;
+    }, { passive: false });
+    canvas.addEventListener('touchend', () => { isDrawing = false; });
+
+    document.getElementById('btn-clear-sig')!.addEventListener('click', () => {
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, canvas!.width, canvas!.height);
+      hasDrawn = false;
+    });
+  }
+
+  // ── Radios ────────────────────────────────────────────────────────────────
+  let presenceValue: 'present' | 'absent' | null = null;
+
+  document.querySelectorAll<HTMLInputElement>('input[name="presence"]').forEach(radio => {
+    radio.addEventListener('change', () => {
+      presenceValue = radio.value as 'present' | 'absent';
+      if (presenceValue === 'absent') {
+        pouvoirSection.classList.remove('hidden');
+        pouvoirInput.required = true;
+        btnSubmit.textContent = 'Signer et générer le pouvoir';
+      } else {
+        pouvoirSection.classList.add('hidden');
+        pouvoirInput.required = false;
+        pouvoirInput.value = '';
+        btnSubmit.textContent = 'Confirmer ma présence';
+      }
+      btnSubmit.disabled = false;
+    });
+  });
+
+  // ── Submit ────────────────────────────────────────────────────────────────
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    formError.classList.add('hidden');
+    if (!presenceValue) return;
+
+    if (presenceValue === 'absent') {
+      if (!pouvoirInput.value.trim()) {
+        formError.textContent = 'Veuillez indiquer le nom du mandataire.';
+        formError.classList.remove('hidden');
+        return;
+      }
+      if (!hasDrawn) {
+        formError.textContent = 'Veuillez apposer votre signature.';
+        formError.classList.remove('hidden');
+        return;
+      }
+    }
+
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = presenceValue === 'absent' ? 'Génération du PDF…' : 'Enregistrement…';
+
+    try {
+      const signature = presenceValue === 'absent'
+        ? canvas!.toDataURL('image/png').replace(/^data:image\/png;base64,/, '')
+        : null;
+
+      const res = await fetch('/api/age/reponse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          token,
+          presence: presenceValue === 'present',
+          pouvoir_a: presenceValue === 'absent' ? pouvoirInput.value.trim() : null,
+          signature,
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text() || 'Erreur serveur');
+
+      window.location.reload();
+    } catch (err: any) {
+      formError.textContent = err.message;
+      formError.classList.remove('hidden');
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = presenceValue === 'absent' ? 'Signer et générer le pouvoir' : 'Confirmer ma présence';
+    }
+  });
+</script>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--color-bg);
+    color: var(--color-text);
+    min-height: 100vh;
+  }
+
+  nav {
+    background: white;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+  }
+  .nav-inner {
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 0 24px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+  }
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    text-decoration: none;
+  }
+
+  main { padding: 48px 24px 80px; }
+  .container { max-width: 560px; margin: 0 auto; }
+
+  /* State cards (error / confirmed) */
+  .state-card {
+    background: white;
+    border-radius: 16px;
+    padding: 48px 40px;
+    text-align: center;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .state-icon { font-size: 2.5rem; }
+  .state-card h1, .state-card h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    color: var(--color-primary);
+  }
+  .state-desc { font-size: 0.95rem; line-height: 1.6; color: var(--color-text); max-width: 380px; }
+  .state-date { font-size: 0.8rem; color: var(--color-muted); margin-top: 4px; }
+
+  .confirmed-card { border: 1px solid var(--color-success-border); }
+  .error-card { border: 1px solid var(--color-error-border); }
+
+  /* Form card */
+  .form-card {
+    background: white;
+    border-radius: 16px;
+    padding: 40px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+
+  .form-header { margin-bottom: 32px; }
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+    color: var(--color-primary);
+    margin-bottom: 10px;
+    line-height: 1.2;
+  }
+  .subtitle { font-size: 0.95rem; color: var(--color-muted); line-height: 1.5; }
+
+  fieldset {
+    border: none;
+    padding: 0;
+    margin-bottom: 24px;
+  }
+  legend {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-muted);
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .radio-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px 20px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 10px;
+    cursor: pointer;
+    margin-bottom: 10px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .radio-card:has(input:checked) {
+    border-color: var(--color-primary-mid);
+    background: var(--color-success-bg);
+  }
+  .radio-card input[type="radio"] {
+    margin-top: 3px;
+    flex-shrink: 0;
+    accent-color: var(--color-primary-mid);
+    width: 16px;
+    height: 16px;
+  }
+  .radio-body { display: flex; flex-direction: column; gap: 3px; }
+  .radio-title { font-weight: 600; font-size: 0.92rem; }
+  .radio-desc { font-size: 0.82rem; color: var(--color-muted); }
+
+  .pouvoir-section { margin-bottom: 24px; display: flex; flex-direction: column; gap: 20px; }
+  .pouvoir-section.hidden { display: none; }
+
+  .sig-group { display: flex; flex-direction: column; gap: 8px; }
+  .sig-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-muted);
+  }
+  #sig-canvas {
+    width: 100%;
+    height: 150px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 8px;
+    cursor: crosshair;
+    touch-action: none;
+    background: white;
+    display: block;
+  }
+  .sig-actions { display: flex; }
+  #btn-clear-sig {
+    padding: 6px 14px;
+    background: white;
+    color: var(--color-muted);
+    border: 1.5px solid var(--color-border);
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  #btn-clear-sig:hover { background: var(--color-bg); color: var(--color-text); }
+
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-muted);
+  }
+  .form-group input {
+    padding: 10px 14px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+    background: white;
+    color: var(--color-text);
+  }
+  .form-group input:focus { border-color: var(--color-primary-mid); }
+  .field-hint { font-size: 0.78rem; color: var(--color-muted); }
+  .required { color: var(--color-error); }
+
+  .form-error {
+    font-size: 0.85rem;
+    color: var(--color-error-text, #c0392b);
+    background: var(--color-error-bg, #fef2f2);
+    border: 1px solid var(--color-error-border, #fca5a5);
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+  }
+  .form-error.hidden { display: none; }
+
+  .form-actions { display: flex; justify-content: flex-end; }
+  .form-actions button {
+    padding: 12px 28px;
+    background: var(--color-primary-mid);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .form-actions button:hover:not(:disabled) { background: var(--color-primary); }
+  .form-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-download {
+    display: inline-block;
+    padding: 10px 20px;
+    background: var(--color-primary-mid);
+    color: white;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+  .btn-download:hover { background: var(--color-primary); }
+
+  .btn-secondary {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 10px 20px;
+    background: white;
+    color: var(--color-primary-mid);
+    border: 1.5px solid var(--color-primary-mid);
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+  .btn-secondary:hover { background: var(--color-success-bg); }
+
+  .hidden { display: none !important; }
+
+  @media (max-width: 600px) {
+    .form-card { padding: 28px 20px; }
+    .state-card { padding: 36px 24px; }
+    h1 { font-size: 1.5rem; }
+  }
+</style>

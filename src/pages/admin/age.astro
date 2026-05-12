@@ -1,0 +1,477 @@
+---
+import { createAdminClient } from '../../lib/supabase';
+import '../../styles/theme.css';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/login');
+
+const supabase = createAdminClient();
+
+const { data: reponses } = await supabase
+  .from('age_reponses')
+  .select('email, presence, pouvoir_a, signature, updated_at, membres(nom, prenom)')
+  .order('updated_at', { ascending: false });
+
+const { data: membres } = await supabase
+  .from('membres')
+  .select('id', { count: 'exact' });
+
+const { data: membresActives } = await supabase
+  .from('membres')
+  .select('id', { count: 'exact' })
+  .eq('age_email_activation', true);
+
+const totalMembres = membres?.length ?? 0;
+const totalActives = membresActives?.length ?? 0;
+const presents = reponses?.filter(r => r.presence).length ?? 0;
+const absents = reponses?.filter(r => !r.presence).length ?? 0;
+const sanReponse = totalMembres - (reponses?.length ?? 0);
+
+function fmtDateTime(iso: string) {
+  return new Date(iso).toLocaleString('fr-FR', {
+    day: '2-digit', month: '2-digit', year: 'numeric',
+    hour: '2-digit', minute: '2-digit',
+    timeZone: 'Europe/Paris',
+  });
+}
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AGE — Saint Domingue</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <nav>
+    <div class="nav-inner">
+      <a href="/" class="logo">Le Saindo</a>
+      <div class="nav-right">
+        <a href="/espace-membre" class="btn-member">Mon espace</a>
+        <span class="user-email">{user.email}</span>
+        <a href="/auth/logout" class="btn-logout">Déconnexion</a>
+      </div>
+    </div>
+  </nav>
+
+  <subnav>
+    <div class="subnav-inner">
+      <a href="/admin" class="subnav-link">Membres</a>
+      <a href="/admin/transactions" class="subnav-link">Transactions</a>
+      <a href="/admin/statistiques" class="subnav-link">Statistiques</a>
+      <a href="/admin/age" class="subnav-link active">AGE</a>
+    </div>
+  </subnav>
+
+  <main>
+    <div class="container">
+
+      <header class="page-header">
+        <h1>Assemblée Générale Extraordinaire</h1>
+        <p class="sub">Suivi des réponses à la convocation.</p>
+      </header>
+
+      <!-- STATS -->
+      <div class="stats-grid">
+        <div class="stat-card stat-present">
+          <span class="stat-value">{presents}</span>
+          <span class="stat-label">Présent{presents > 1 ? 's' : ''}</span>
+        </div>
+        <div class="stat-card stat-absent">
+          <span class="stat-value">{absents}</span>
+          <span class="stat-label">Pouvoir{absents > 1 ? 's' : ''}</span>
+        </div>
+        <div class="stat-card stat-pending">
+          <span class="stat-value">{sanReponse}</span>
+          <span class="stat-label">Sans réponse</span>
+        </div>
+        <div class="stat-card stat-total">
+          <span class="stat-value">{totalMembres}</span>
+          <span class="stat-label">Membres au total</span>
+        </div>
+      </div>
+
+      <!-- LISTE DES RÉPONSES -->
+      <section class="section">
+        <div class="section-header">
+          <h2>Réponses ({reponses?.length ?? 0})</h2>
+        </div>
+
+        {reponses && reponses.length > 0 ? (
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Membre</th>
+                  <th>Email</th>
+                  <th>Réponse</th>
+                  <th>Mandataire</th>
+                  <th>Date</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {reponses.map(r => {
+                  const nom = r.membres
+                    ? [(r.membres as any).prenom, (r.membres as any).nom].filter(Boolean).join(' ')
+                    : null;
+                  return (
+                    <tr>
+                      <td class="bold">{nom || '—'}</td>
+                      <td class="muted">{r.email}</td>
+                      <td>
+                        {r.presence
+                          ? <span class="badge badge-present">Présent(e)</span>
+                          : <span class="badge badge-absent">Pouvoir</span>
+                        }
+                      </td>
+                      <td class="muted">{r.pouvoir_a || '—'}</td>
+                      <td>
+                        {!r.presence && (r as any).signature && (
+                          <a href={`/api/admin/age-pouvoir?email=${encodeURIComponent(r.email)}`} class="btn-dl" target="_blank">
+                            PDF
+                          </a>
+                        )}
+                      </td>
+                      <td class="muted">{fmtDateTime(r.updated_at)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p class="empty">Aucune réponse pour l'instant.</p>
+        )}
+      </section>
+
+      <!-- BOUTON ENVOI -->
+      <div class="send-section">
+        <button id="btn-send-age" class="btn-send">Envoyer la convocation aux membres</button>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- MODAL ENVOI -->
+  <div id="age-send-overlay" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Envoyer la convocation AGE</h2>
+        <button id="age-send-close" class="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">
+          La convocation (PDF en pièce jointe) et un lien de réponse seront envoyés à <strong>{totalActives} membre{totalActives > 1 ? 's' : ''}</strong> (ceux dont la convocation AGE est activée).
+        </p>
+        <p id="send-error" class="send-error hidden"></p>
+        <div class="form-actions">
+          <button type="button" id="age-send-cancel">Annuler</button>
+          <button type="button" id="age-send-submit">Envoyer à tous</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
+
+<script>
+  const overlay = document.getElementById('age-send-overlay')!;
+  const sendError = document.getElementById('send-error')!;
+  const submitBtn = document.getElementById('age-send-submit') as HTMLButtonElement;
+
+  function openModal() { sendError.classList.add('hidden'); overlay.classList.remove('hidden'); }
+  function closeModal() { overlay.classList.add('hidden'); }
+
+  document.getElementById('btn-send-age')!.addEventListener('click', openModal);
+  document.getElementById('age-send-close')!.addEventListener('click', closeModal);
+  document.getElementById('age-send-cancel')!.addEventListener('click', closeModal);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+
+  submitBtn.addEventListener('click', async () => {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Envoi en cours…';
+    sendError.classList.add('hidden');
+
+    const res = await fetch('/api/admin/send-age-convocation', { method: 'POST' });
+
+    if (!res.ok) {
+      sendError.textContent = await res.text();
+      sendError.classList.remove('hidden');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Envoyer à tous';
+      return;
+    }
+
+    const { sent, errors } = await res.json();
+    submitBtn.textContent = `${sent} email${sent > 1 ? 's' : ''} envoyé${sent > 1 ? 's' : ''} ✓`;
+
+    if (errors.length > 0) {
+      sendError.textContent = `Erreurs : ${errors.map((e: any) => e.email).join(', ')}`;
+      sendError.classList.remove('hidden');
+    }
+
+    setTimeout(() => {
+      closeModal();
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Envoyer à tous';
+    }, 3000);
+  });
+</script>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--color-bg);
+    color: var(--color-text);
+    min-height: 100vh;
+  }
+
+  nav {
+    background: white;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    text-decoration: none;
+  }
+  .nav-right { display: flex; align-items: center; gap: 12px; }
+
+  subnav {
+    background: white;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .subnav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    gap: 4px;
+  }
+  .subnav-link {
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--color-muted);
+    text-decoration: none;
+    padding: 10px 14px;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .subnav-link:hover { color: var(--color-primary); }
+  .subnav-link.active { color: var(--color-primary); border-bottom-color: var(--color-primary-mid); font-weight: 600; }
+  .user-email { font-size: 0.85rem; color: var(--color-muted); }
+  .btn-logout, .btn-member {
+    font-size: 0.85rem;
+    color: var(--color-muted);
+    text-decoration: none;
+    padding: 6px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+  .btn-logout:hover, .btn-member:hover { background: var(--color-bg); color: var(--color-text); }
+
+  main { padding: 48px 24px; }
+  .container { max-width: 1200px; margin: 0 auto; }
+
+  .page-header { margin-bottom: 32px; }
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    color: var(--color-primary);
+    margin-bottom: 8px;
+  }
+  .sub { color: var(--color-muted); }
+
+  /* Stats */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 40px;
+  }
+  @media (max-width: 768px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+
+  .stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    border: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .stat-value { font-size: 2rem; font-weight: 700; }
+  .stat-label { font-size: 0.8rem; color: var(--color-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+  .stat-present .stat-value { color: var(--color-success-text, #16a34a); }
+  .stat-absent .stat-value { color: var(--color-primary-mid); }
+  .stat-pending .stat-value { color: var(--color-muted); }
+  .stat-total .stat-value { color: var(--color-primary); }
+
+  /* Section */
+  .section { margin-bottom: 40px; }
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .section h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    color: var(--color-primary);
+  }
+
+  .table-wrapper { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    min-width: 600px;
+  }
+  th {
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-muted);
+    background: var(--color-bg);
+    border-bottom: 1px solid var(--color-border);
+  }
+  td {
+    padding: 12px 16px;
+    font-size: 0.88rem;
+    border-bottom: 1px solid var(--color-border-light);
+  }
+  tr:last-child td { border-bottom: none; }
+  .bold { font-weight: 600; }
+  .muted { color: var(--color-muted); }
+
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
+  .badge-present { background: var(--color-success-bg); color: var(--color-success-text); border: 1px solid var(--color-success-border); }
+  .badge-absent { background: #f0f7ff; color: #2563eb; border: 1px solid #bfdbfe; }
+
+  .btn-dl {
+    display: inline-block;
+    padding: 3px 10px;
+    background: white;
+    color: var(--color-primary-mid);
+    border: 1.5px solid var(--color-primary-mid);
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn-dl:hover { background: var(--color-success-bg); }
+
+  .empty { color: var(--color-muted); font-size: 0.9rem; padding: 24px 0; }
+
+  /* Send section */
+  .send-section { display: flex; justify-content: flex-start; }
+  .btn-send {
+    padding: 10px 20px;
+    background: var(--color-primary-mid);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.2s;
+  }
+  .btn-send:hover { background: var(--color-primary); }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .modal-overlay.hidden { display: none; }
+  .modal {
+    background: white;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 440px;
+    box-shadow: 0 8px 48px rgba(0,0,0,0.18);
+  }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 28px 28px 20px;
+    border-bottom: 1px solid var(--color-border-light);
+  }
+  .modal-header h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    color: var(--color-primary);
+  }
+  .modal-close { background: none; border: none; font-size: 1.1rem; color: var(--color-subtle); cursor: pointer; padding: 4px 8px; }
+  .modal-close:hover { color: var(--color-text); }
+  .modal-body { padding: 24px 28px; }
+  .modal-desc { font-size: 0.9rem; color: var(--color-text); line-height: 1.6; margin-bottom: 24px; }
+  .send-error {
+    font-size: 0.85rem;
+    color: var(--color-error-text, #c0392b);
+    margin-bottom: 16px;
+  }
+  .send-error.hidden { display: none; }
+  .form-actions { display: flex; gap: 12px; justify-content: flex-end; }
+  .form-actions button {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+  #age-send-cancel { background: var(--color-bg); color: var(--color-muted); }
+  #age-send-cancel:hover { background: var(--color-border); }
+  #age-send-submit { background: var(--color-primary-mid); color: white; }
+  #age-send-submit:hover:not(:disabled) { background: var(--color-primary); }
+  #age-send-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  @media (max-width: 768px) { .user-email { display: none; } }
+</style>

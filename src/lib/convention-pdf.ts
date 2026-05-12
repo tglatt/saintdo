@@ -223,14 +223,106 @@ export async function buildPdf(
   return doc.save();
 }
 
-// ── Response helper ───────────────────────────────────────────────────────────
+// ── Pouvoir PDF ───────────────────────────────────────────────────────────────
+
+export async function buildPouvoirPdf(
+  nomAdherent: string,
+  nomPouvoir: string,
+  memberSigBase64: string,
+  mdTemplate: string,
+): Promise<Uint8Array> {
+  const dateJour = fmtDate(new Date());
+  const md = mdTemplate
+    .replace('[NOM_ADHERENT]', nomAdherent)
+    .replace('[NOM_POUVOIR]', nomPouvoir)
+    .replace('[DATE_JOUR]', dateJour);
+
+  const blocks = parseMarkdown(md);
+  blocks.push({ type: 'spacer', size: 20 });
+  blocks.push({ type: 'hr' });
+  blocks.push({ type: 'sig' });
+
+  const doc = await PDFDocument.create();
+  const regular = await doc.embedFont(StandardFonts.Helvetica);
+  const bold    = await doc.embedFont(StandardFonts.HelveticaBold);
+  const memberSigImage = await doc.embedPng(Buffer.from(memberSigBase64, 'base64'));
+
+  const ctx: DrawCtx = {
+    doc, pages: [], regular, bold,
+    marginL: 72, marginR: 523, marginTop: 72, marginBottom: 72,
+    pageW: 595, pageH: 842,
+  };
+  let y = newPage(ctx);
+
+  for (const block of blocks) {
+    switch (block.type) {
+      case 'h1':
+        y = drawSegs(ctx, y, block.segs, { size: 16, align: 'center', defaultBold: true, spaceAfter: 20 });
+        break;
+      case 'h2':
+        y = drawSegs(ctx, y, block.segs, { size: 13, defaultBold: true, spaceAfter: 10 });
+        break;
+      case 'p':
+        y = drawSegs(ctx, y, block.segs, { spaceAfter: 10 });
+        break;
+      case 'li':
+        y = drawSegs(ctx, y, [{ text: '- ', bold: false }, ...block.segs], { indent: 16, spaceAfter: 6 });
+        break;
+      case 'spacer':
+        y -= block.size;
+        break;
+      case 'hr':
+        y -= 16;
+        break;
+      case 'sig': {
+        const nameSize = 9;
+        const labelSize = 9;
+        const lineH = labelSize * 1.4;
+        const dims = memberSigImage.scaleToFit(160, 62);
+        const blockH = dims.height + lineH + nameSize + 16;
+        if (y - blockH < ctx.marginBottom) y = newPage(ctx);
+        const page = currentPage(ctx);
+        page.drawText(sanitize('Signature :'), {
+          x: ctx.marginL, y: y - lineH,
+          font: regular, size: labelSize, color: rgb(0.1, 0.1, 0.1),
+        });
+        page.drawImage(memberSigImage, {
+          x: ctx.marginL, y: y - lineH - dims.height - 4,
+          width: dims.width, height: dims.height,
+        });
+        page.drawText(sanitize(nomAdherent), {
+          x: ctx.marginL, y: y - lineH - dims.height - 4 - nameSize - 4,
+          font: bold, size: nameSize, color: rgb(0.1, 0.1, 0.1),
+        });
+        y -= blockH;
+        break;
+      }
+    }
+  }
+
+  return doc.save();
+}
+
+// ── Response helpers ──────────────────────────────────────────────────────────
+
+function slugify(nom: string) {
+  return nom.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '-').toLowerCase();
+}
 
 export function pdfResponse(pdfBytes: Uint8Array, nom: string): Response {
-  const slug = nom.normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, '-').toLowerCase();
   return new Response(Buffer.from(pdfBytes), {
     headers: {
       'Content-Type': 'application/pdf',
-      'Content-Disposition': `attachment; filename="convention-apport-${slug}.pdf"`,
+      'Content-Disposition': `attachment; filename="convention-apport-${slugify(nom)}.pdf"`,
+    },
+  });
+}
+
+export function pouvoirPdfResponse(pdfBytes: Uint8Array, nom: string): Response {
+  return new Response(Buffer.from(pdfBytes), {
+    headers: {
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="pouvoir-age-${slugify(nom)}.pdf"`,
     },
   });
 }
