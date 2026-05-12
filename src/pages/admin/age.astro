@@ -21,6 +21,32 @@ const { data: membresActives } = await supabase
   .select('id', { count: 'exact' })
   .eq('age_email_activation', true);
 
+const threshold = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+const { data: membresAEnvoyer } = await supabase
+  .from('membres')
+  .select('id')
+  .eq('age_email_activation', true)
+  .or(`age_email_sent_at.is.null,age_email_sent_at.lt.${threshold}`);
+
+const totalAEnvoyer = membresAEnvoyer?.length ?? 0;
+const canSend = totalAEnvoyer > 0;
+
+let nextSendAt: Date | null = null;
+if (!canSend) {
+  const { data: earliest } = await supabase
+    .from('membres')
+    .select('age_email_sent_at')
+    .eq('age_email_activation', true)
+    .not('age_email_sent_at', 'is', null)
+    .order('age_email_sent_at', { ascending: true })
+    .limit(1)
+    .single();
+  if (earliest?.age_email_sent_at) {
+    nextSendAt = new Date(new Date(earliest.age_email_sent_at).getTime() + 24 * 60 * 60 * 1000);
+  }
+}
+
 const totalMembres = membres?.length ?? 0;
 const totalActives = membresActives?.length ?? 0;
 const presents = reponses?.filter(r => r.presence).length ?? 0;
@@ -152,7 +178,14 @@ function fmtDateTime(iso: string) {
 
       <!-- BOUTON ENVOI -->
       <div class="send-section">
-        <button id="btn-send-age" class="btn-send">Envoyer la convocation aux membres</button>
+        {canSend ? (
+          <button id="btn-send-age" class="btn-send">Envoyer la convocation aux membres</button>
+        ) : (
+          <div class="send-blocked">
+            <button class="btn-send" disabled>Envoyer la convocation aux membres</button>
+            <p class="send-blocked-info">Prochain envoi possible le {fmtDateTime(nextSendAt!.toISOString())}</p>
+          </div>
+        )}
       </div>
 
     </div>
@@ -167,7 +200,7 @@ function fmtDateTime(iso: string) {
       </div>
       <div class="modal-body">
         <p class="modal-desc">
-          La convocation (PDF en pièce jointe) et un lien de réponse seront envoyés à <strong>{totalActives} membre{totalActives > 1 ? 's' : ''}</strong> (ceux dont la convocation AGE est activée).
+          La convocation (PDF en pièce jointe) et un lien de réponse seront envoyés à <strong>{totalAEnvoyer} membre{totalAEnvoyer > 1 ? 's' : ''}</strong> n'ayant pas encore reçu la convocation récemment.
         </p>
         <p id="send-error" class="send-error hidden"></p>
         <div class="form-actions">
@@ -189,7 +222,7 @@ function fmtDateTime(iso: string) {
   function openModal() { sendError.classList.add('hidden'); overlay.classList.remove('hidden'); }
   function closeModal() { overlay.classList.add('hidden'); }
 
-  document.getElementById('btn-send-age')!.addEventListener('click', openModal);
+  document.getElementById('btn-send-age')?.addEventListener('click', openModal);
   document.getElementById('age-send-close')!.addEventListener('click', closeModal);
   document.getElementById('age-send-cancel')!.addEventListener('click', closeModal);
   overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
@@ -401,6 +434,8 @@ function fmtDateTime(iso: string) {
 
   /* Send section */
   .send-section { display: flex; justify-content: flex-start; }
+  .send-blocked { display: flex; flex-direction: column; gap: 8px; }
+  .send-blocked-info { font-size: 0.85rem; color: var(--color-muted); }
   .btn-send {
     padding: 10px 20px;
     background: var(--color-primary-mid);
@@ -413,7 +448,8 @@ function fmtDateTime(iso: string) {
     font-family: inherit;
     transition: background 0.2s;
   }
-  .btn-send:hover { background: var(--color-primary); }
+  .btn-send:hover:not(:disabled) { background: var(--color-primary); }
+  .btn-send:disabled { opacity: 0.5; cursor: not-allowed; }
 
   /* Modal */
   .modal-overlay {
