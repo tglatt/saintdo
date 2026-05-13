@@ -1,0 +1,433 @@
+---
+import { createAdminClient } from '../../lib/supabase';
+import '../../styles/theme.css';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/login');
+
+const supabase = createAdminClient();
+
+const { data: membres } = await supabase
+  .from('membres')
+  .select('id, email, nom, prenom, convention_email_sent_at')
+  .order('nom', { ascending: true });
+
+const { data: transactions } = await supabase
+  .from('transactions')
+  .select('membre_id, type, montant');
+
+const { data: signedConventions } = await supabase
+  .from('conventions')
+  .select('membre_id');
+
+const signedMemberIds = new Set(signedConventions?.map(c => c.membre_id) ?? []);
+
+const apportByMembre = new Map<string, number>();
+for (const tx of transactions ?? []) {
+  if (tx.type === 'apport_associatif') {
+    apportByMembre.set(tx.membre_id, (apportByMembre.get(tx.membre_id) ?? 0) + tx.montant);
+  }
+}
+
+const membresEnAttente = (membres ?? []).filter(
+  m => apportByMembre.has(m.id) && !signedMemberIds.has(m.id)
+);
+
+const conventionsSignedCount = signedMemberIds.size;
+const conventionsToSignCount = membresEnAttente.length;
+
+function euros(n: number) {
+  return n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+}
+function fmtDate(iso: string | null) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Conventions — Admin Saint Domingue</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <nav>
+    <div class="nav-inner">
+      <a href="/" class="logo">Le Saindo</a>
+      <div class="nav-right">
+        <a href="/espace-membre" class="btn-member">Mon espace</a>
+        <span class="user-email">{user.email}</span>
+        <a href="/auth/logout" class="btn-logout">Déconnexion</a>
+      </div>
+    </div>
+  </nav>
+
+  <subnav>
+    <div class="subnav-inner">
+      <a href="/admin" class="subnav-link">Membres</a>
+      <a href="/admin/transactions" class="subnav-link">Transactions</a>
+      <a href="/admin/conventions" class="subnav-link active">Conventions</a>
+      <a href="/admin/statistiques" class="subnav-link">Statistiques</a>
+      <a href="/admin/age" class="subnav-link">AGE</a>
+    </div>
+  </subnav>
+
+  <main>
+    <div class="container">
+
+      <header class="page-header">
+        <h1>Conventions</h1>
+        <p class="sub">Suivi des conventions d'apport associatif.</p>
+      </header>
+
+      <!-- STATS -->
+      <div class="stats-grid">
+        <div class="stat-card stat-card--signed">
+          <div class="stat-label">Conventions signées</div>
+          <div class="stat-value">{conventionsSignedCount}</div>
+        </div>
+        <div class={`stat-card ${conventionsToSignCount > 0 ? 'stat-card--pending' : ''}`}>
+          <div class="stat-label">En attente de signature</div>
+          <div class="stat-value">{conventionsToSignCount}</div>
+        </div>
+      </div>
+
+      <!-- CONVENTIONS EN ATTENTE -->
+      <section class="section">
+        <div class="section-header">
+          <h2>En attente ({membresEnAttente.length})</h2>
+          {membresEnAttente.length > 0 && (
+            <button id="btn-send-conventions" class="btn-send">Envoyer à tous</button>
+          )}
+        </div>
+
+        {membresEnAttente.length > 0 ? (
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Membre</th>
+                  <th>Email</th>
+                  <th class="right">Apport</th>
+                  <th>Email envoyé le</th>
+                </tr>
+              </thead>
+              <tbody>
+                {membresEnAttente.map(m => (
+                  <tr class="clickable" onclick={`window.location='/admin/membres/${m.id}'`}>
+                    <td class="bold">{[m.nom, m.prenom].filter(Boolean).join(' ') || '—'}</td>
+                    <td class="muted">{m.email}</td>
+                    <td class="right">{euros(apportByMembre.get(m.id) ?? 0)}</td>
+                    <td class="muted">{fmtDate(m.convention_email_sent_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p class="empty">Tous les membres ayant effectué un apport ont signé leur convention.</p>
+        )}
+      </section>
+
+    </div>
+  </main>
+
+  <!-- MODAL ENVOI EN MASSE -->
+  <div id="bulk-overlay" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Envoyer les conventions</h2>
+        <button id="bulk-close" class="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">
+          <strong>{conventionsToSignCount} membre{conventionsToSignCount > 1 ? 's' : ''}</strong>
+          {conventionsToSignCount > 1 ? ' recevront' : ' recevra'} un email avec son lien de signature.
+        </p>
+        <p id="bulk-error" class="send-error hidden"></p>
+        <div class="form-actions">
+          <button type="button" id="bulk-cancel">Annuler</button>
+          <button type="button" id="bulk-submit">Envoyer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
+
+<script>
+  const overlay = document.getElementById('bulk-overlay')!;
+  const bulkError = document.getElementById('bulk-error')!;
+  const submitBtn = document.getElementById('bulk-submit') as HTMLButtonElement;
+
+  function openModal() { bulkError.classList.add('hidden'); overlay.classList.remove('hidden'); }
+  function closeModal() { overlay.classList.add('hidden'); }
+
+  document.getElementById('btn-send-conventions')?.addEventListener('click', openModal);
+  document.getElementById('bulk-close')!.addEventListener('click', closeModal);
+  document.getElementById('bulk-cancel')!.addEventListener('click', closeModal);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+
+  submitBtn.addEventListener('click', async () => {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Envoi en cours…';
+    bulkError.classList.add('hidden');
+
+    const res = await fetch('/api/admin/send-conventions-bulk', { method: 'POST' });
+
+    if (!res.ok) {
+      bulkError.textContent = await res.text();
+      bulkError.classList.remove('hidden');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Envoyer';
+      return;
+    }
+
+    const { sent, errors } = await res.json();
+    submitBtn.textContent = `${sent} email${sent > 1 ? 's' : ''} envoyé${sent > 1 ? 's' : ''} ✓`;
+
+    if (errors.length > 0) {
+      bulkError.textContent = `Erreurs : ${errors.map((e: any) => e.email).join(', ')}`;
+      bulkError.classList.remove('hidden');
+    }
+
+    setTimeout(() => { closeModal(); submitBtn.disabled = false; submitBtn.textContent = 'Envoyer'; }, 3000);
+  });
+</script>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--color-bg);
+    color: var(--color-text);
+    min-height: 100vh;
+  }
+
+  nav {
+    background: white;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    text-decoration: none;
+  }
+  .nav-right { display: flex; align-items: center; gap: 12px; }
+
+  subnav {
+    background: white;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .subnav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    gap: 4px;
+  }
+  .subnav-link {
+    font-size: 0.88rem;
+    font-weight: 500;
+    color: var(--color-muted);
+    text-decoration: none;
+    padding: 10px 14px;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .subnav-link:hover { color: var(--color-primary); }
+  .subnav-link.active { color: var(--color-primary); border-bottom-color: var(--color-primary-mid); font-weight: 600; }
+  .user-email { font-size: 0.85rem; color: var(--color-muted); }
+  .btn-logout, .btn-member {
+    font-size: 0.85rem;
+    color: var(--color-muted);
+    text-decoration: none;
+    padding: 6px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+  .btn-logout:hover, .btn-member:hover { background: var(--color-bg); color: var(--color-text); }
+
+  main { padding: 48px 24px; }
+  .container { max-width: 1200px; margin: 0 auto; }
+
+  .page-header { margin-bottom: 32px; }
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    color: var(--color-primary);
+    margin-bottom: 8px;
+  }
+  .sub { color: var(--color-muted); }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    max-width: 480px;
+    margin-bottom: 40px;
+  }
+  .stat-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px 20px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+  }
+  .stat-card--signed  { border-top: 3px solid var(--color-success); }
+  .stat-card--pending { border-top: 3px solid #f59e0b; }
+  .stat-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-muted);
+    margin-bottom: 8px;
+  }
+  .stat-value {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    color: var(--color-primary);
+  }
+
+  .section { margin-bottom: 40px; }
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .section-header h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    color: var(--color-primary);
+  }
+
+  .table-wrapper { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    min-width: 500px;
+  }
+  th {
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-muted);
+    background: var(--color-bg);
+    border-bottom: 1px solid var(--color-border);
+  }
+  th.right { text-align: right; }
+  td {
+    padding: 12px 16px;
+    font-size: 0.88rem;
+    border-bottom: 1px solid var(--color-border-light);
+  }
+  tr:last-child td { border-bottom: none; }
+  .bold { font-weight: 600; }
+  .muted { color: var(--color-muted); }
+  .right { text-align: right; }
+  .clickable { cursor: pointer; transition: background 0.1s; }
+  .clickable:hover td { background: var(--color-bg); }
+
+  .empty { color: var(--color-muted); font-size: 0.9rem; padding: 24px 0; }
+
+  .btn-send {
+    padding: 8px 16px;
+    background: var(--color-primary-mid);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.2s;
+  }
+  .btn-send:hover { background: var(--color-primary); }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .modal-overlay.hidden { display: none; }
+  .modal {
+    background: white;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 440px;
+    box-shadow: 0 8px 48px rgba(0,0,0,0.18);
+  }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 28px 28px 20px;
+    border-bottom: 1px solid var(--color-border-light);
+  }
+  .modal-header h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    color: var(--color-primary);
+  }
+  .modal-close { background: none; border: none; font-size: 1.1rem; color: var(--color-subtle); cursor: pointer; padding: 4px 8px; }
+  .modal-close:hover { color: var(--color-text); }
+  .modal-body { padding: 24px 28px; }
+  .modal-desc { font-size: 0.9rem; color: var(--color-text); line-height: 1.6; margin-bottom: 24px; }
+  .send-error { font-size: 0.85rem; color: var(--color-error-text, #c0392b); margin-bottom: 16px; }
+  .send-error.hidden { display: none; }
+  .form-actions { display: flex; gap: 12px; justify-content: flex-end; }
+  .form-actions button {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+  #bulk-cancel { background: var(--color-bg); color: var(--color-muted); }
+  #bulk-cancel:hover { background: var(--color-border); }
+  #bulk-submit { background: var(--color-primary-mid); color: white; }
+  #bulk-submit:hover:not(:disabled) { background: var(--color-primary); }
+  #bulk-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  @media (max-width: 768px) { .user-email { display: none; } }
+</style>

@@ -8,16 +8,10 @@ if (!user) return Astro.redirect('/login');
 const supabase = createAdminClient();
 
 const [
-  membresCountRes,
   txRes,
-  signedRes,
-  apportRes,
   lastSyncRes,
 ] = await Promise.all([
-  supabase.from('membres').select('*', { count: 'exact', head: true }),
   supabase.from('transactions').select('type, montant, date'),
-  supabase.from('conventions').select('membre_id'),
-  supabase.from('transactions').select('membre_id').eq('type', 'apport_associatif'),
   supabase.from('syncs')
     .select('ended_at, status, nb_membres, nb_transactions, message')
     .order('started_at', { ascending: false })
@@ -25,10 +19,7 @@ const [
     .single(),
 ]);
 
-const totalMembres = membresCountRes.count ?? 0;
 const txs = txRes.data ?? [];
-const signedMemberIds = new Set(signedRes.data?.map(c => c.membre_id) ?? []);
-const apportMemberIds = new Set(apportRes.data?.map(t => t.membre_id) ?? []);
 const lastSync = lastSyncRes.data;
 
 const totalAdhesion       = txs.filter(t => t.type === 'adhesion').reduce((s, t) => s + t.montant, 0);
@@ -91,11 +82,6 @@ const chartDataTarget = allWeekKeys.map((_, i) =>
   Math.round(TARGET_AMOUNT * i / Math.max(totalWeeks - 1, 1))
 );
 
-const conventionsSignedCount = signedMemberIds.size;
-const conventionsToSignCount = [...apportMemberIds].filter(
-  id => !signedMemberIds.has(id)
-).length;
-
 function euros(n: number) {
   return n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
 }
@@ -137,6 +123,7 @@ function fmtDateTime(iso: string | null) {
     <div class="subnav-inner">
       <a href="/admin" class="subnav-link">Membres</a>
       <a href="/admin/transactions" class="subnav-link">Transactions</a>
+      <a href="/admin/conventions" class="subnav-link">Conventions</a>
       <a href="/admin/statistiques" class="subnav-link active">Statistiques</a>
       <a href="/admin/age" class="subnav-link">AGE</a>
     </div>
@@ -172,24 +159,6 @@ function fmtDateTime(iso: string | null) {
           <div class="stat-card stat-card--total">
             <div class="stat-label">Total collecté</div>
             <div class="stat-value">{euros(totalAdhesion + totalDon + totalDonDefiscalise + totalApport)}</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="stats-section">
-        <h2 class="stats-section-title">Membres & conventions</h2>
-        <div class="stats-grid stats-grid--members">
-          <div class="stat-card">
-            <div class="stat-label">Membres</div>
-            <div class="stat-value stat-value--count">{totalMembres}</div>
-          </div>
-          <div class="stat-card stat-card--signed">
-            <div class="stat-label">Conventions signées</div>
-            <div class="stat-value stat-value--count">{conventionsSignedCount}</div>
-          </div>
-          <div class={`stat-card ${conventionsToSignCount > 0 ? 'stat-card--pending' : ''}`}>
-            <div class="stat-label">Conventions à signer</div>
-            <div class="stat-value stat-value--count">{conventionsToSignCount}</div>
           </div>
         </div>
       </div>

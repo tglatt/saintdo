@@ -28,12 +28,7 @@ const { data: signedConventions } = await supabase
   .select('membre_id');
 const signedMemberIds = new Set(signedConventions?.map(c => c.membre_id) ?? []);
 
-const apportMemberIds = new Set(
-  transactions?.filter(t => t.type === 'apport_associatif').map(t => t.membre_id) ?? []
-);
-const pendingConventionCount = [...apportMemberIds].filter(
-  id => !signedMemberIds.has(id)
-).length;
+
 
 const totalMembres = membres?.length ?? 0;
 
@@ -87,6 +82,7 @@ function fmtDateTime(iso: string | null) {
     <div class="subnav-inner">
       <a href="/admin" class="subnav-link active">Membres</a>
       <a href="/admin/transactions" class="subnav-link">Transactions</a>
+      <a href="/admin/conventions" class="subnav-link">Conventions</a>
       <a href="/admin/statistiques" class="subnav-link">Statistiques</a>
       <a href="/admin/age" class="subnav-link">AGE</a>
     </div>
@@ -121,9 +117,6 @@ function fmtDateTime(iso: string | null) {
           <h2>Membres ({totalMembres})</h2>
           <div class="section-header-right">
             <input type="text" id="search" placeholder="Rechercher par nom ou email…" autocomplete="off" />
-            {pendingConventionCount > 0 && (
-              <button id="btn-send-conventions" class="btn-create btn-create--secondary">Envoyer les conventions ({pendingConventionCount})</button>
-            )}
             <button id="btn-create-membre" class="btn-create">+ Nouveau membre</button>
           </div>
         </div>
@@ -178,28 +171,6 @@ function fmtDateTime(iso: string | null) {
     </div>
   </main>
 
-  <!-- MODAL ENVOI CONVENTIONS EN MASSE -->
-  <div id="bulk-convention-overlay" class="modal-overlay hidden">
-    <div class="modal tx-modal">
-      <div class="modal-header">
-        <div>
-          <h2>Envoyer les conventions</h2>
-        </div>
-        <button id="bulk-convention-close" class="modal-close">✕</button>
-      </div>
-      <div class="modal-body">
-        <p class="bulk-description">
-          <strong>{pendingConventionCount} membre{pendingConventionCount > 1 ? 's' : ''}</strong>
-          {pendingConventionCount > 1 ? ' recevront' : ' recevra'} un email avec son lien de signature de convention d'apport.
-        </p>
-        <p id="bulk-error" class="tx-error hidden"></p>
-        <div class="form-actions">
-          <button type="button" id="bulk-convention-cancel">Annuler</button>
-          <button type="button" id="bulk-convention-submit">Envoyer</button>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <!-- MODAL NOUVEAU MEMBRE -->
   <div id="membre-overlay" class="modal-overlay hidden">
@@ -624,46 +595,6 @@ function fmtDateTime(iso: string | null) {
       membreSubmit.textContent = 'Créer';
     }
   });
-
-  // ── Envoi conventions en masse ────────────────────────────────────────────
-  const bulkOverlay  = document.getElementById('bulk-convention-overlay');
-  const bulkError    = document.getElementById('bulk-error')!;
-  const bulkSubmit   = document.getElementById('bulk-convention-submit') as HTMLButtonElement | null;
-  const btnSendBulk  = document.getElementById('btn-send-conventions');
-
-  if (btnSendBulk && bulkOverlay) {
-    btnSendBulk.addEventListener('click', () => {
-      bulkError.classList.add('hidden');
-      bulkOverlay.classList.remove('hidden');
-    });
-    document.getElementById('bulk-convention-close')!.addEventListener('click', () => bulkOverlay.classList.add('hidden'));
-    document.getElementById('bulk-convention-cancel')!.addEventListener('click', () => bulkOverlay.classList.add('hidden'));
-    bulkOverlay.addEventListener('click', e => { if (e.target === bulkOverlay) bulkOverlay.classList.add('hidden'); });
-
-    bulkSubmit?.addEventListener('click', async () => {
-      bulkSubmit.disabled = true;
-      bulkSubmit.textContent = 'Envoi en cours…';
-      bulkError.classList.add('hidden');
-
-      const res = await fetch('/api/admin/send-conventions-bulk', { method: 'POST' });
-
-      if (!res.ok) {
-        bulkError.textContent = await res.text();
-        bulkError.classList.remove('hidden');
-        bulkSubmit.disabled = false;
-        bulkSubmit.textContent = 'Envoyer';
-        return;
-      }
-
-      const { sent } = await res.json();
-      bulkSubmit.textContent = `${sent} email${sent > 1 ? 's' : ''} envoyé${sent > 1 ? 's' : ''} ✓`;
-      setTimeout(() => {
-        bulkOverlay.classList.add('hidden');
-        bulkSubmit.disabled = false;
-        bulkSubmit.textContent = 'Envoyer';
-      }, 2500);
-    });
-  }
 
   // ── Filtrage ──────────────────────────────────────────────────────────────
   const search = document.getElementById('search') as HTMLInputElement;
