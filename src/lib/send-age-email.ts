@@ -44,7 +44,7 @@ export async function sendAgeEmail(
       Indiquer ma présence / Donner pouvoir
     </a>
   </p>
-  <p style="color: #888; font-size: 0.85rem;">Ce lien est personnel et valable 30 jours.</p>
+  <p style="color: #888; font-size: 0.85rem;">Ce lien est personnel et valable 7 jours.</p>
   <p style="color: #888; font-size: 0.85rem;">Cordialement,<br>L'équipe du Saint Domingue</p>
 </body>
 </html>`,
