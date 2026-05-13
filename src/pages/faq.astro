@@ -1,6 +1,10 @@
 ---
-import { marked } from 'marked';
+import { marked, Renderer } from 'marked';
 import Nav from '../components/Nav.astro';
+
+const renderer = new Renderer();
+renderer.link = ({ href, title, text }) =>
+  `<a href="${href}"${title ? ` title="${title}"` : ''} target="_blank" rel="noopener noreferrer">${text}</a>`;
 
 let faqHtml = '';
 const faqUrl = import.meta.env.FAQ_NEXTCLOUD_URL;
@@ -10,7 +14,7 @@ if (faqUrl) {
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       return r.text();
     });
-    faqHtml = marked.parse(md) as string;
+    faqHtml = marked.parse(md, { renderer }) as string;
   } catch {
     // Nextcloud indisponible
   }
