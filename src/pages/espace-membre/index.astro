@@ -9,7 +9,7 @@ const supabase = createAdminClient();
 
 const { data: membre } = await supabase
   .from('membres')
-  .select('nom, prenom, role, convention_enabled, created_at, address, zip_code, city, date_naissance, ville_naissance, departement_naissance')
+  .select('nom, prenom, role, created_at, address, zip_code, city, date_naissance, ville_naissance, departement_naissance')
   .eq('email', user.email)
   .single();
 
@@ -23,12 +23,13 @@ const needsProfile = !membre?.address || !membre?.zip_code || !membre?.city
   || !membre?.date_naissance || !membre?.ville_naissance || !membre?.departement_naissance;
 
 const membreId = (await supabase.from('membres').select('id').eq('email', user.email).single()).data?.id;
-const { data: conventionSignee } = membre?.convention_enabled
-  ? await supabase.from('conventions').select('signed_at').eq('membre_id', membreId).limit(1).maybeSingle()
-  : { data: null };
-
 const totalAdhesion = transactions?.filter(t => ['adhesion', 'don', 'don_defiscalise'].includes(t.type)).reduce((s, t) => s + t.montant, 0) ?? 0;
 const totalApport = transactions?.filter(t => t.type === 'apport_associatif').reduce((s, t) => s + t.montant, 0) ?? 0;
+const hasApport = totalApport > 0;
+
+const { data: conventionSignee } = hasApport && membreId
+  ? await supabase.from('conventions').select('signed_at').eq('membre_id', membreId).limit(1).maybeSingle()
+  : { data: null };
 
 const TYPE_ORDER = ['adhesion', 'don', 'don_defiscalise', 'apport_associatif'];
 const typeLabel: Record<string, string> = {
@@ -193,7 +194,7 @@ function fmtDate(iso: string | null) {
             {groups.length > 0 && (
               <button id="btn-recu" class="btn-download">Télécharger le reçu</button>
             )}
-            {membre?.convention_enabled && (
+            {hasApport && (
               conventionSignee
                 ? <a href="/espace-membre/convention" class="btn-download btn-download--signed">Convention signée</a>
                 : <a href="/espace-membre/convention" class="btn-download btn-download--pending">Convention à signer</a>

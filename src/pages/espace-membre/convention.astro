@@ -25,10 +25,10 @@ const admin = createAdminClient();
 
 const { data: membre } = await admin
   .from('membres')
-  .select('id, nom, prenom, role, convention_enabled, address, zip_code, city, date_naissance, ville_naissance, departement_naissance')
+  .select('id, nom, prenom, role, address, zip_code, city, date_naissance, ville_naissance, departement_naissance')
   .eq('email', user.email)
   .single();
-if (!membre || !membre.convention_enabled) return Astro.redirect('/espace-membre');
+if (!membre) return Astro.redirect('/espace-membre');
 
 const { data: txs } = await admin
   .from('transactions')

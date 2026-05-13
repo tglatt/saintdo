@@ -23,11 +23,6 @@ export const POST: APIRoute = async ({ request }) => {
     }
   }
 
-  await supabase
-    .from('membres')
-    .update({ convention_enabled: true, updated_at: new Date().toISOString() })
-    .eq('id', body.membre_id);
-
   const siteUrl = import.meta.env.PUBLIC_SITE_URL ?? new URL(request.url).origin;
   const result = await sendConventionEmail(membre, siteUrl);
 

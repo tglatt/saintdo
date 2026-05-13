@@ -12,14 +12,12 @@ const [
   txRes,
   signedRes,
   apportRes,
-  enabledRes,
   lastSyncRes,
 ] = await Promise.all([
   supabase.from('membres').select('*', { count: 'exact', head: true }),
   supabase.from('transactions').select('type, montant, date'),
   supabase.from('conventions').select('membre_id'),
   supabase.from('transactions').select('membre_id').eq('type', 'apport_associatif'),
-  supabase.from('membres').select('id').eq('convention_enabled', true),
   supabase.from('syncs')
     .select('ended_at, status, nb_membres, nb_transactions, message')
     .order('started_at', { ascending: false })
@@ -31,7 +29,6 @@ const totalMembres = membresCountRes.count ?? 0;
 const txs = txRes.data ?? [];
 const signedMemberIds = new Set(signedRes.data?.map(c => c.membre_id) ?? []);
 const apportMemberIds = new Set(apportRes.data?.map(t => t.membre_id) ?? []);
-const enabledMemberIds = new Set(enabledRes.data?.map(m => m.id) ?? []);
 const lastSync = lastSyncRes.data;
 
 const totalAdhesion       = txs.filter(t => t.type === 'adhesion').reduce((s, t) => s + t.montant, 0);
@@ -96,7 +93,7 @@ const chartDataTarget = allWeekKeys.map((_, i) =>
 
 const conventionsSignedCount = signedMemberIds.size;
 const conventionsToSignCount = [...apportMemberIds].filter(
-  id => enabledMemberIds.has(id) && !signedMemberIds.has(id)
+  id => !signedMemberIds.has(id)
 ).length;
 
 function euros(n: number) {

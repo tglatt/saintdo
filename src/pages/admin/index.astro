@@ -9,7 +9,7 @@ const supabase = createAdminClient();
 
 const { data: membres } = await supabase
   .from('membres')
-  .select('id, email, nom, prenom, structure, role, convention_enabled, created_at, convention_email_sent_at')
+  .select('id, email, nom, prenom, structure, role, created_at, convention_email_sent_at')
   .order('nom', { ascending: true });
 
 const { data: transactions } = await supabase
@@ -28,20 +28,11 @@ const { data: signedConventions } = await supabase
   .select('membre_id');
 const signedMemberIds = new Set(signedConventions?.map(c => c.membre_id) ?? []);
 
-const conventionEnabledIds = new Set(
-  membres?.filter(m => m.convention_enabled).map(m => m.id) ?? []
-);
 const apportMemberIds = new Set(
   transactions?.filter(t => t.type === 'apport_associatif').map(t => t.membre_id) ?? []
 );
-const recentEmailIds = new Set(
-  membres?.filter(m => {
-    if (!m.convention_email_sent_at) return false;
-    return Date.now() - new Date(m.convention_email_sent_at).getTime() < 24 * 60 * 60 * 1000;
-  }).map(m => m.id) ?? []
-);
 const pendingConventionCount = [...apportMemberIds].filter(
-  id => conventionEnabledIds.has(id) && !signedMemberIds.has(id) && !recentEmailIds.has(id)
+  id => !signedMemberIds.has(id)
 ).length;
 
 const totalMembres = membres?.length ?? 0;

@@ -28,8 +28,7 @@ export const POST: APIRoute = async ({ request }) => {
   const { data: membres } = await supabase
     .from('membres')
     .select('id, email, nom, prenom, convention_email_sent_at')
-    .in('id', pendingIds)
-    .eq('convention_enabled', true);
+    .in('id', pendingIds);
 
   const siteUrl = import.meta.env.PUBLIC_SITE_URL ?? new URL(request.url).origin;
   const cutoff = Date.now() - 24 * 60 * 60 * 1000;

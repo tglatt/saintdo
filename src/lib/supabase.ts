@@ -27,7 +27,6 @@ export type Membre = {
   date_naissance: string | null;
   ville_naissance: string | null;
   departement_naissance: string | null;
-  convention_enabled: boolean;
   role: 'membre' | 'admin';
   created_at: string;
   updated_at: string;
