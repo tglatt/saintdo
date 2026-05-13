@@ -1,5 +1,6 @@
 ---
 import { createAdminClient } from '../../lib/supabase';
+import AdminNav from '../../components/AdminNav.astro';
 import '../../styles/theme.css';
 
 const user = Astro.locals.user;
@@ -57,26 +58,7 @@ function fmtDate(iso: string | null) {
 </head>
 <body>
 
-  <nav>
-    <div class="nav-inner">
-      <a href="/" class="logo">Le Saindo</a>
-      <div class="nav-right">
-        <a href="/espace-membre" class="btn-member">Mon espace</a>
-        <span class="user-email">{user.email}</span>
-        <a href="/auth/logout" class="btn-logout">Déconnexion</a>
-      </div>
-    </div>
-  </nav>
-
-  <subnav>
-    <div class="subnav-inner">
-      <a href="/admin" class="subnav-link">Membres</a>
-      <a href="/admin/transactions" class="subnav-link">Transactions</a>
-      <a href="/admin/conventions" class="subnav-link active">Conventions</a>
-      <a href="/admin/statistiques" class="subnav-link">Statistiques</a>
-      <a href="/admin/age" class="subnav-link">AGE</a>
-    </div>
-  </subnav>
+  <AdminNav activePage="conventions" userEmail={user.email} />
 
   <main>
     <div class="container">
@@ -211,66 +193,6 @@ function fmtDate(iso: string | null) {
     color: var(--color-text);
     min-height: 100vh;
   }
-
-  nav {
-    background: white;
-    border-bottom: 1px solid rgba(0,0,0,0.06);
-    position: sticky;
-    top: 0;
-    z-index: 10;
-  }
-  .nav-inner {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 24px;
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .logo {
-    font-family: 'Playfair Display', serif;
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--color-primary);
-    text-decoration: none;
-  }
-  .nav-right { display: flex; align-items: center; gap: 12px; }
-
-  subnav {
-    background: white;
-    border-bottom: 1px solid var(--color-border);
-  }
-  .subnav-inner {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 24px;
-    display: flex;
-    gap: 4px;
-  }
-  .subnav-link {
-    font-size: 0.88rem;
-    font-weight: 500;
-    color: var(--color-muted);
-    text-decoration: none;
-    padding: 10px 14px;
-    border-bottom: 2px solid transparent;
-    transition: all 0.15s;
-    white-space: nowrap;
-  }
-  .subnav-link:hover { color: var(--color-primary); }
-  .subnav-link.active { color: var(--color-primary); border-bottom-color: var(--color-primary-mid); font-weight: 600; }
-  .user-email { font-size: 0.85rem; color: var(--color-muted); }
-  .btn-logout, .btn-member {
-    font-size: 0.85rem;
-    color: var(--color-muted);
-    text-decoration: none;
-    padding: 6px 12px;
-    border: 1px solid var(--color-border);
-    border-radius: 6px;
-    transition: all 0.2s;
-  }
-  .btn-logout:hover, .btn-member:hover { background: var(--color-bg); color: var(--color-text); }
 
   main { padding: 48px 24px; }
   .container { max-width: 1200px; margin: 0 auto; }
@@ -429,5 +351,4 @@ function fmtDate(iso: string | null) {
   #bulk-submit:hover:not(:disabled) { background: var(--color-primary); }
   #bulk-submit:disabled { opacity: 0.6; cursor: not-allowed; }
 
-  @media (max-width: 768px) { .user-email { display: none; } }
 </style>
