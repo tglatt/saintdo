@@ -9,7 +9,7 @@ const supabase = createAdminClient();
 
 const { data: reponses } = await supabase
   .from('age_reponses')
-  .select('email, presence, pouvoir_a, signature, updated_at, membres(nom, prenom)')
+  .select('email, membre_id, presence, pouvoir_a, signature, updated_at, membres(nom, prenom)')
   .order('updated_at', { ascending: false });
 
 const { data: membres } = await supabase
@@ -22,26 +22,38 @@ const { data: membresActives } = await supabase
   .eq('age_email_activation', true);
 
 const threshold = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+const repondusIds = reponses?.map(r => (r as any).membre_id).filter(Boolean) ?? [];
 
-const { data: membresAEnvoyer } = await supabase
+let membresAEnvoyerQuery = supabase
   .from('membres')
   .select('id')
   .eq('age_email_activation', true)
   .or(`age_email_sent_at.is.null,age_email_sent_at.lt.${threshold}`);
+
+if (repondusIds.length > 0) {
+  membresAEnvoyerQuery = membresAEnvoyerQuery.not('id', 'in', `(${repondusIds.join(',')})`);
+}
+
+const { data: membresAEnvoyer } = await membresAEnvoyerQuery;
 
 const totalAEnvoyer = membresAEnvoyer?.length ?? 0;
 const canSend = totalAEnvoyer > 0;
 
 let nextSendAt: Date | null = null;
 if (!canSend) {
-  const { data: earliest } = await supabase
+  let earliestQuery = supabase
     .from('membres')
     .select('age_email_sent_at')
     .eq('age_email_activation', true)
     .not('age_email_sent_at', 'is', null)
     .order('age_email_sent_at', { ascending: true })
-    .limit(1)
-    .single();
+    .limit(1);
+
+  if (repondusIds.length > 0) {
+    earliestQuery = earliestQuery.not('id', 'in', `(${repondusIds.join(',')})`);
+  }
+
+  const { data: earliest } = await earliestQuery.single();
   if (earliest?.age_email_sent_at) {
     nextSendAt = new Date(new Date(earliest.age_email_sent_at).getTime() + 24 * 60 * 60 * 1000);
   }

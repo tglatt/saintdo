@@ -9,12 +9,25 @@ export const POST: APIRoute = async ({ request }) => {
 
   const threshold = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-  const { data: membres } = await supabase
+  const { data: reponses } = await supabase
+    .from('age_reponses')
+    .select('membre_id')
+    .not('membre_id', 'is', null);
+
+  const repondusIds = reponses?.map(r => r.membre_id).filter(Boolean) ?? [];
+
+  let query = supabase
     .from('membres')
     .select('id, email, nom, prenom')
     .eq('age_email_activation', true)
     .or(`age_email_sent_at.is.null,age_email_sent_at.lt.${threshold}`)
     .order('nom', { ascending: true });
+
+  if (repondusIds.length > 0) {
+    query = query.not('id', 'in', `(${repondusIds.join(',')})`);
+  }
+
+  const { data: membres } = await query;
 
   if (!membres || membres.length === 0) {
     return new Response(JSON.stringify({ sent: 0, errors: [] }), {
