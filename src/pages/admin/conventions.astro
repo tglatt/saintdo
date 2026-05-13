@@ -34,6 +34,11 @@ const membresEnAttente = (membres ?? []).filter(
   m => apportByMembre.has(m.id) && !signedMemberIds.has(m.id)
 );
 
+const threshold = Date.now() - 24 * 60 * 60 * 1000;
+const membresAEnvoyer = membresEnAttente.filter(
+  m => !m.convention_email_sent_at || new Date(m.convention_email_sent_at).getTime() < threshold
+);
+
 const conventionsSignedCount = signedMemberIds.size;
 const conventionsToSignCount = membresEnAttente.length;
 
@@ -84,9 +89,11 @@ function fmtDate(iso: string | null) {
       <section class="section">
         <div class="section-header">
           <h2>En attente ({membresEnAttente.length})</h2>
-          {membresEnAttente.length > 0 && (
-            <button id="btn-send-conventions" class="btn-send">Envoyer à tous</button>
-          )}
+          {membresAEnvoyer.length > 0 ? (
+            <button id="btn-send-conventions" class="btn-send">Envoyer à tous ({membresAEnvoyer.length})</button>
+          ) : membresEnAttente.length > 0 ? (
+            <button class="btn-send" disabled title="Tous les membres ont reçu un email dans les dernières 24h">Envoyer à tous</button>
+          ) : null}
         </div>
 
         {membresEnAttente.length > 0 ? (
@@ -129,8 +136,8 @@ function fmtDate(iso: string | null) {
       </div>
       <div class="modal-body">
         <p class="modal-desc">
-          <strong>{conventionsToSignCount} membre{conventionsToSignCount > 1 ? 's' : ''}</strong>
-          {conventionsToSignCount > 1 ? ' recevront' : ' recevra'} un email avec son lien de signature.
+          <strong>{membresAEnvoyer.length} membre{membresAEnvoyer.length > 1 ? 's' : ''}</strong>
+          {membresAEnvoyer.length > 1 ? ' recevront' : ' recevra'} un email avec son lien de signature.
         </p>
         <p id="bulk-error" class="send-error hidden"></p>
         <div class="form-actions">
@@ -296,7 +303,8 @@ function fmtDate(iso: string | null) {
     font-family: inherit;
     transition: background 0.2s;
   }
-  .btn-send:hover { background: var(--color-primary); }
+  .btn-send:hover:not(:disabled) { background: var(--color-primary); }
+  .btn-send:disabled { opacity: 0.45; cursor: not-allowed; }
 
   .modal-overlay {
     position: fixed;
