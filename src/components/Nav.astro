@@ -1,6 +1,6 @@
 ---
 interface Props {
-  activePage: 'home' | 'faq';
+  activePage: 'home' | 'faq' | 'qui-sommes-nous';
 }
 const { activePage } = Astro.props;
 ---
@@ -10,6 +10,7 @@ const { activePage } = Astro.props;
     <a href="/" class="brand">Le Saindo</a>
     <div class="nav-links">
       <a href="/faq" class={`nav-link ${activePage === 'faq' ? 'nav-link--active' : ''}`}>Je questionne</a>
+      <a href="/qui-sommes-nous" class={`nav-link ${activePage === 'qui-sommes-nous' ? 'nav-link--active' : ''}`}>Qui sommes-nous</a>
     </div>
     <div class="nav-actions">
       <a href="/#contact" class="btn btn-nav">Contact</a>
@@ -23,6 +24,7 @@ const { activePage } = Astro.props;
 
 <div class="mobile-menu" id="mobile-menu" aria-hidden="true">
   <a href="/faq" class={`mobile-link ${activePage === 'faq' ? 'mobile-link--active' : ''}`}>Je questionne</a>
+  <a href="/qui-sommes-nous" class={`mobile-link ${activePage === 'qui-sommes-nous' ? 'mobile-link--active' : ''}`}>Qui sommes-nous</a>
   <div class="mobile-sep"></div>
   <a href="/#contact" class="mobile-link">Contact</a>
   <a href="/login" class="mobile-link mobile-link--cta">Se connecter</a>
@@ -44,7 +46,7 @@ const { activePage } = Astro.props;
     height: 64px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 0;
   }
 
   .brand {
@@ -72,7 +74,7 @@ const { activePage } = Astro.props;
   .nav-link:hover { opacity: 1; background: rgba(102,99,160,0.07); }
   .nav-link--active { opacity: 1; }
 
-  .nav-actions { display: flex; align-items: center; gap: 10px; }
+  .nav-actions { display: flex; align-items: center; gap: 10px; margin-left: auto; }
   .btn {
     display: inline-block;
     padding: 10px 20px;

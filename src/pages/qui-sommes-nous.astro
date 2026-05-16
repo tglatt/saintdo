@@ -1,0 +1,288 @@
+---
+import Nav from '../components/Nav.astro';
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <title>Qui sommes-nous — Le Saindo</title>
+  <meta name="description" content="Découvrez l'équipe et la gouvernance derrière le projet de foncière citoyenne de l'Hôtel Saint Domingue à Die." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <Nav activePage="qui-sommes-nous" />
+
+  <main>
+    <div class="container">
+
+      <header class="page-header">
+        <p class="section-label">Le projet</p>
+        <h1>C'est qui, le Saint-Domingue ?</h1>
+        <p class="intro">C'est vous ! Plus de 130 adhérents qui croient au projet et le font vivre. Mais vous nous demandez souvent qui est derrière, alors passage obligé, voici une petite présentation des gens à l'origine du projet.</p>
+      </header>
+
+      <section class="section">
+        <h2>L'équipe</h2>
+
+        <p class="subsection-label">La naissance de ce projet</p>
+
+        <div class="story">
+          <p>C'est Éric Belvaux et Thomas Glatt qui, les premiers, s'intéressent au Saint-Domingue avec l'idée d'en faire une auberge de jeunesse.</p>
+          <p>Trop grand, trop complexe, trop coûteux : cette première idée ne tient pas longtemps. Mais le lieu les enthousiasme tellement qu'ils réfléchissent alors à ce que cet hôtel pourrait devenir et comment s'y prendre pour que les habitants du Diois puissent prendre part à cette transformation.</p>
+          <p>Hélène Legardeur et Spyros Lacombe les rejoignent et participent à la réflexion. L'association est créée et des ateliers de concertation démarrent afin d'imaginer le futur Saindo.</p>
+          <p>Jean-Baptiste Boyer intègre le CA, tandis que les groupes de travail se mettent en place pour structurer juridiquement l'association, lancer la campagne de financement, communiquer et étudier la faisabilité architecturale.</p>
+        </div>
+
+        <p class="subsection-label">Le conseil d'administration</p>
+
+        <div class="photo-grid">
+          <div class="person">
+            <img src="/team/thomas.png" alt="Thomas Glatt" />
+            <span>Thomas Glatt - président</span>
+          </div>
+          <div class="person">
+            <img src="/team/eric.png" alt="Éric Belvaux" />
+            <span>Éric Belvaux - trésorier</span>
+          </div>
+          
+          <div class="person">
+            <img src="/team/helene.png" alt="Hélène Legardeur" />
+            <span>Hélène Legardeur - secrétaire</span>
+          </div>
+          <div class="person">
+            <img src="/team/spyros.png" alt="Spyros Lacombe" />
+            <span>Spyros Lacombe - secretaire</span>
+          </div>
+          <div class="person">
+            <img src="/team/jb.png" alt="Jean-Baptiste Boyer" />
+            <span>Jean-Baptiste Boyer</span>
+          </div>
+        </div>
+
+        <p class="subsection-label">Des prestataires — également bénévoles — sont missionnés</p>
+
+        <div class="photo-grid">
+          <div class="person">
+            <img src="/team/camille.png" alt="Camille Chapin" />
+            <span>Camille Chapin</span>
+          </div>
+          <div class="person">
+            <img src="/team/florentin.png" alt="Florentin Godeau" />
+            <span>Florentin Godeau</span>
+          </div>
+          <div class="person">
+            <img src="/team/erwan.png" alt="Erwan David" />
+            <span>Erwan David</span>
+          </div>
+          <div class="person">
+            <img src="/team/fanny.png" alt="Fanny Mazure" />
+            <span>Fanny Mazure</span>
+          </div>
+        </div>
+
+        <div class="callout">
+          <p>Aujourd'hui, chaque adhérent peut trouver la place qui lui convient dans ce projet. C'est toute l'essence d'un projet citoyen.</p>
+          <a href="mailto:contact@saindo.org" class="contact-link">Rejoignez-nous : contact@saindo.org</a>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>La gouvernance</h2>
+
+        <div class="story">
+          <p>Une gouvernance provisoire est mise en place avec les membres fondateurs, les prestataires ainsi que certains bénévoles souhaitant s'impliquer dès à présent dans l'association.</p>
+          <p>Elle s'articule autour d'un CA (Conseil d'administration) dont les membres du bureau sont : Thomas, Eric, Hélène, Spyros, Jean-Baptiste</p>
+        </div>
+
+        <div class="story">
+          <p>Lorsque l'association sera transformée en SCIC, la gouvernance évoluera tout en conservant comme principe de base : <strong>1 sociétaire = 1 voix</strong>.</p>
+          <p>L'URSCOP accompagne déjà l'association dans sa structuration et continuera à nous accompagner afin d'élaborer ensemble les schémas de gouvernance de demain. Une réelle intelligence collective ne peut exister sans les valeurs fondamentales de parité et de représentativité. Elles seront les jambes de ce projet.</p>
+          <p>Vous pouvez retrouver les statuts de l'association et le procès-verbal de l'assemblée générale constitutive <a href="https://saint-domingue.frama.space/s/KpdSARHWBDXyfck">dans notre dossier partagé</a>.</p>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+      <a href="/" class="footer-back">← Retour au site</a>
+      <span>Hôtel Saint Domingue · Die (26)</span>
+    </div>
+  </footer>
+
+</body>
+</html>
+
+<style>
+  :root {
+    --green: #6663A0;
+    --green-dark: #2D2A68;
+    --green-light: #B0ADD4;
+    --bg: #F7F6FB;
+    --bg-alt: #EEEDF6;
+    --text: #1C1C1E;
+    --text-muted: #5C5C6B;
+    --amber: #A07C10;
+    --radius: 12px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.65;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  main { flex: 1; padding: 64px 24px 96px; }
+  .container { max-width: 760px; margin: 0 auto; }
+
+  .page-header { margin-bottom: 56px; }
+  .section-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 4vw, 2.8rem);
+    color: var(--green-dark);
+    line-height: 1.2;
+    margin-bottom: 20px;
+  }
+  .intro {
+    font-size: 1.05rem;
+    color: var(--text-muted);
+    line-height: 1.75;
+    max-width: 640px;
+  }
+
+  .section {
+    margin-bottom: 56px;
+    padding-bottom: 56px;
+    border-bottom: 1px solid rgba(0,0,0,0.08);
+  }
+  .section:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+  h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    color: var(--green-dark);
+    margin-bottom: 28px;
+  }
+
+  .subsection-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 16px;
+    margin-top: 32px;
+  }
+  .subsection-label:first-of-type { margin-top: 0; }
+
+  .story { display: flex; flex-direction: column; gap: 14px; margin-bottom: 28px; }
+  .story p { color: var(--text-muted); font-size: 0.97rem; line-height: 1.75; }
+  .story strong { color: var(--text); }
+
+  .people-list {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .people-list li {
+    padding: 12px 16px;
+    background: var(--bg-alt);
+    border-radius: 8px;
+    font-size: 0.97rem;
+    color: var(--text-muted);
+  }
+  .people-list li strong { color: var(--text); }
+
+  .callout {
+    background: white;
+    border-left: 3px solid var(--green);
+    border-radius: 0 8px 8px 0;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .callout p { font-size: 0.97rem; color: var(--text-muted); line-height: 1.7; }
+  .contact-link {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--green);
+    text-decoration: none;
+  }
+  .contact-link:hover { color: var(--green-dark); text-decoration: underline; }
+
+  .photo-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    margin: 28px 0;
+  }
+  .person {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 110px;
+  }
+  .person img {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+  }
+  .person span {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    text-align: center;
+    line-height: 1.3;
+    font-weight: 500;
+  }
+
+  footer {
+    background: var(--green-dark);
+    padding: 20px 24px;
+  }
+  .footer-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: rgba(255,255,255,0.5);
+    font-size: 0.875rem;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .footer-back {
+    color: var(--green-light);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .footer-back:hover { color: white; }
+</style>
