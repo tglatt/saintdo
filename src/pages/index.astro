@@ -1,6 +1,7 @@
 ---
 import { createAdminClient } from '../lib/supabase';
 import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
 
 const ctaAdhesion = "https://www.helloasso.com/associations/le-saint-domingue/adhesions/adhesion";
 const ctaDon = "https://www.helloasso.com/associations/graine-de-moutarde-fonds-de-dotation/collectes/rehabilitation-de-l-hotel-saint-domingue";
@@ -331,61 +332,7 @@ function euros(n: number) {
     </div>
   </section>
 
-  <!-- FOOTER -->
-  <footer>
-    <div class="footer-inner">
-      <div>
-        <strong>Hôtel Saint Domingue</strong>
-        <span>44 rue Camille Buffardel, Die (26)</span>
-      </div>
-      <div class="newsletter">
-        <strong>Restez informé</strong>
-        <form id="newsletter-form">
-          <input type="email" id="newsletter-email" placeholder="votre@email.fr" required />
-          <button type="submit">S'inscrire</button>
-        </form>
-        <p id="newsletter-msg"></p>
-      </div>
-      <div>
-        <a href="https://saindo.org">saindo.org</a>
-      </div>
-    </div>
-  </footer>
-
-  <script>
-    const form = document.getElementById('newsletter-form') as HTMLFormElement;
-    const msg = document.getElementById('newsletter-msg')!;
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = (document.getElementById('newsletter-email') as HTMLInputElement).value;
-      const btn = form.querySelector('button')!;
-      btn.disabled = true;
-      btn.textContent = '…';
-
-      try {
-        const res = await fetch('/api/newsletter', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email }),
-        });
-        if (res.ok) {
-          msg.textContent = 'Inscription confirmée, merci !';
-          msg.style.color = '#86EFAC';
-          form.reset();
-        } else {
-          msg.textContent = 'Une erreur est survenue, réessayez.';
-          msg.style.color = '#FCA5A5';
-        }
-      } catch {
-        msg.textContent = 'Une erreur est survenue, réessayez.';
-        msg.style.color = '#FCA5A5';
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'S\'inscrire';
-      }
-    });
-  </script>
+  <Footer />
 
 </body>
 </html>
@@ -870,59 +817,6 @@ function euros(n: number) {
   @media (max-width: 768px) {
     .contact-cards { grid-template-columns: 1fr; }
   }
-
-  /* FOOTER */
-  footer {
-    background: var(--green-dark);
-    border-top: 1px solid rgba(255,255,255,0.08);
-    padding: 28px 24px;
-  }
-  .footer-inner {
-    max-width: 1100px;
-    margin: 0 auto;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    color: rgba(255,255,255,0.6);
-    font-size: 0.875rem;
-    gap: 16px;
-    flex-wrap: wrap;
-  }
-  .footer-inner div { display: flex; flex-direction: column; gap: 2px; }
-  .footer-inner strong { color: white; }
-  .footer-inner a { color: var(--green-light); text-decoration: none; }
-
-  .newsletter { gap: 8px !important; }
-  .newsletter form { display: flex; gap: 8px; margin-top: 4px; }
-  .newsletter input {
-    padding: 7px 12px;
-    border-radius: 6px;
-    border: 1px solid rgba(255,255,255,0.2);
-    background: rgba(255,255,255,0.08);
-    color: white;
-    font-size: 0.85rem;
-    font-family: inherit;
-    outline: none;
-    width: 200px;
-  }
-  .newsletter input::placeholder { color: rgba(255,255,255,0.4); }
-  .newsletter input:focus { border-color: rgba(255,255,255,0.5); }
-  .newsletter button {
-    padding: 7px 14px;
-    border-radius: 6px;
-    border: none;
-    background: var(--green-light);
-    color: var(--green-dark);
-    font-size: 0.85rem;
-    font-weight: 600;
-    font-family: inherit;
-    cursor: pointer;
-    transition: opacity 0.2s;
-    white-space: nowrap;
-  }
-  .newsletter button:hover { opacity: 0.85; }
-  .newsletter button:disabled { opacity: 0.5; cursor: not-allowed; }
-  .newsletter p { font-size: 0.8rem; min-height: 1em; }
 
   /* RESPONSIVE */
   @media (max-width: 768px) {

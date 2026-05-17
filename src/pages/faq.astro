@@ -1,6 +1,7 @@
 ---
 import { marked, Renderer } from 'marked';
 import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
 
 const renderer = new Renderer();
 renderer.link = ({ href, title, text }) =>
@@ -58,12 +59,7 @@ if (faqUrl) {
     </div>
   </main>
 
-  <footer>
-    <div class="footer-inner">
-      <a href="/" class="footer-back">← Retour au site</a>
-      <span>Hôtel Saint Domingue · Die (26)</span>
-    </div>
-  </footer>
+  <Footer />
 
 
 </body>
@@ -168,26 +164,5 @@ if (faqUrl) {
     text-align: center;
   }
 
-  footer {
-    background: var(--green-dark);
-    padding: 20px 24px;
-  }
-  .footer-inner {
-    max-width: 1100px;
-    margin: 0 auto;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    color: rgba(255,255,255,0.5);
-    font-size: 0.875rem;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-  .footer-back {
-    color: var(--green-light);
-    text-decoration: none;
-    font-weight: 500;
-  }
-  .footer-back:hover { color: white; }
 
 </style>
