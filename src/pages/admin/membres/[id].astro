@@ -163,6 +163,7 @@ const paiementLabel: Record<string, string> = {
                         {t.helloasso_order_id?.startsWith('manual_') && (
                           <button class="btn-edit-tx" data-tx-id={t.id}>✏</button>
                         )}
+                        <button class="btn-move-tx" data-tx-id={t.id} title="Déplacer vers un autre membre">⇄</button>
                       </td>
                     </tr>
                     {t.detail && (
@@ -213,6 +214,29 @@ const paiementLabel: Record<string, string> = {
         <div class="form-actions">
           <button type="button" id="edit-cancel">Annuler</button>
           <button type="button" id="edit-submit">Enregistrer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DÉPLACER TRANSACTION -->
+  <div id="move-overlay" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Déplacer la transaction</h2>
+        <button id="move-close" class="modal-close">✕</button>
+      </div>
+      <div class="modal-body">
+        <p id="move-tx-info" class="move-tx-info"></p>
+        <div class="form-group">
+          <label>Membre destinataire</label>
+          <input type="text" id="move-search" placeholder="Rechercher par nom ou email…" autocomplete="off" />
+        </div>
+        <div id="move-results" class="move-results"></div>
+        <p id="move-error" class="form-error hidden"></p>
+        <div class="form-actions">
+          <button type="button" id="move-cancel">Annuler</button>
+          <button type="button" id="move-submit" disabled>Déplacer</button>
         </div>
       </div>
     </div>
@@ -403,8 +427,9 @@ const paiementLabel: Record<string, string> = {
   .tx-date { color: var(--color-muted); white-space: nowrap; }
   .tx-paiement { font-size: 0.82rem; color: var(--color-muted); }
   .tx-montant { font-weight: 600; white-space: nowrap; }
-  .tx-actions { width: 32px; text-align: right; }
-  .btn-edit-tx {
+  .tx-actions { text-align: right; white-space: nowrap; }
+  .btn-edit-tx,
+  .btn-move-tx {
     background: none;
     border: none;
     cursor: pointer;
@@ -415,8 +440,48 @@ const paiementLabel: Record<string, string> = {
     transition: all 0.15s;
     opacity: 0;
   }
-  .tx-table tr:hover .btn-edit-tx { opacity: 1; }
-  .btn-edit-tx:hover { color: var(--color-primary-mid); background: var(--color-success-bg); }
+  .tx-table tr:hover .btn-edit-tx,
+  .tx-table tr:hover .btn-move-tx { opacity: 1; }
+  .btn-edit-tx:hover,
+  .btn-move-tx:hover { color: var(--color-primary-mid); background: var(--color-success-bg); }
+
+  .move-tx-info {
+    font-size: 0.88rem;
+    color: var(--color-muted);
+    background: var(--color-bg);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 18px;
+    font-style: italic;
+  }
+  .move-results {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 220px;
+    overflow-y: auto;
+    margin-bottom: 12px;
+  }
+  .move-result-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    text-align: left;
+    padding: 8px 12px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.88rem;
+    transition: all 0.15s;
+  }
+  .move-result-item:hover { border-color: var(--color-primary-mid); background: var(--color-bg); }
+  .move-result-item.selected { border-color: var(--color-primary-mid); background: var(--color-success-bg); }
+  .move-result-email { font-size: 0.78rem; color: var(--color-muted); flex-shrink: 0; }
+  .move-no-results { font-size: 0.85rem; color: var(--color-subtle); padding: 8px 0; }
   .tx-detail-row td { padding-top: 0 !important; padding-bottom: 10px !important; }
   .tx-detail {
     font-size: 0.8rem;
@@ -683,6 +748,94 @@ const paiementLabel: Record<string, string> = {
     window.location.reload();
   });
 
+  // ── Déplacer transaction ──────────────────────────────────────────────────────
+  const moveOverlay = document.getElementById('move-overlay');
+  const moveError   = document.getElementById('move-error');
+  const moveSubmit  = document.getElementById('move-submit');
+  const moveSearch  = document.getElementById('move-search');
+  const moveResults = document.getElementById('move-results');
+  const moveTxInfo  = document.getElementById('move-tx-info');
+  let moveTxId = null;
+  let moveTargetId = null;
+
+  async function searchMembres(q) {
+    const res = await fetch(`/api/admin/membre?q=${encodeURIComponent(q)}`);
+    if (!res.ok) return;
+    const { membres } = await res.json();
+    const filtered = membres.filter(m => m.id !== membreId);
+    if (filtered.length === 0) {
+      moveResults.innerHTML = '<p class="move-no-results">Aucun membre trouvé.</p>';
+      return;
+    }
+    moveResults.innerHTML = filtered.map(m => {
+      const nom = [m.prenom, m.nom].filter(Boolean).join(' ') || m.email;
+      return `<button class="move-result-item" data-id="${m.id}">${nom}<span class="move-result-email">${m.email}</span></button>`;
+    }).join('');
+    moveResults.querySelectorAll('.move-result-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        moveResults.querySelectorAll('.move-result-item').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        moveTargetId = btn.dataset.id;
+        moveSubmit.disabled = false;
+      });
+    });
+  }
+
+  function openMoveModal(txId, summary) {
+    moveTxId = txId;
+    moveTargetId = null;
+    moveTxInfo.textContent = summary;
+    moveSearch.value = '';
+    moveResults.innerHTML = '';
+    moveError.classList.add('hidden');
+    moveSubmit.disabled = true;
+    moveOverlay.classList.remove('hidden');
+    moveSearch.focus();
+    searchMembres('');
+  }
+
+  document.getElementById('move-close').addEventListener('click', () => moveOverlay.classList.add('hidden'));
+  document.getElementById('move-cancel').addEventListener('click', () => moveOverlay.classList.add('hidden'));
+  moveOverlay.addEventListener('click', e => { if (e.target === moveOverlay) moveOverlay.classList.add('hidden'); });
+
+  let searchTimer = null;
+  moveSearch.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    moveTargetId = null;
+    moveSubmit.disabled = true;
+    searchTimer = setTimeout(() => searchMembres(moveSearch.value), 300);
+  });
+
+  document.querySelectorAll('.btn-move-tx').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const txId = btn.dataset.txId;
+      const row = document.querySelector(`tr[data-tx-id="${txId}"]`);
+      const type    = row?.querySelector('.badge')?.textContent ?? '';
+      const montant = row?.querySelector('.tx-montant')?.textContent ?? '';
+      const date    = row?.querySelector('.tx-date')?.textContent ?? '';
+      openMoveModal(txId, `${type} · ${montant} · ${date}`);
+    });
+  });
+
+  moveSubmit.addEventListener('click', async () => {
+    if (!moveTxId || !moveTargetId) return;
+    moveSubmit.disabled = true;
+    moveError.classList.add('hidden');
+    const res = await fetch('/api/admin/transaction', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: moveTxId, membre_id: moveTargetId }),
+    });
+    if (!res.ok) {
+      moveError.textContent = await res.text();
+      moveError.classList.remove('hidden');
+      moveSubmit.disabled = false;
+      return;
+    }
+    window.location.reload();
+  });
+
   // ── Envoyer convention ────────────────────────────────────────────────────────
   const btnConvention = document.getElementById('btn-send-convention');
 
@@ -716,6 +869,7 @@ const paiementLabel: Record<string, string> = {
     if (e.key === 'Escape') {
       editOverlay.classList.add('hidden');
       txOverlay.classList.add('hidden');
+      moveOverlay.classList.add('hidden');
     }
   });
 </script>

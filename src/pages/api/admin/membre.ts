@@ -74,9 +74,26 @@ export const PUT: APIRoute = async ({ request }) => {
 
 export const GET: APIRoute = async ({ url }) => {
   const id = url.searchParams.get('id');
-  if (!id) return new Response('Missing id', { status: 400 });
+  const q  = url.searchParams.get('q');
 
   const supabase = createAdminClient();
+
+  if (q !== null) {
+    const search = q.trim();
+    let base = supabase
+      .from('membres')
+      .select('id, email, nom, prenom')
+      .order('nom', { ascending: true })
+      .limit(10);
+    const { data } = await (search
+      ? base.or(`email.ilike.%${search}%,nom.ilike.%${search}%,prenom.ilike.%${search}%`)
+      : base);
+    return new Response(JSON.stringify({ membres: data ?? [] }), {
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  if (!id) return new Response('Missing id', { status: 400 });
 
   const { data: membre } = await supabase
     .from('membres')

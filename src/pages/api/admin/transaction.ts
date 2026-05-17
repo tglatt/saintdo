@@ -74,6 +74,45 @@ export const POST: APIRoute = async ({ request }) => {
   });
 };
 
+export const PATCH: APIRoute = async ({ request }) => {
+  const body = await request.json().catch(() => null);
+  if (!body) return new Response('Invalid JSON', { status: 400 });
+
+  const { id, membre_id } = body;
+  if (!id)        return new Response('Champ manquant : id', { status: 400 });
+  if (!membre_id) return new Response('Champ manquant : membre_id', { status: 400 });
+
+  const supabase = createAdminClient();
+
+  const { data: existing } = await supabase
+    .from('transactions')
+    .select('id, membre_id, type')
+    .eq('id', id)
+    .single();
+  if (!existing) return new Response('Transaction introuvable', { status: 404 });
+
+  const { data: dest } = await supabase
+    .from('membres').select('id').eq('id', membre_id).single();
+  if (!dest) return new Response('Membre destinataire introuvable', { status: 404 });
+
+  const { data, error } = await supabase
+    .from('transactions')
+    .update({ membre_id })
+    .eq('id', id)
+    .select()
+    .single();
+  if (error) return new Response(error.message, { status: 500 });
+
+  if (existing.type === 'adhesion') {
+    await syncDateAdhesion(supabase, existing.membre_id);
+    await syncDateAdhesion(supabase, membre_id);
+  }
+
+  return new Response(JSON.stringify({ transaction: data }), {
+    headers: { 'Content-Type': 'application/json' },
+  });
+};
+
 export const PUT: APIRoute = async ({ request }) => {
   const body = await request.json().catch(() => null);
   if (!body) return new Response('Invalid JSON', { status: 400 });
