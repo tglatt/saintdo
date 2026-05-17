@@ -1,6 +1,7 @@
 ---
 import { marked, Renderer } from 'marked';
 import Nav from '../components/Nav.astro';
+import ContactSection from '../components/ContactSection.astro';
 import Footer from '../components/Footer.astro';
 
 const renderer = new Renderer();
@@ -59,6 +60,7 @@ if (faqUrl) {
     </div>
   </main>
 
+  <ContactSection />
   <Footer />
 
 

@@ -1,0 +1,94 @@
+<section id="contact" class="section section-contact">
+  <div class="container">
+    <p class="section-label centered">Nous contacter</p>
+    <h2 class="centered">Une question ? Écrivez-nous.</h2>
+    <div class="contact-cards">
+      <a href="mailto:contact@saindo.org" class="contact-card">
+        <div class="contact-icon">✉️</div>
+        <div class="contact-info">
+          <span class="contact-label">Email</span>
+          <span class="contact-value">contact@saindo.org</span>
+        </div>
+      </a>
+      <a href="tel:+33615733705" class="contact-card">
+        <div class="contact-icon">📞</div>
+        <div class="contact-info">
+          <span class="contact-label">Erwan</span>
+          <span class="contact-value">06 15 73 37 05</span>
+        </div>
+      </a>
+      <div class="contact-card">
+        <div class="contact-icon">📍</div>
+        <div class="contact-info">
+          <span class="contact-label">Adresse</span>
+          <span class="contact-value">44 rue Camille Buffardel<br />26150 Die</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .section-contact {
+    background: #B0ADD4;
+    padding: 96px 24px;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  .section-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #A07C10;
+    margin-bottom: 12px;
+  }
+  h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    color: #2D2A68;
+    margin-bottom: 0;
+    line-height: 1.25;
+  }
+  .centered { text-align: center; }
+  .contact-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-top: 48px;
+  }
+  .contact-card {
+    background: #FFFFFF;
+    border-radius: 12px;
+    padding: 28px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    display: flex;
+    align-items: flex-start;
+    gap: 18px;
+    text-decoration: none;
+    color: #1C1C1E;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  a.contact-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  }
+  .contact-icon { font-size: 1.8rem; flex-shrink: 0; }
+  .contact-info { display: flex; flex-direction: column; gap: 4px; }
+  .contact-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: #5C5C6B;
+  }
+  .contact-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #2D2A68;
+    line-height: 1.4;
+  }
+
+  @media (max-width: 768px) {
+    .contact-cards { grid-template-columns: 1fr; }
+  }
+</style>
