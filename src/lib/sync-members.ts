@@ -218,7 +218,7 @@ export async function syncMembers(): Promise<{ ok: boolean; message: string }> {
 
     const { error: txError } = await supabase
       .from('transactions')
-      .upsert(txRows, { onConflict: 'helloasso_order_id', ignoreDuplicates: false });
+      .upsert(txRows, { onConflict: 'helloasso_order_id', ignoreDuplicates: true });
 
     if (txError) {
       console.error('[sync-members] upsert transactions:', txError);
