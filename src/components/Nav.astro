@@ -1,6 +1,6 @@
 ---
 interface Props {
-  activePage: 'home' | 'faq' | 'qui-sommes-nous';
+  activePage: 'home' | 'je-contribue' | 'faq' | 'qui-sommes-nous';
 }
 const { activePage } = Astro.props;
 ---
@@ -9,6 +9,7 @@ const { activePage } = Astro.props;
   <div class="nav-inner">
     <a href="/" class="brand">Le Saindo</a>
     <div class="nav-links">
+      <a href="/je-contribue" class={`nav-link ${activePage === 'je-contribue' ? 'nav-link--active' : ''}`}>Je contribue</a>
       <a href="/faq" class={`nav-link ${activePage === 'faq' ? 'nav-link--active' : ''}`}>Je questionne</a>
       <a href="/qui-sommes-nous" class={`nav-link ${activePage === 'qui-sommes-nous' ? 'nav-link--active' : ''}`}>Qui sommes-nous</a>
     </div>
@@ -23,6 +24,7 @@ const { activePage } = Astro.props;
 </nav>
 
 <div class="mobile-menu" id="mobile-menu" aria-hidden="true">
+  <a href="/je-contribue" class={`mobile-link ${activePage === 'je-contribue' ? 'mobile-link--active' : ''}`}>Je contribue</a>
   <a href="/faq" class={`mobile-link ${activePage === 'faq' ? 'mobile-link--active' : ''}`}>Je questionne</a>
   <a href="/qui-sommes-nous" class={`mobile-link ${activePage === 'qui-sommes-nous' ? 'mobile-link--active' : ''}`}>Qui sommes-nous</a>
   <div class="mobile-sep"></div>

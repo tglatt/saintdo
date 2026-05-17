@@ -1,0 +1,525 @@
+---
+import Nav from '../components/Nav.astro';
+
+const ctaAdhesion = "https://www.helloasso.com/associations/le-saint-domingue/adhesions/adhesion";
+const ctaDon = "https://www.helloasso.com/associations/graine-de-moutarde-fonds-de-dotation/collectes/rehabilitation-de-l-hotel-saint-domingue";
+const ctaApport = "https://www.helloasso.com/associations/le-saint-domingue/boutiques/apports-associatifs";
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <title>Je contribue — Hôtel Saint Domingue</title>
+  <meta name="description" content="Participez au rachat citoyen de l'Hôtel Saint Domingue à Die : don défiscalisé, apport associatif, adhésion ou bénévolat." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <Nav activePage="je-contribue" />
+
+  <main>
+    <div class="container">
+
+      <!-- EN-TÊTE -->
+      <header class="page-header">
+        <p class="section-label">Participer</p>
+        <h1>Je contribue</h1>
+        <p class="intro">
+          Ce projet repose sur l'engagement citoyen en énergie et en argent. Pour participer au renouveau de l'hôtel Saint-Domingue, plusieurs possibilités s'offrent à vous.
+        </p>
+      </header>
+
+      <!-- CTA CARDS -->
+      <div class="cta-grid">
+
+        <a href={ctaAdhesion} target="_blank" rel="noopener noreferrer" class="cta-card">
+          <div class="cta-card-top">
+            <svg class="cta-icon" viewBox="0 0 40 40" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="13" cy="10" r="4"/>
+              <path d="M4 34c0-8 18-8 18 0"/>
+              <circle cx="28" cy="10" r="4"/>
+              <path d="M19 34c0-8 18-8 18 0"/>
+            </svg>
+            <span class="cta-arrow">→</span>
+          </div>
+          <h2 class="cta-title">Adhérer à l'association</h2>
+          <p class="cta-desc">L'adhésion est fixée à 20 €. N'oubliez pas d'adhérer — c'est la base de votre engagement dans le projet !</p>
+          <span class="cta-btn">Adhérer sur HelloAsso</span>
+        </a>
+
+        <a href="#don" class="cta-card">
+          <div class="cta-card-top">
+            <svg class="cta-icon" viewBox="0 0 40 40" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 32 C20 32 5 22 5 13 C5 9 8 6 12 6 C15.5 6 18 8.5 20 11 C22 8.5 24.5 6 28 6 C32 6 35 9 35 13 C35 22 20 32 20 32Z"/>
+              <path d="M29 7 L31 5M33 10 L35 9M32 14 L34 16"/>
+            </svg>
+            <span class="cta-arrow">↓</span>
+          </div>
+          <h2 class="cta-title">Faire un don</h2>
+          <p class="cta-desc">Don défiscalisé à 66 % via Graines de moutarde. 100 % reversé au projet. Reçu fiscal disponible sur HelloAsso.</p>
+          <span class="cta-btn">En savoir plus</span>
+        </a>
+
+        <a href="#apport" class="cta-card">
+          <div class="cta-card-top">
+            <svg class="cta-icon" viewBox="0 0 40 40" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 35 L20 17"/>
+              <path d="M20 24 C20 24 12 22 9 15 C13 13 19.5 18 20 24Z"/>
+              <path d="M20 19 C20 19 28 17 31 10 C27 8 20.5 13 20 19Z"/>
+              <path d="M11 35 L29 35"/>
+            </svg>
+            <span class="cta-arrow">↓</span>
+          </div>
+          <h2 class="cta-title">Apport associatif</h2>
+          <p class="cta-desc">Par tranches de 100 €, vous prêtez à taux 0 % sur 5 ans minimum. Transformé en parts sociales lors du passage en SCIC.</p>
+          <span class="cta-btn">En savoir plus</span>
+        </a>
+
+      </div>
+
+      <!-- SECTION DON -->
+      <section id="don" class="contrib-section">
+        <div class="contrib-header">
+          <svg class="contrib-icon" viewBox="0 0 40 40" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 32 C20 32 5 22 5 13 C5 9 8 6 12 6 C15.5 6 18 8.5 20 11 C22 8.5 24.5 6 28 6 C32 6 35 9 35 13 C35 22 20 32 20 32Z"/>
+            <path d="M29 7 L31 5M33 10 L35 9M32 14 L34 16"/>
+          </svg>
+          <h2>Effectuer un don</h2>
+        </div>
+        <div class="contrib-body">
+          <p><strong>Don défiscalisé</strong> sur HelloAsso via nos partenaires Graines de moutarde. 100 % des dons nous sont reversés et participent directement à l'achat de l'hôtel. Reçu fiscal disponible directement sur HelloAsso.</p>
+          <p><strong>Don non défiscalisé</strong> possible par chèque ou virement (informations pratiques plus bas).</p>
+          <a href={ctaDon} target="_blank" rel="noopener noreferrer" class="external-btn">
+            Faire un don défiscalisé sur HelloAsso →
+          </a>
+        </div>
+      </section>
+
+      <!-- SECTION APPORT -->
+      <section id="apport" class="contrib-section">
+        <div class="contrib-header">
+          <svg class="contrib-icon" viewBox="0 0 40 40" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 35 L20 17"/>
+            <path d="M20 24 C20 24 12 22 9 15 C13 13 19.5 18 20 24Z"/>
+            <path d="M20 19 C20 19 28 17 31 10 C27 8 20.5 13 20 19Z"/>
+            <path d="M11 35 L29 35"/>
+          </svg>
+          <h2>Effectuer un apport associatif</h2>
+        </div>
+        <div class="contrib-body">
+          <p>Par tranches de 100 €, vous nous prêtez de l'argent à <strong>taux 0 %</strong> sur une durée minimale de 5 ans. Cet apport associatif sera transformé en parts sociales lors de la transformation de l'association en SCIC. Vous deviendrez sociétaire et participerez à la gouvernance du projet. Grâce à vous, nous limitons le recours à des organismes prêteurs.</p>
+          <p>Vous pouvez effectuer un apport associatif via HelloAsso, par chèque ou par virement. Cet apport est encadré par une <strong>convention</strong> disponible sur votre espace membre, qui stipule l'objet de l'apport, les conditions de reprise et les démarches liées à leur transformation en parts sociales.</p>
+          <div class="blockquote-card">
+            <p class="blockquote-label">Solidarité</p>
+            <p>Nous proposons des <strong>parts sociales suspendues</strong>, sur le mode bien connu des cafés suspendus. Des parts sont payées en avance et distribuées aux personnes qui nous en font la demande, dans la limite des disponibilités.</p>
+            <ul>
+              <li>Vous souhaitez offrir une ou plusieurs de vos parts à quelqu'un qui souhaite devenir sociétaire ?</li>
+              <li>Vous souhaitez devenir sociétaire mais ne pouvez pas acquérir une part ?</li>
+            </ul>
+            <a href="mailto:contact@saindo.org" class="inline-link">Contactez-nous : contact@saindo.org</a>
+          </div>
+          <a href={ctaApport} target="_blank" rel="noopener noreferrer" class="external-btn">
+            Faire un apport associatif sur HelloAsso →
+          </a>
+        </div>
+      </section>
+
+      <!-- SECTION BÉNÉVOLAT -->
+      <section class="contrib-section">
+        <div class="contrib-header">
+          <svg class="contrib-icon" viewBox="0 0 40 40" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 20 L16 26 L30 12"/>
+            <circle cx="20" cy="20" r="16"/>
+          </svg>
+          <h2>Devenir bénévole</h2>
+        </div>
+        <div class="contrib-body">
+          <p>Aujourd'hui, chaque adhérent peut trouver la place qui lui convient dans ce projet. C'est toute l'essence d'un projet citoyen.</p>
+          <a href="mailto:contact@saindo.org" class="external-btn">
+            Rejoignez-nous : contact@saindo.org →
+          </a>
+        </div>
+      </section>
+
+      <!-- INFOS PRATIQUES -->
+      <section class="infos">
+        <h2 class="section-title">Toutes les informations pratiques</h2>
+
+        <div class="info-grid">
+
+          <div class="info-card">
+            <div class="info-icon">👤</div>
+            <h3>Suivi de vos contributions</h3>
+            <p>Après toute contribution, un espace personnel vous est créé sur saindo.org pour suivre vos contributions, signer la convention et bientôt participer aux délibérations des AG.</p>
+          </div>
+
+          <div class="info-card">
+            <div class="info-icon">📬</div>
+            <h3>Règlement par chèque</h3>
+            <p>À l'ordre de <strong>« Association Saint-Domingue »</strong>. À remettre en mains propres lors de nos événements, ou par courrier accompagné de vos coordonnées :</p>
+            <p class="address">Association Saint-Domingue<br />85 impasse de la Gélibaudière<br />26150 Die</p>
+            <p>Dès encaissement, vous recevrez un reçu et un accès à votre espace personnel.</p>
+          </div>
+
+          <div class="info-card">
+            <div class="info-icon">🏦</div>
+            <h3>Règlement par virement</h3>
+            <p>Indiquez le motif <strong>« don »</strong> ou <strong>« apport associatif »</strong> et envoyez-nous un mail avec vos coordonnées et les références du virement.</p>
+            <div class="iban-block">
+              <span class="iban-label">IBAN</span>
+              <code>FR76 4255 9100 0008 0286 8131 038</code>
+              <span class="iban-bank">Crédit Coopératif</span>
+            </div>
+            <a href="mailto:contact@saindo.org" class="inline-link">contact@saindo.org</a>
+          </div>
+
+        </div>
+
+        <!-- ACCORDS -->
+        <div class="accords">
+          <p class="accords-title">En contribuant financièrement, vous reconnaissez :</p>
+          <ul>
+            <li>Avoir pris connaissance des Statuts de l'association.</li>
+            <li>Avoir pris connaissance de la convention d'apport associatif.</li>
+            <li>Accepter que vos informations soient stockées pour gérer votre souscription.</li>
+            <li>Accepter de recevoir les actualités du projet par l'infolettre.</li>
+            <li>Accepter d'être convoqué·e aux assemblées par courrier électronique.</li>
+          </ul>
+        </div>
+
+      </section>
+
+    </div>
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+      <a href="/" class="footer-back">← Retour au site</a>
+      <span>Hôtel Saint Domingue · Die (26)</span>
+    </div>
+  </footer>
+
+</body>
+</html>
+
+<style>
+  :root {
+    --green: #6663A0;
+    --green-dark: #2D2A68;
+    --green-light: #B0ADD4;
+    --amber: #A07C10;
+    --bg: #F7F6FB;
+    --bg-alt: #EEEDF6;
+    --text: #1C1C1E;
+    --text-muted: #5C5C6B;
+    --radius: 12px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.65;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  main { flex: 1; padding: 64px 24px 96px; }
+  .container { max-width: 960px; margin: 0 auto; }
+
+  /* HEADER */
+  .page-header { margin-bottom: 56px; }
+  .section-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--amber);
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 4vw, 2.8rem);
+    color: var(--green-dark);
+    line-height: 1.2;
+    margin-bottom: 20px;
+  }
+  .intro {
+    font-size: 1.05rem;
+    color: var(--text-muted);
+    max-width: 640px;
+    line-height: 1.7;
+  }
+
+  /* CTA GRID */
+  .cta-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 40px;
+  }
+
+  .cta-card {
+    background: linear-gradient(135deg, var(--green-dark), var(--green));
+    border-radius: var(--radius);
+    padding: 28px;
+    color: white;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    box-shadow: 0 6px 24px rgba(45,42,104,0.2);
+    position: relative;
+  }
+  .cta-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 36px rgba(45,42,104,0.3);
+  }
+  .cta-card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+  .cta-icon {
+    width: 40px;
+    height: 40px;
+    stroke: rgba(255,255,255,0.9);
+    flex-shrink: 0;
+  }
+  .cta-arrow {
+    font-size: 1.1rem;
+    opacity: 0.4;
+    transition: opacity 0.2s, transform 0.2s;
+  }
+  .cta-card:hover .cta-arrow { opacity: 1; transform: translateX(3px); }
+  .cta-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: white;
+    line-height: 1.3;
+  }
+  .cta-desc {
+    font-size: 0.88rem;
+    color: rgba(255,255,255,0.75);
+    line-height: 1.6;
+    flex: 1;
+  }
+  .cta-btn {
+    display: inline-block;
+    margin-top: 8px;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.3);
+    border-radius: 8px;
+    padding: 9px 16px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: white;
+    text-align: center;
+    transition: background 0.2s;
+  }
+  .cta-card:hover .cta-btn { background: rgba(255,255,255,0.25); }
+
+  /* SECTIONS DÉTAIL */
+  .contrib-section {
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 24px;
+    overflow: hidden;
+    scroll-margin-top: 80px;
+  }
+  .contrib-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 24px 32px;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+    background: var(--bg-alt);
+  }
+  .contrib-icon {
+    width: 32px;
+    height: 32px;
+    stroke: var(--green);
+    flex-shrink: 0;
+  }
+  .contrib-header h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.25rem;
+    color: var(--green-dark);
+    margin: 0;
+  }
+  .contrib-body {
+    padding: 28px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .contrib-body p { font-size: 0.95rem; color: var(--text-muted); line-height: 1.75; }
+  .external-btn {
+    display: inline-block;
+    align-self: flex-start;
+    background: var(--green-dark);
+    color: white;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    padding: 12px 22px;
+    border-radius: 8px;
+    transition: background 0.2s, transform 0.2s;
+    margin-top: 4px;
+  }
+  .external-btn:hover { background: var(--green); transform: translateY(-1px); }
+
+  /* SOLIDARITÉ */
+  .blockquote-card {
+    background: var(--bg-alt);
+    border-left: 4px solid var(--green-light);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 20px 24px;
+  }
+  .blockquote-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--green);
+    margin-bottom: 10px;
+  }
+  .blockquote-card p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 10px; line-height: 1.7; }
+  .blockquote-card ul { padding-left: 20px; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 12px; }
+  .blockquote-card li { margin-bottom: 6px; }
+
+  /* INFOS PRATIQUES */
+  .infos { border-top: 1px solid rgba(0,0,0,0.07); padding-top: 56px; margin-top: 40px; }
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    color: var(--green-dark);
+    margin-bottom: 32px;
+  }
+
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin-bottom: 40px;
+  }
+  .info-card {
+    background: white;
+    border-radius: var(--radius);
+    padding: 28px;
+    box-shadow: var(--shadow);
+  }
+  .info-icon { font-size: 1.8rem; margin-bottom: 14px; }
+  .info-card h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--green-dark);
+    margin-bottom: 10px;
+  }
+  .info-card p { font-size: 0.9rem; color: var(--text-muted); line-height: 1.7; margin-bottom: 10px; }
+  .address {
+    background: var(--bg-alt);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.88rem !important;
+    line-height: 1.6 !important;
+    color: var(--text) !important;
+    margin: 10px 0 !important;
+  }
+  .iban-block {
+    background: var(--bg-alt);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin: 10px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .iban-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .iban-block code {
+    font-family: 'Courier New', monospace;
+    font-size: 0.88rem;
+    color: var(--green-dark);
+    font-weight: 600;
+    letter-spacing: 0.03em;
+  }
+  .iban-bank { font-size: 0.8rem; color: var(--text-muted); }
+
+  /* ACCORDS */
+  .accords {
+    background: var(--bg-alt);
+    border-radius: var(--radius);
+    padding: 28px 32px;
+  }
+  .accords-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+  .accords ul {
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .accords li { font-size: 0.9rem; color: var(--text-muted); line-height: 1.6; }
+
+  /* SHARED */
+  .inline-link {
+    font-size: 0.9rem;
+    color: var(--green);
+    text-decoration: underline;
+    font-weight: 500;
+  }
+  .inline-link:hover { color: var(--green-dark); }
+
+  /* FOOTER */
+  footer {
+    background: var(--green-dark);
+    padding: 20px 24px;
+  }
+  .footer-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: rgba(255,255,255,0.5);
+    font-size: 0.875rem;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .footer-back {
+    color: var(--green-light);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .footer-back:hover { color: white; }
+
+  @media (max-width: 768px) {
+    .cta-grid { grid-template-columns: 1fr; }
+    .info-grid { grid-template-columns: 1fr; }
+    .contrib-header { padding: 20px; }
+    .contrib-body { padding: 20px; }
+    .external-btn { align-self: stretch; text-align: center; }
+  }
+</style>
