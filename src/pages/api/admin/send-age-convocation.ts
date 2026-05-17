@@ -19,7 +19,6 @@ export const POST: APIRoute = async ({ request }) => {
   let query = supabase
     .from('membres')
     .select('id, email, nom, prenom')
-    .eq('age_email_activation', true)
     .or(`age_email_sent_at.is.null,age_email_sent_at.lt.${threshold}`)
     .order('nom', { ascending: true });
 

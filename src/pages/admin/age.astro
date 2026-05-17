@@ -17,18 +17,12 @@ const { data: membres } = await supabase
   .from('membres')
   .select('id', { count: 'exact' });
 
-const { data: membresActives } = await supabase
-  .from('membres')
-  .select('id', { count: 'exact' })
-  .eq('age_email_activation', true);
-
 const threshold = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 const repondusIds = reponses?.map(r => (r as any).membre_id).filter(Boolean) ?? [];
 
 let membresAEnvoyerQuery = supabase
   .from('membres')
   .select('id')
-  .eq('age_email_activation', true)
   .or(`age_email_sent_at.is.null,age_email_sent_at.lt.${threshold}`);
 
 if (repondusIds.length > 0) {
@@ -45,7 +39,6 @@ if (!canSend) {
   let earliestQuery = supabase
     .from('membres')
     .select('age_email_sent_at')
-    .eq('age_email_activation', true)
     .not('age_email_sent_at', 'is', null)
     .order('age_email_sent_at', { ascending: true })
     .limit(1);
@@ -61,7 +54,6 @@ if (!canSend) {
 }
 
 const totalMembres = membres?.length ?? 0;
-const totalActives = membresActives?.length ?? 0;
 const presents = reponses?.filter(r => r.presence).length ?? 0;
 const absents = reponses?.filter(r => !r.presence).length ?? 0;
 const sanReponse = totalMembres - (reponses?.length ?? 0);
