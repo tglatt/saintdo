@@ -20,7 +20,7 @@ if (!membre) return Astro.redirect('/admin');
 
 const { data: transactions } = await supabase
   .from('transactions')
-  .select('id, type, montant, date, paiement, detail, helloasso_order_id')
+  .select('id, type, montant, date, paiement, detail, helloasso_order_id, convention_id')
   .eq('membre_id', id)
   .order('date', { ascending: false });
 
@@ -160,8 +160,14 @@ const paiementLabel: Record<string, string> = {
                       <td class="tx-paiement">{t.paiement ? (paiementLabel[t.paiement] ?? t.paiement) : <span class="muted">—</span>}</td>
                       <td class="right tx-montant">{euros(t.montant)}</td>
                       <td class="tx-actions">
-                        <button class="btn-edit-tx" data-tx-id={t.id}>✏</button>
-                        <button class="btn-move-tx" data-tx-id={t.id} title="Déplacer vers un autre membre">⇄</button>
+                        {t.convention_id ? (
+                          <span class="tx-lock" title="Verrouillée par une convention">🔒</span>
+                        ) : (
+                          <>
+                            <button class="btn-edit-tx" data-tx-id={t.id}>✏</button>
+                            <button class="btn-move-tx" data-tx-id={t.id} title="Déplacer vers un autre membre">⇄</button>
+                          </>
+                        )}
                       </td>
                     </tr>
                     {t.detail && (
@@ -426,6 +432,12 @@ const paiementLabel: Record<string, string> = {
   .tx-paiement { font-size: 0.82rem; color: var(--color-muted); }
   .tx-montant { font-weight: 600; white-space: nowrap; }
   .tx-actions { text-align: right; white-space: nowrap; }
+  .tx-lock {
+    font-size: 0.85rem;
+    opacity: 0.4;
+    padding: 2px 4px;
+  }
+  .tx-table tr:hover .tx-lock { opacity: 0.7; }
   .btn-edit-tx,
   .btn-move-tx {
     background: none;

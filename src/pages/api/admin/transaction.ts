@@ -86,10 +86,11 @@ export const PATCH: APIRoute = async ({ request }) => {
 
   const { data: existing } = await supabase
     .from('transactions')
-    .select('id, membre_id, type')
+    .select('id, membre_id, type, convention_id')
     .eq('id', id)
     .single();
   if (!existing) return new Response('Transaction introuvable', { status: 404 });
+  if (existing.convention_id) return new Response('Transaction verrouillée par une convention', { status: 403 });
 
   const { data: dest } = await supabase
     .from('membres').select('id').eq('id', membre_id).single();
@@ -126,11 +127,12 @@ export const PUT: APIRoute = async ({ request }) => {
 
   const { data: existing } = await supabase
     .from('transactions')
-    .select('helloasso_order_id, membre_id')
+    .select('helloasso_order_id, membre_id, convention_id')
     .eq('id', id)
     .single();
 
   if (!existing) return new Response('Transaction introuvable', { status: 404 });
+  if (existing.convention_id) return new Response('Transaction verrouillée par une convention', { status: 403 });
 
   const { data, error } = await supabase
     .from('transactions')

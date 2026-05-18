@@ -134,12 +134,21 @@ export const POST: APIRoute = async ({ cookies, request }) => {
   const data = await loadConventionData(cookies);
   if (!data) return new Response('Unauthorized', { status: 401 });
 
-  await data.admin.from('conventions').insert({
+  const { data: convention } = await data.admin.from('conventions').insert({
     membre_id:          data.membreId,
     signed_at:          new Date().toISOString(),
     contenu_md:         data.md,
     signature_adherent: signature,
-  });
+  }).select('id').single();
+
+  if (convention?.id) {
+    await data.admin
+      .from('transactions')
+      .update({ convention_id: convention.id })
+      .eq('membre_id', data.membreId)
+      .eq('type', 'apport_associatif')
+      .is('convention_id', null);
+  }
 
   return new Response(JSON.stringify({ ok: true }), {
     headers: { 'Content-Type': 'application/json' },
