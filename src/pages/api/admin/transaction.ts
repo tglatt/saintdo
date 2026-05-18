@@ -131,8 +131,6 @@ export const PUT: APIRoute = async ({ request }) => {
     .single();
 
   if (!existing) return new Response('Transaction introuvable', { status: 404 });
-  if (!existing.helloasso_order_id?.startsWith('manual_'))
-    return new Response('Impossible de modifier une transaction HelloAsso', { status: 403 });
 
   const { data, error } = await supabase
     .from('transactions')

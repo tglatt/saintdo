@@ -160,9 +160,7 @@ const paiementLabel: Record<string, string> = {
                       <td class="tx-paiement">{t.paiement ? (paiementLabel[t.paiement] ?? t.paiement) : <span class="muted">—</span>}</td>
                       <td class="right tx-montant">{euros(t.montant)}</td>
                       <td class="tx-actions">
-                        {t.helloasso_order_id?.startsWith('manual_') && (
-                          <button class="btn-edit-tx" data-tx-id={t.id}>✏</button>
-                        )}
+                        <button class="btn-edit-tx" data-tx-id={t.id}>✏</button>
                         <button class="btn-move-tx" data-tx-id={t.id} title="Déplacer vers un autre membre">⇄</button>
                       </td>
                     </tr>
