@@ -24,7 +24,9 @@ Afin de participer aux objectifs poursuivis par l'Association dont il reconnaît
 
 ## Article 2 : Montant de l'apport avec droit de reprise
 
-L'Apporteur apporte ce jour, le [DATE_APPORT], à l'association le montant enregistré lors de la souscription. Ce montant est de **[MONTANT_APPORT]**.
+L'Apporteur consent à apporter à l'Association la somme totale de **[MONTANT_APPORT]**, répartie comme suit :
+
+[TABLEAU_TRANSACTIONS]
 
 ## Article 3 : Caractéristiques de l'apport
 

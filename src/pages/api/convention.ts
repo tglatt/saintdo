@@ -36,7 +36,7 @@ async function loadConventionData(cookies: { get: (name: string) => { value: str
 
   const { data: txs } = await admin
     .from('transactions')
-    .select('montant, date')
+    .select('montant, date, moyen_paiement')
     .eq('membre_id', membre.id)
     .eq('type', 'apport_associatif');
 
@@ -47,12 +47,26 @@ async function loadConventionData(cookies: { get: (name: string) => { value: str
   const nom = [prenom, nomMaj].filter(Boolean).join(' ') || (user.email ?? 'Adhérent');
   const montant = totalApport.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
 
-  const lastTxDate = txs
-    ?.map((t: { date: string | null }) => t.date)
-    .filter(Boolean)
-    .sort()
-    .at(-1);
-  const dateApport = lastTxDate ? fmtDate(new Date(lastTxDate)) : '';
+  const labelPaiement = (mp: string) => {
+    if (mp === 'helloasso') return 'HelloAsso';
+    if (mp === 'cheque') return 'chèque';
+    return mp;
+  };
+
+  const grouped = new Map<string, number>();
+  for (const t of txs ?? []) {
+    const key = `${t.date ?? ''}|${t.moyen_paiement ?? ''}`;
+    grouped.set(key, (grouped.get(key) ?? 0) + t.montant);
+  }
+  const tableauTxs = [...grouped.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, total]) => {
+      const [date, mp] = key.split('|');
+      const dateStr = date ? fmtDate(new Date(date)) : 'date inconnue';
+      const montantStr = total.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+      return `- ${dateStr} — ${labelPaiement(mp)} : **${montantStr}**`;
+    })
+    .join('\n');
 
   const [mdRaw, sigBuffer] = await Promise.all([
     readFile(join(process.cwd(), 'public', 'Saindo_convention_apport.md'), 'utf-8'),
@@ -65,7 +79,7 @@ async function loadConventionData(cookies: { get: (name: string) => { value: str
     .replace('[NOM_ADHERENT]', nom)
     .replace('[ADRESSE_ADHERENT]', adresse)
     .replace('[MONTANT_APPORT]', montant)
-    .replace('[DATE_APPORT]', dateApport);
+    .replace('[TABLEAU_TRANSACTIONS]', tableauTxs);
 
   return { nom, md, sigBuffer, membreId: membre.id, admin };
 }
