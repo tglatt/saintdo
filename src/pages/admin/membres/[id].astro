@@ -200,7 +200,7 @@ const paiementLabel: Record<string, string> = {
     <div class="modal">
       <div class="modal-header">
         <h2>Modifier le membre</h2>
-        <button id="edit-close" class="modal-close">✕</button>
+        <button id="edit-close" class="modal-close" data-modal-close>✕</button>
       </div>
       <div class="modal-body">
         <div id="edit-error" class="form-error hidden"></div>
@@ -219,7 +219,7 @@ const paiementLabel: Record<string, string> = {
           <input id="em-email" type="email" value={membre.email} autocomplete="off" />
         </div>
         <div class="form-actions">
-          <button type="button" id="edit-cancel">Annuler</button>
+          <button type="button" id="edit-cancel" data-modal-close>Annuler</button>
           <button type="button" id="edit-submit">Enregistrer</button>
         </div>
       </div>
@@ -231,7 +231,7 @@ const paiementLabel: Record<string, string> = {
     <div class="modal">
       <div class="modal-header">
         <h2>Déplacer la transaction</h2>
-        <button id="move-close" class="modal-close">✕</button>
+        <button id="move-close" class="modal-close" data-modal-close>✕</button>
       </div>
       <div class="modal-body">
         <p id="move-tx-info" class="move-tx-info"></p>
@@ -242,7 +242,7 @@ const paiementLabel: Record<string, string> = {
         <div id="move-results" class="move-results"></div>
         <p id="move-error" class="form-error hidden"></p>
         <div class="form-actions">
-          <button type="button" id="move-cancel">Annuler</button>
+          <button type="button" id="move-cancel" data-modal-close>Annuler</button>
           <button type="button" id="move-submit" disabled>Déplacer</button>
         </div>
       </div>
@@ -255,13 +255,13 @@ const paiementLabel: Record<string, string> = {
       <div class="modal modal--sm">
         <div class="modal-header">
           <h2>Supprimer la convention</h2>
-          <button id="delete-convention-close" class="modal-close">✕</button>
+          <button id="delete-convention-close" class="modal-close" data-modal-close>✕</button>
         </div>
         <div class="modal-body">
           <p class="delete-warning">Cette action est irréversible. La convention signée le <strong>{fmtDate(convention.signed_at)}</strong> sera supprimée et les transactions associées seront dissociées.</p>
           <p id="delete-convention-error" class="form-error hidden"></p>
           <div class="form-actions">
-            <button type="button" id="delete-convention-cancel">Annuler</button>
+            <button type="button" id="delete-convention-cancel" data-modal-close>Annuler</button>
             <button type="button" id="delete-convention-confirm" class="btn-action-danger">Supprimer</button>
           </div>
         </div>
@@ -274,7 +274,7 @@ const paiementLabel: Record<string, string> = {
     <div class="modal">
       <div class="modal-header">
         <h2 id="tx-title">Nouvelle transaction</h2>
-        <button id="tx-close" class="modal-close">✕</button>
+        <button id="tx-close" class="modal-close" data-modal-close>✕</button>
       </div>
       <div class="modal-body">
         <div class="form-group">
@@ -310,7 +310,7 @@ const paiementLabel: Record<string, string> = {
         </div>
         <p id="tx-error" class="form-error hidden"></p>
         <div class="form-actions">
-          <button type="button" id="tx-cancel">Annuler</button>
+          <button type="button" id="tx-cancel" data-modal-close>Annuler</button>
           <button type="button" id="tx-submit">Créer</button>
         </div>
       </div>
@@ -707,20 +707,24 @@ const paiementLabel: Record<string, string> = {
 </style>
 
 <script define:vars={{ membreId: membre.id }}>
-  // ── Edit member ──────────────────────────────────────────────────────────────
-  const editOverlay = document.getElementById('edit-overlay');
-  const editError   = document.getElementById('edit-error');
+  // ── Helper modal ──────────────────────────────────────────────────────────────
+  function setupModal(overlay, { onOpen } = {}) {
+    const close = () => overlay.classList.add('hidden');
+    const open  = () => { onOpen?.(); overlay.classList.remove('hidden'); };
+    overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+    overlay.querySelectorAll('[data-modal-close]').forEach(el => el.addEventListener('click', close));
+    return { open, close };
+  }
 
-  document.getElementById('btn-edit').addEventListener('click', () => {
-    editError.classList.add('hidden');
-    editOverlay.classList.remove('hidden');
+  // ── Edit member ──────────────────────────────────────────────────────────────
+  const editError  = document.getElementById('edit-error');
+  const editModal  = setupModal(document.getElementById('edit-overlay'), {
+    onOpen: () => editError.classList.add('hidden'),
   });
-  document.getElementById('edit-close').addEventListener('click', () => editOverlay.classList.add('hidden'));
-  document.getElementById('edit-cancel').addEventListener('click', () => editOverlay.classList.add('hidden'));
-  editOverlay.addEventListener('click', e => { if (e.target === editOverlay) editOverlay.classList.add('hidden'); });
+  document.getElementById('btn-edit').addEventListener('click', editModal.open);
 
   document.getElementById('edit-submit').addEventListener('click', async () => {
-    const btn = document.getElementById('edit-submit');
+    const btn   = document.getElementById('edit-submit');
     const email = document.getElementById('em-email').value.trim();
     if (!email) { editError.textContent = 'Email requis'; editError.classList.remove('hidden'); return; }
 
@@ -737,38 +741,31 @@ const paiementLabel: Record<string, string> = {
     });
     btn.disabled = false;
 
-    if (!res.ok) {
-      editError.textContent = await res.text();
-      editError.classList.remove('hidden');
-      return;
-    }
+    if (!res.ok) { editError.textContent = await res.text(); editError.classList.remove('hidden'); return; }
     window.location.reload();
   });
 
   // ── Transaction modal ─────────────────────────────────────────────────────────
-  const txOverlay = document.getElementById('tx-overlay');
-  const txError   = document.getElementById('tx-error');
-  const txTitle   = document.getElementById('tx-title');
-  const txSubmit  = document.getElementById('tx-submit');
+  const txError  = document.getElementById('tx-error');
+  const txTitle  = document.getElementById('tx-title');
+  const txSubmit = document.getElementById('tx-submit');
+  const txModal  = setupModal(document.getElementById('tx-overlay'));
   let currentTxId = null;
 
   function openTxModal(mode = 'create', tx = null) {
     currentTxId = mode === 'edit' ? tx?.id ?? null : null;
-    txTitle.textContent = mode === 'edit' ? 'Modifier la transaction' : 'Nouvelle transaction';
+    txTitle.textContent  = mode === 'edit' ? 'Modifier la transaction' : 'Nouvelle transaction';
     txSubmit.textContent = mode === 'edit' ? 'Enregistrer' : 'Créer';
-    document.getElementById('tx-type').value    = tx?.type ?? '';
-    document.getElementById('tx-montant').value = tx?.montant?.toString() ?? '';
-    document.getElementById('tx-date').value    = tx?.date ? tx.date.split('T')[0] : new Date().toISOString().split('T')[0];
+    document.getElementById('tx-type').value     = tx?.type ?? '';
+    document.getElementById('tx-montant').value  = tx?.montant?.toString() ?? '';
+    document.getElementById('tx-date').value     = tx?.date ? tx.date.split('T')[0] : new Date().toISOString().split('T')[0];
     document.getElementById('tx-paiement').value = tx?.paiement ?? '';
-    document.getElementById('tx-detail').value  = tx?.detail ?? '';
+    document.getElementById('tx-detail').value   = tx?.detail ?? '';
     txError.classList.add('hidden');
-    txOverlay.classList.remove('hidden');
+    txModal.open();
   }
 
   document.getElementById('btn-add-tx').addEventListener('click', () => openTxModal('create'));
-  document.getElementById('tx-close').addEventListener('click', () => txOverlay.classList.add('hidden'));
-  document.getElementById('tx-cancel').addEventListener('click', () => txOverlay.classList.add('hidden'));
-  txOverlay.addEventListener('click', e => { if (e.target === txOverlay) txOverlay.classList.add('hidden'); });
 
   document.querySelectorAll('.btn-edit-tx').forEach(btn => {
     btn.addEventListener('click', e => {
@@ -796,21 +793,17 @@ const paiementLabel: Record<string, string> = {
     });
     txSubmit.disabled = false;
 
-    if (!res.ok) {
-      txError.textContent = await res.text();
-      txError.classList.remove('hidden');
-      return;
-    }
+    if (!res.ok) { txError.textContent = await res.text(); txError.classList.remove('hidden'); return; }
     window.location.reload();
   });
 
   // ── Déplacer transaction ──────────────────────────────────────────────────────
-  const moveOverlay = document.getElementById('move-overlay');
   const moveError   = document.getElementById('move-error');
   const moveSubmit  = document.getElementById('move-submit');
   const moveSearch  = document.getElementById('move-search');
   const moveResults = document.getElementById('move-results');
   const moveTxInfo  = document.getElementById('move-tx-info');
+  const moveModal   = setupModal(document.getElementById('move-overlay'));
   let moveTxId = null;
   let moveTargetId = null;
 
@@ -845,14 +838,10 @@ const paiementLabel: Record<string, string> = {
     moveResults.innerHTML = '';
     moveError.classList.add('hidden');
     moveSubmit.disabled = true;
-    moveOverlay.classList.remove('hidden');
+    moveModal.open();
     moveSearch.focus();
     searchMembres('');
   }
-
-  document.getElementById('move-close').addEventListener('click', () => moveOverlay.classList.add('hidden'));
-  document.getElementById('move-cancel').addEventListener('click', () => moveOverlay.classList.add('hidden'));
-  moveOverlay.addEventListener('click', e => { if (e.target === moveOverlay) moveOverlay.classList.add('hidden'); });
 
   let searchTimer = null;
   moveSearch.addEventListener('input', () => {
@@ -867,10 +856,7 @@ const paiementLabel: Record<string, string> = {
       e.stopPropagation();
       const txId = btn.dataset.txId;
       const row = document.querySelector(`tr[data-tx-id="${txId}"]`);
-      const type    = row?.querySelector('.badge')?.textContent ?? '';
-      const montant = row?.querySelector('.tx-montant')?.textContent ?? '';
-      const date    = row?.querySelector('.tx-date')?.textContent ?? '';
-      openMoveModal(txId, `${type} · ${montant} · ${date}`);
+      openMoveModal(txId, `${row?.querySelector('.badge')?.textContent ?? ''} · ${row?.querySelector('.tx-montant')?.textContent ?? ''} · ${row?.querySelector('.tx-date')?.textContent ?? ''}`);
     });
   });
 
@@ -883,27 +869,18 @@ const paiementLabel: Record<string, string> = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: moveTxId, membre_id: moveTargetId }),
     });
-    if (!res.ok) {
-      moveError.textContent = await res.text();
-      moveError.classList.remove('hidden');
-      moveSubmit.disabled = false;
-      return;
-    }
+    if (!res.ok) { moveError.textContent = await res.text(); moveError.classList.remove('hidden'); moveSubmit.disabled = false; return; }
     window.location.reload();
   });
 
   // ── Supprimer convention ──────────────────────────────────────────────────────
-  const deleteConventionOverlay = document.getElementById('delete-convention-overlay');
-  if (deleteConventionOverlay) {
+  const deleteConventionOverlayEl = document.getElementById('delete-convention-overlay');
+  if (deleteConventionOverlayEl) {
     const deleteConventionError = document.getElementById('delete-convention-error');
-
-    document.getElementById('btn-delete-convention').addEventListener('click', () => {
-      deleteConventionError.classList.add('hidden');
-      deleteConventionOverlay.classList.remove('hidden');
+    const deleteModal = setupModal(deleteConventionOverlayEl, {
+      onOpen: () => deleteConventionError.classList.add('hidden'),
     });
-    document.getElementById('delete-convention-close').addEventListener('click', () => deleteConventionOverlay.classList.add('hidden'));
-    document.getElementById('delete-convention-cancel').addEventListener('click', () => deleteConventionOverlay.classList.add('hidden'));
-    deleteConventionOverlay.addEventListener('click', e => { if (e.target === deleteConventionOverlay) deleteConventionOverlay.classList.add('hidden'); });
+    document.getElementById('btn-delete-convention').addEventListener('click', deleteModal.open);
 
     document.getElementById('delete-convention-confirm').addEventListener('click', async () => {
       const btn = document.getElementById('delete-convention-confirm');
@@ -921,7 +898,6 @@ const paiementLabel: Record<string, string> = {
 
   // ── Envoyer convention ────────────────────────────────────────────────────────
   const btnConvention = document.getElementById('btn-send-convention');
-
   btnConvention?.addEventListener('click', async () => {
     const label = btnConvention.textContent;
     btnConvention.disabled = true;
@@ -941,19 +917,12 @@ const paiementLabel: Record<string, string> = {
     }
 
     btnConvention.textContent = 'Envoyé ✓';
-    setTimeout(() => {
-      btnConvention.textContent = label;
-      btnConvention.disabled = false;
-    }, 3000);
+    setTimeout(() => { btnConvention.textContent = label; btnConvention.disabled = false; }, 3000);
   });
 
   // ── Escape ────────────────────────────────────────────────────────────────────
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') {
-      editOverlay.classList.add('hidden');
-      txOverlay.classList.add('hidden');
-      moveOverlay.classList.add('hidden');
-      deleteConventionOverlay?.classList.add('hidden');
-    }
+    if (e.key !== 'Escape') return;
+    document.querySelectorAll('.modal-overlay:not(.hidden)').forEach(el => el.classList.add('hidden'));
   });
 </script>
