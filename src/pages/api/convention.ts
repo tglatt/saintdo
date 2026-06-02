@@ -36,7 +36,7 @@ async function loadConventionData(cookies: { get: (name: string) => { value: str
 
   const { data: txs } = await admin
     .from('transactions')
-    .select('montant, date, moyen_paiement')
+    .select('montant, date, paiement')
     .eq('membre_id', membre.id)
     .eq('type', 'apport_associatif');
 
@@ -55,7 +55,7 @@ async function loadConventionData(cookies: { get: (name: string) => { value: str
 
   const grouped = new Map<string, number>();
   for (const t of txs ?? []) {
-    const key = `${t.date ?? ''}|${t.moyen_paiement ?? ''}`;
+    const key = `${t.date ?? ''}|${t.paiement ?? ''}`;
     grouped.set(key, (grouped.get(key) ?? 0) + t.montant);
   }
   const tableauTxs = [...grouped.entries()]

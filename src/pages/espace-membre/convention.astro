@@ -32,7 +32,7 @@ if (!membre) return Astro.redirect('/espace-membre');
 
 const { data: txs } = await admin
   .from('transactions')
-  .select('montant, date')
+  .select('montant, date, paiement')
   .eq('membre_id', membre.id)
   .eq('type', 'apport_associatif');
 
@@ -126,6 +126,27 @@ function parseMarkdownToHtml(md: string): string {
   return htmlParts.join('\n');
 }
 
+const labelPaiement = (mp: string) => {
+  if (mp === 'helloasso') return 'HelloAsso';
+  if (mp === 'cheque') return 'chèque';
+  return mp;
+};
+
+const grouped = new Map<string, number>();
+for (const t of txs ?? []) {
+  const key = `${t.date ?? ''}|${t.paiement ?? ''}`;
+  grouped.set(key, (grouped.get(key) ?? 0) + t.montant);
+}
+const tableauTxs = [...grouped.entries()]
+  .sort(([a], [b]) => a.localeCompare(b))
+  .map(([key, total]) => {
+    const [date, mp] = key.split('|');
+    const dateStr = date ? new Date(date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) : 'date inconnue';
+    const montantStr = total.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
+    return `- ${dateStr} — ${labelPaiement(mp)} : **${montantStr}**`;
+  })
+  .join('\n');
+
 let md: string;
 if (existingConvention?.contenu_md) {
   md = existingConvention.contenu_md;
@@ -136,7 +157,7 @@ if (existingConvention?.contenu_md) {
     .replace('[NOM_ADHERENT]', nom)
     .replace('[ADRESSE_ADHERENT]', adresse)
     .replace('[MONTANT_APPORT]', montant)
-    .replace('[DATE_APPORT]', date);
+    .replace('[TABLEAU_TRANSACTIONS]', tableauTxs);
 }
 
 const conventionHtml = parseMarkdownToHtml(md);
