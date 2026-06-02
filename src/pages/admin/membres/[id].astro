@@ -26,7 +26,7 @@ const { data: transactions } = await supabase
 
 const { data: convention } = await supabase
   .from('conventions')
-  .select('signed_at')
+  .select('id, signed_at')
   .eq('membre_id', id)
   .order('signed_at', { ascending: false })
   .limit(1)
@@ -114,6 +114,9 @@ const paiementLabel: Record<string, string> = {
             <a href={`/api/admin/convention?membre_id=${membre.id}`} target="_blank" class="btn-secondary">
               Télécharger la convention
             </a>
+          )}
+          {convention && (
+            <button id="btn-delete-convention" class="btn-danger">Supprimer la convention</button>
           )}
           <button id="btn-add-tx" class="btn-primary">+ Transaction</button>
         </div>
@@ -245,6 +248,26 @@ const paiementLabel: Record<string, string> = {
       </div>
     </div>
   </div>
+
+  <!-- MODAL SUPPRIMER CONVENTION -->
+  {convention && (
+    <div id="delete-convention-overlay" class="modal-overlay hidden">
+      <div class="modal modal--sm">
+        <div class="modal-header">
+          <h2>Supprimer la convention</h2>
+          <button id="delete-convention-close" class="modal-close">✕</button>
+        </div>
+        <div class="modal-body">
+          <p class="delete-warning">Cette action est irréversible. La convention signée le <strong>{fmtDate(convention.signed_at)}</strong> sera supprimée et les transactions associées seront dissociées.</p>
+          <p id="delete-convention-error" class="form-error hidden"></p>
+          <div class="form-actions">
+            <button type="button" id="delete-convention-cancel">Annuler</button>
+            <button type="button" id="delete-convention-confirm" class="btn-action-danger">Supprimer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )}
 
   <!-- MODAL TRANSACTION -->
   <div id="tx-overlay" class="modal-overlay hidden">
@@ -546,6 +569,29 @@ const paiementLabel: Record<string, string> = {
   }
   .btn-secondary:hover { background: var(--color-bg); border-color: var(--color-primary-mid); }
   .btn-secondary:disabled { opacity: 0.6; cursor: not-allowed; }
+  .btn-danger {
+    padding: 8px 16px;
+    background: white;
+    color: var(--color-error);
+    border: 1.5px solid var(--color-error);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+  .btn-danger:hover { background: #fff0f0; }
+  .modal--sm { max-width: 380px; }
+  .delete-warning {
+    font-size: 0.9rem;
+    color: var(--color-text);
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+  .btn-action-danger { background: var(--color-error) !important; color: white !important; }
+  .btn-action-danger:hover { opacity: 0.88; }
 
   /* Modals */
   .modal-overlay {
@@ -846,10 +892,37 @@ const paiementLabel: Record<string, string> = {
     window.location.reload();
   });
 
+  // ── Supprimer convention ──────────────────────────────────────────────────────
+  const deleteConventionOverlay = document.getElementById('delete-convention-overlay');
+  if (deleteConventionOverlay) {
+    const deleteConventionError = document.getElementById('delete-convention-error');
+
+    document.getElementById('btn-delete-convention').addEventListener('click', () => {
+      deleteConventionError.classList.add('hidden');
+      deleteConventionOverlay.classList.remove('hidden');
+    });
+    document.getElementById('delete-convention-close').addEventListener('click', () => deleteConventionOverlay.classList.add('hidden'));
+    document.getElementById('delete-convention-cancel').addEventListener('click', () => deleteConventionOverlay.classList.add('hidden'));
+    deleteConventionOverlay.addEventListener('click', e => { if (e.target === deleteConventionOverlay) deleteConventionOverlay.classList.add('hidden'); });
+
+    document.getElementById('delete-convention-confirm').addEventListener('click', async () => {
+      const btn = document.getElementById('delete-convention-confirm');
+      btn.disabled = true;
+      const res = await fetch(`/api/admin/convention?membre_id=${membreId}`, { method: 'DELETE' });
+      if (!res.ok) {
+        deleteConventionError.textContent = await res.text();
+        deleteConventionError.classList.remove('hidden');
+        btn.disabled = false;
+        return;
+      }
+      window.location.reload();
+    });
+  }
+
   // ── Envoyer convention ────────────────────────────────────────────────────────
   const btnConvention = document.getElementById('btn-send-convention');
 
-  btnConvention.addEventListener('click', async () => {
+  btnConvention?.addEventListener('click', async () => {
     const label = btnConvention.textContent;
     btnConvention.disabled = true;
     btnConvention.textContent = 'Envoi…';
@@ -880,6 +953,7 @@ const paiementLabel: Record<string, string> = {
       editOverlay.classList.add('hidden');
       txOverlay.classList.add('hidden');
       moveOverlay.classList.add('hidden');
+      deleteConventionOverlay?.classList.add('hidden');
     }
   });
 </script>

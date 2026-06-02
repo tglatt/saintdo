@@ -4,6 +4,39 @@ import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { buildPdf, pdfResponse } from '../../../lib/convention-pdf';
 
+export const DELETE: APIRoute = async ({ url }) => {
+  const membreId = url.searchParams.get('membre_id');
+  if (!membreId) return new Response('Missing membre_id', { status: 400 });
+
+  const supabase = createAdminClient();
+
+  const { data: convention } = await supabase
+    .from('conventions')
+    .select('id')
+    .eq('membre_id', membreId)
+    .order('signed_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (!convention) return new Response('Aucune convention trouvée', { status: 404 });
+
+  await supabase
+    .from('transactions')
+    .update({ convention_id: null })
+    .eq('convention_id', convention.id);
+
+  const { error } = await supabase
+    .from('conventions')
+    .delete()
+    .eq('id', convention.id);
+
+  if (error) return new Response('Erreur lors de la suppression', { status: 500 });
+
+  return new Response(JSON.stringify({ ok: true }), {
+    headers: { 'Content-Type': 'application/json' },
+  });
+};
+
 export const GET: APIRoute = async ({ url }) => {
   const membreId = url.searchParams.get('membre_id');
   if (!membreId) return new Response('Missing membre_id', { status: 400 });
