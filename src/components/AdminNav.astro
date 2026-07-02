@@ -1,16 +1,17 @@
 ---
 interface Props {
-  activePage: 'membres' | 'transactions' | 'conventions' | 'statistiques' | 'age';
+  activePage: 'membres' | 'transactions' | 'conventions' | 'statistiques' | 'age' | 'porteurs-projet';
   userEmail: string;
 }
 const { activePage, userEmail } = Astro.props;
 
 const links = [
-  { href: '/admin',                label: 'Membres',       key: 'membres'       },
-  { href: '/admin/transactions',   label: 'Transactions',  key: 'transactions'  },
-  { href: '/admin/conventions',    label: 'Conventions',   key: 'conventions'   },
-  { href: '/admin/statistiques',   label: 'Statistiques',  key: 'statistiques'  },
-  { href: '/admin/age',            label: 'AGE',           key: 'age'           },
+  { href: '/admin',                  label: 'Membres',         key: 'membres'         },
+  { href: '/admin/transactions',     label: 'Transactions',    key: 'transactions'    },
+  { href: '/admin/conventions',      label: 'Conventions',     key: 'conventions'     },
+  { href: '/admin/porteurs-projet',  label: 'Porteurs de projet', key: 'porteurs-projet' },
+  { href: '/admin/statistiques',     label: 'Statistiques',    key: 'statistiques'    },
+  { href: '/admin/age',              label: 'AGE',             key: 'age'             },
 ] as const;
 ---
 

@@ -1,0 +1,215 @@
+---
+import { createAdminClient } from '../../../lib/supabase';
+import AdminNav from '../../../components/AdminNav.astro';
+import '../../../styles/theme.css';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/login');
+
+const { id } = Astro.params;
+if (!id) return Astro.redirect('/admin/porteurs-projet');
+
+const supabase = createAdminClient();
+
+const { data: candidature } = await supabase
+  .from('porteurs_projet')
+  .select('id, created_at, email, nom, prenom, telephone, intitule_projet, reponses')
+  .eq('id', id)
+  .single();
+if (!candidature) return Astro.redirect('/admin/porteurs-projet');
+
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+type Field = { key: string; label: string; options?: Record<string, string> };
+type Section = { key: string; title: string; fields: Field[] };
+
+const STATUT: Record<string, string> = { association: 'Association', entreprise_individuelle: 'Entreprise individuelle', societe: 'Société' };
+const TYPE_PORTEURS: Record<string, string> = { benevoles: 'Projet porté uniquement par des bénévoles', mixte: 'Projet mixte' };
+const STADE: Record<string, string> = { reflexion: 'Projet en réflexion', statuts_deposes: 'Statuts déposés', existant: 'Projet existant qui cherche un nouveau local' };
+const TYPOLOGIE: Record<string, string> = { cuisines: 'Cuisines', hebergement: 'Hébergement', salles_restauration: 'Salles de restauration', salles_activites: "Salles d'activités" };
+const SURFACE: Record<string, string> = { '10-20': '10–20 m²', '20-30': '20–30 m²', '30-50': '30–50 m²', 'plus-50': 'Plus de 50 m²' };
+const FREQUENCE: Record<string, string> = { quotidienne: 'Quotidienne', plusieurs_jours: 'Plusieurs jours / semaine', occasionnelle: 'Occasionnelle', saisonniere: 'Saisonnière' };
+const HORAIRES: Record<string, string> = { journee: 'Journée (9h-18h)', soiree: 'Soirée', weekend: 'Week-end', variables: 'Variables' };
+const BUDGET: Record<string, string> = { '100-200': '100–200 €', '200-300': '200–300 €', '300-500': '300–500 €', 'plus-500': 'Plus de 500 €', difficile: 'Difficile à estimer à ce stade', occasionnelle: 'Concerné·e seulement par une mise à disposition occasionnelle' };
+const CONTRIBUTION: Record<string, string> = { temps: 'En temps (chantiers, animation, gouvernance)', competences: 'En compétences (selon besoins ponctuels)', contribution_financiere: 'En revalorisant ma contribution financière en fonction de mes excédents', pas_possible: 'Pas possible de contribuer en plus de mon activité' };
+const MUTUALISATION: Record<string, string> = { cuisine_partagee: 'Cuisine partagée', salle_reunion: 'Salle de réunion', terrasse_cour: 'Terrasse / cour intérieure', stockage: 'Stockage commun', materiel: 'Matériel (imprimante, outils, équipements…)', communication: 'Outils de communication', gestion: 'Outils de gestion', aucun: 'Aucun' };
+const COOPERATION: Record<string, string> = { projets_communs: 'Construction des projets communs', partage_competences: 'Partage de compétences', accueil_public: 'Accueil du public régulier (permanence partagée)', evenements: "Organisation d'événements", ateliers: "Organisation d'ateliers, initiations…", aucun: 'Aucun' };
+const INTEGRATION: Record<string, string> = { des_ouverture: "Oui, dès l'ouverture", annee_suivante: "Oui, dans l'année suivante (2027)", phase_perenne: 'Non, seulement dans la phase pérenne' };
+const DUREE: Record<string, string> = { quelques_mois: 'Quelques mois', '1_an': '1 an', '2_ans': '2 ans', '3_ans_plus': '3 ans et plus' };
+const FREINS: Record<string, string> = { budget: 'Budget insuffisant', distance: 'Distance géographique', espaces: 'Inadéquation des espaces disponibles', gouvernance: 'Réticence à la gouvernance collective', timing: 'Timing', manque_info: "Manque d'information sur le projet", aucun: 'Aucun frein identifié' };
+
+const sections: Section[] = [
+  {
+    key: 'vous_et_votre_projet', title: 'Vous et votre projet', fields: [
+      { key: 'autres_membres', label: 'Autres membres impliqué·es' },
+      { key: 'porteurs_bio', label: 'Les porteur·se·s de projet' },
+      { key: 'description', label: 'Description du projet' },
+      { key: 'statut', label: 'Statut', options: STATUT },
+      { key: 'statut_precision', label: 'Précision sur le statut' },
+      { key: 'nb_emplois', label: "Nombre d'emplois créés souhaités" },
+      { key: 'type_porteurs', label: 'Type de portage', options: TYPE_PORTEURS },
+      { key: 'stade_avancement', label: "Stade d'avancement", options: STADE },
+      { key: 'partenaires', label: 'Partenaires potentiels' },
+      { key: 'aides', label: "Aides accordées ou dossiers en cours d'instruction" },
+    ],
+  },
+  {
+    key: 'besoins_espaces', title: 'Besoins en espaces de travail et conditions économiques', fields: [
+      { key: 'typologie', label: "Typologie d'espaces recherchés", options: TYPOLOGIE },
+      { key: 'typologie_autre', label: 'Autres typologies' },
+      { key: 'besoins_techniques', label: 'Besoins techniques particuliers' },
+      { key: 'surface', label: 'Surface nécessaire à minima', options: SURFACE },
+      { key: 'surface_precisions', label: 'Précisions complémentaires' },
+      { key: 'frequence', label: "Fréquence d'occupation", options: FREQUENCE },
+      { key: 'horaires', label: "Horaires principaux d'utilisation", options: HORAIRES },
+      { key: 'budget', label: 'Budget mensuel maximum envisageable', options: BUDGET },
+    ],
+  },
+  {
+    key: 'mutualisation', title: 'Mutualisation et contribution à la vie du lieu', fields: [
+      { key: 'contribution', label: 'Contribution à la vie du lieu', options: CONTRIBUTION },
+      { key: 'contribution_autre', label: 'Autre contribution' },
+      { key: 'mutualisation_types', label: 'Types de mutualisation utiles', options: MUTUALISATION },
+      { key: 'mutualisation_autre', label: 'Autre mutualisation' },
+      { key: 'cooperation', label: 'Types de coopération envisagés', options: COOPERATION },
+      { key: 'cooperation_autre', label: 'Autre coopération' },
+    ],
+  },
+  {
+    key: 'projection', title: 'Projection dans le projet', fields: [
+      { key: 'integration_phase', label: "Intégration dès la phase d'expérimentation (automne 2026)", options: INTEGRATION },
+      { key: 'duree', label: 'Durée de projection', options: DUREE },
+      { key: 'freins', label: "Freins à l'intégration du lieu", options: FREINS },
+      { key: 'freins_autre', label: 'Autre frein' },
+    ],
+  },
+  {
+    key: 'envies', title: 'Des envies, des attentes, des idées sur la vie du lieu ?', fields: [
+      { key: 'inspirations', label: 'Exemples de projets qui inspirent' },
+      { key: 'remarques', label: 'Remarques libres' },
+    ],
+  },
+];
+
+function formatValue(value: unknown, options?: Record<string, string>): string {
+  if (Array.isArray(value)) {
+    if (value.length === 0) return '—';
+    return value.map(v => options?.[v] ?? v).join(', ');
+  }
+  if (value === null || value === undefined || value === '') return '—';
+  return options?.[value as string] ?? String(value);
+}
+
+const reponses = candidature.reponses ?? {};
+const nomComplet = [candidature.prenom, candidature.nom].filter(Boolean).join(' ') || candidature.email;
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{candidature.intitule_projet || nomComplet} — Admin Saint Domingue</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <AdminNav activePage="porteurs-projet" userEmail={user.email} />
+
+  <main>
+    <div class="container">
+
+      <a href="/admin/porteurs-projet" class="back-link">← Retour aux porteurs de projet</a>
+
+      <div class="header">
+        <h1>{candidature.intitule_projet || 'Projet sans intitulé'}</h1>
+        <div class="meta">
+          <span>{nomComplet}</span>
+          <span class="sep">·</span>
+          <a href={`mailto:${candidature.email}`}>{candidature.email}</a>
+          {candidature.telephone && <span class="sep">·</span>}
+          {candidature.telephone && <span>{candidature.telephone}</span>}
+          <span class="sep">·</span>
+          <span class="muted">Reçu le {fmtDate(candidature.created_at)}</span>
+        </div>
+      </div>
+
+      {sections.map(section => (
+        <section class="section">
+          <h2>{section.title}</h2>
+          <div class="answer-grid">
+            {section.fields.map(field => (
+              <div class="answer-row">
+                <div class="answer-label">{field.label}</div>
+                <div class="answer-value">{formatValue(reponses?.[section.key]?.[field.key], field.options)}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
+
+    </div>
+  </main>
+
+</body>
+</html>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--color-bg);
+    color: var(--color-text);
+    min-height: 100vh;
+  }
+
+  main { padding: 48px 24px; }
+  .container { max-width: 800px; margin: 0 auto; }
+
+  .back-link {
+    display: inline-block;
+    font-size: 0.85rem;
+    color: var(--color-muted);
+    text-decoration: none;
+    margin-bottom: 24px;
+  }
+  .back-link:hover { color: var(--color-primary); }
+
+  .header { margin-bottom: 40px; }
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.8rem;
+    color: var(--color-primary);
+    margin-bottom: 10px;
+  }
+  .meta { font-size: 0.9rem; color: var(--color-text); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .meta a { color: var(--color-primary-mid); text-decoration: none; }
+  .meta a:hover { text-decoration: underline; }
+  .meta .sep { color: var(--color-subtle); }
+  .meta .muted { color: var(--color-muted); }
+
+  .section {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    padding: 24px 28px;
+    margin-bottom: 24px;
+  }
+  .section h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: var(--color-primary);
+    margin-bottom: 16px;
+  }
+
+  .answer-grid { display: flex; flex-direction: column; gap: 14px; }
+  .answer-row { display: flex; flex-direction: column; gap: 4px; padding-bottom: 14px; border-bottom: 1px solid var(--color-border-light); }
+  .answer-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .answer-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-muted); }
+  .answer-value { font-size: 0.92rem; color: var(--color-text); white-space: pre-wrap; line-height: 1.6; }
+</style>

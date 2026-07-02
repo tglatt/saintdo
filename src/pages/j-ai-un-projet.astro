@@ -82,13 +82,13 @@ import Footer from '../components/Footer.astro';
 
         <div class="story">
           <p>Vous avez été nombreux à manifester votre intérêt pour développer un projet au Saindo, que ce soit lors des premières réunions de programmation ou en venant à notre rencontre lors de nos nombreux événements. Que ce soit pour un projet commercial, associatif, temporaire ou pérenne.</p>
-          <p>Vous pouvez dès lors nous exposer votre projet via ce mini-questionnaire. Nous pourrons alors vous contacter en septembre, une fois l'achat du bâtiment réalisé, pour commencer à construire ensemble la future programmation des espaces du Saindo.</p>
-          <p>On ne s'est pas encore rencontrés et vous avez un projet d'installation en centre-ville de Die ? Vous recherchez des locaux, vous souhaitez développer votre projet en favorisant la mutualisation avec d'autres, et vous êtes porté·e par les idées de l'économie sociale et solidaire : remplissez ce questionnaire et venez nous voir lors de nos nombreux événements.</p>
+          <p>Vous pouvez dès lors nous exposer votre projet via <a href="/questionnaire-projet">ce mini-questionnaire</a>. Nous pourrons alors vous contacter en septembre, une fois l'achat du bâtiment réalisé, pour commencer à construire ensemble la future programmation des espaces du Saindo.</p>
+          <p>On ne s'est pas encore rencontrés et vous avez un projet d'installation en centre-ville de Die ? Vous recherchez des locaux, vous souhaitez développer votre projet en favorisant la mutualisation avec d'autres, et vous êtes porté·e par les idées de l'économie sociale et solidaire : remplissez <a href="/questionnaire-projet">ce questionnaire</a> et venez nous voir lors de nos nombreux événements.</p>
         </div>
 
         <div class="callout">
           <p>Prêt·e à nous présenter votre projet ?</p>
-          <a href="mailto:contact@saindo.org?subject=Mon%20projet%20pour%20le%20Saindo" class="contact-link">Exposez-nous votre projet</a>
+          <a href="/questionnaire-projet" class="contact-link">Exposez-nous votre projet</a>
         </div>
       </section>
 
@@ -215,6 +215,8 @@ import Footer from '../components/Footer.astro';
   .story { display: flex; flex-direction: column; gap: 14px; margin-bottom: 28px; }
   .story p { color: var(--text-muted); font-size: 0.97rem; line-height: 1.75; }
   .story strong { color: var(--text); }
+  .story a { color: var(--green); font-weight: 600; text-decoration: none; }
+  .story a:hover { color: var(--green-dark); text-decoration: underline; }
 
   .plan-image {
     display: block;

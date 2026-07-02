@@ -1,0 +1,158 @@
+---
+import { createAdminClient } from '../../lib/supabase';
+import AdminNav from '../../components/AdminNav.astro';
+import '../../styles/theme.css';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/login');
+
+const supabase = createAdminClient();
+
+const { data: candidatures } = await supabase
+  .from('porteurs_projet')
+  .select('id, created_at, email, nom, prenom, intitule_projet, reponses')
+  .order('created_at', { ascending: false });
+
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+const stadeLabel: Record<string, string> = {
+  reflexion: 'Projet en réflexion',
+  statuts_deposes: 'Statuts déposés',
+  existant: 'Cherche un nouveau local',
+};
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Porteurs de projet — Admin Saint Domingue</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <AdminNav activePage="porteurs-projet" userEmail={user.email} />
+
+  <main>
+    <div class="container">
+
+      <header class="page-header">
+        <h1>Porteurs de projet</h1>
+        <p class="sub">Réponses au questionnaire "J'ai un projet".</p>
+      </header>
+
+      <section class="section">
+        <div class="section-header">
+          <h2>Candidatures ({candidatures?.length ?? 0})</h2>
+        </div>
+
+        {candidatures && candidatures.length > 0 ? (
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Projet</th>
+                  <th>Contact</th>
+                  <th>Email</th>
+                  <th>Avancement</th>
+                </tr>
+              </thead>
+              <tbody>
+                {candidatures.map(c => (
+                  <tr class="clickable" onclick={`window.location='/admin/porteurs-projet/${c.id}'`}>
+                    <td class="muted">{fmtDate(c.created_at)}</td>
+                    <td class="bold">{c.intitule_projet || '—'}</td>
+                    <td>{[c.prenom, c.nom].filter(Boolean).join(' ') || '—'}</td>
+                    <td class="muted">{c.email}</td>
+                    <td class="muted">{stadeLabel[c.reponses?.vous_et_votre_projet?.stade_avancement] ?? '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <p class="empty">Aucune candidature pour le moment.</p>
+        )}
+      </section>
+
+    </div>
+  </main>
+
+</body>
+</html>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--color-bg);
+    color: var(--color-text);
+    min-height: 100vh;
+  }
+
+  main { padding: 48px 24px; }
+  .container { max-width: 1200px; margin: 0 auto; }
+
+  .page-header { margin-bottom: 32px; }
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    color: var(--color-primary);
+    margin-bottom: 8px;
+  }
+  .sub { color: var(--color-muted); }
+
+  .section { margin-bottom: 40px; }
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .section-header h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    color: var(--color-primary);
+  }
+
+  .table-wrapper { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    min-width: 640px;
+  }
+  th {
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-muted);
+    background: var(--color-bg);
+    border-bottom: 1px solid var(--color-border);
+  }
+  td {
+    padding: 12px 16px;
+    font-size: 0.88rem;
+    border-bottom: 1px solid var(--color-border-light);
+  }
+  tr:last-child td { border-bottom: none; }
+  .bold { font-weight: 600; }
+  .muted { color: var(--color-muted); }
+  .clickable { cursor: pointer; transition: background 0.1s; }
+  .clickable:hover td { background: var(--color-bg); }
+
+  .empty { color: var(--color-muted); font-size: 0.9rem; padding: 24px 0; }
+</style>
