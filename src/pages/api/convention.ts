@@ -29,7 +29,7 @@ async function loadConventionData(cookies: { get: (name: string) => { value: str
 
   const { data: membre } = await admin
     .from('membres')
-    .select('id, nom, prenom, address, zip_code, city')
+    .select('id, nom, prenom, address, zip_code, city, structure')
     .eq('email', user.email)
     .single();
   if (!membre) return null;
@@ -75,9 +75,11 @@ async function loadConventionData(cookies: { get: (name: string) => { value: str
 
   const codePostalVille = [membre.zip_code, membre.city?.toUpperCase()].filter(Boolean).join(' ');
   const adresse = [membre.address, codePostalVille].filter(Boolean).join(', ');
+  const entete = membre.structure
+    ? `${membre.structure} domicilié ${adresse} représenté par ${nom}`
+    : `${nom} domicilé.e au ${adresse}`;
   const md = mdRaw
-    .replace('[NOM_ADHERENT]', nom)
-    .replace('[ADRESSE_ADHERENT]', adresse)
+    .replace('[ENTETE_APPORTEUR]', entete)
     .replace('[MONTANT_APPORT]', montant)
     .replace('[TABLEAU_TRANSACTIONS]', tableauTxs);
 

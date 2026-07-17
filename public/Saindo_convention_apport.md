@@ -2,7 +2,7 @@
 
 Entre les soussignés :
 
-**[NOM_ADHERENT] domicilé.e au [ADRESSE_ADHERENT]**,
+**[ENTETE_APPORTEUR]**,
 
 Ci-après désigné l'« Apporteur »,
 
