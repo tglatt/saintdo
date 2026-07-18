@@ -17,43 +17,86 @@
       background: #F7F3EE;
       color: #5C5C6B;
       font-size: 0.95rem;
+      padding: 24px;
+      text-align: center;
+    }
+    .box { max-width: 380px; }
+    .error { color: #B33A3A; margin-bottom: 16px; line-height: 1.5; }
+    a.btn {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 10px 20px;
+      background: #2C7A6E;
+      color: white;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
     }
   </style>
 </head>
 <body>
-  <p>Connexion en cours…</p>
+  <div class="box">
+    <p id="status">Connexion en cours…</p>
+  </div>
 
   <script>
+    function showError(message: string) {
+      const box = document.querySelector('.box')!;
+      box.innerHTML = `
+        <p class="error">${message}</p>
+        <a class="btn" href="/login">Retour à la connexion</a>
+      `;
+    }
+
     async function handleCallback() {
       // Les tokens sont dans le hash (#access_token=...&refresh_token=...)
       const hash = window.location.hash.substring(1);
       const params = new URLSearchParams(hash);
+
+      // Supabase renvoie une erreur dans le hash si le lien est déjà utilisé/expiré
+      const hashError = params.get('error_description') || params.get('error');
+      if (hashError) {
+        showError('Ce lien a expiré ou a déjà été utilisé. Merci de redemander un nouveau lien.');
+        return;
+      }
 
       const accessToken = params.get('access_token');
       const refreshToken = params.get('refresh_token');
       const expiresIn = params.get('expires_in');
 
       if (!accessToken || !refreshToken) {
-        window.location.href = '/login';
+        showError('Lien de connexion invalide.');
         return;
       }
 
       // Envoyer les tokens au serveur pour qu'il pose les cookies httpOnly
-      const res = await fetch('/auth/set-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ access_token: accessToken, refresh_token: refreshToken, expires_in: expiresIn }),
-      });
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+
+      let res: Response;
+      try {
+        res = await fetch('/auth/set-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ access_token: accessToken, refresh_token: refreshToken, expires_in: expiresIn }),
+          signal: controller.signal,
+        });
+      } catch {
+        showError('Impossible de se connecter (problème réseau). Merci de réessayer.');
+        return;
+      } finally {
+        clearTimeout(timeout);
+      }
 
       if (res.ok) {
         const next = new URLSearchParams(window.location.search).get('next');
         window.location.href = next || '/espace-membre';
       } else {
-        window.location.href = '/login';
+        showError('Impossible de se connecter. Merci de réessayer.');
       }
     }
 
-    handleCallback();
+    handleCallback().catch(() => showError('Une erreur inattendue est survenue. Merci de réessayer.'));
   </script>
 </body>
 </html>
