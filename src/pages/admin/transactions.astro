@@ -10,7 +10,7 @@ const supabase = createAdminClient();
 
 const { data: transactions } = await supabase
   .from('transactions')
-  .select('id, type, montant, date, paiement, helloasso_order_id, membres(nom, prenom, email)')
+  .select('id, type, montant, date, paiement, helloasso_order_id, membres(nom, prenom, email, structure)')
   .order('date', { ascending: false });
 
 const typeLabel: Record<string, string> = {
@@ -95,7 +95,10 @@ function fmtDate(iso: string | null) {
                   data-paiement={tx.paiement ?? ''}
                   data-search={`${nom} ${m?.email ?? ''} ${typeLabel[tx.type] ?? ''} ${paiementLabel[tx.paiement ?? ''] ?? ''}`.toLowerCase()}
                 >
-                  <td class="bold">{nom}</td>
+                  <td class="bold">
+                    {nom}
+                    {m?.structure && <div class="row-structure">{m.structure}</div>}
+                  </td>
                   <td class="muted">{m?.email ?? '—'}</td>
                   <td><span class={`badge badge-${tx.type}`}>{typeLabel[tx.type] ?? tx.type}</span></td>
                   <td class="muted">{fmtDate(tx.date)}</td>
@@ -313,6 +316,7 @@ function fmtDate(iso: string | null) {
   .right { text-align: right; }
   .bold { font-weight: 600; }
   .muted { color: var(--color-muted); }
+  .row-structure { font-size: 0.8rem; font-weight: 400; color: var(--color-muted); margin-top: 2px; }
 
   th.sortable { cursor: pointer; user-select: none; }
   th.sortable:hover { background: var(--color-primary-hover); }

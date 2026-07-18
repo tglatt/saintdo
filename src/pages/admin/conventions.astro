@@ -10,7 +10,7 @@ const supabase = createAdminClient();
 
 const { data: membres } = await supabase
   .from('membres')
-  .select('id, email, nom, prenom, convention_email_sent_at')
+  .select('id, email, nom, prenom, structure, convention_email_sent_at')
   .order('nom', { ascending: true });
 
 const { data: transactions } = await supabase
@@ -110,7 +110,10 @@ function fmtDate(iso: string | null) {
               <tbody>
                 {membresEnAttente.map(m => (
                   <tr class="clickable" onclick={`window.location='/admin/membres/${m.id}'`}>
-                    <td class="bold">{[m.nom, m.prenom].filter(Boolean).join(' ') || '—'}</td>
+                    <td class="bold">
+                      {[m.nom, m.prenom].filter(Boolean).join(' ') || '—'}
+                      {m.structure && <div class="row-structure">{m.structure}</div>}
+                    </td>
                     <td class="muted">{m.email}</td>
                     <td class="right">{euros(apportByMembre.get(m.id) ?? 0)}</td>
                     <td class="muted">{fmtDate(m.convention_email_sent_at)}</td>
@@ -286,6 +289,7 @@ function fmtDate(iso: string | null) {
   .bold { font-weight: 600; }
   .muted { color: var(--color-muted); }
   .right { text-align: right; }
+  .row-structure { font-size: 0.8rem; font-weight: 400; color: var(--color-muted); margin-top: 2px; }
   .clickable { cursor: pointer; transition: background 0.1s; }
   .clickable:hover td { background: var(--color-bg); }
 

@@ -130,6 +130,7 @@ function fmtDateTime(iso: string | null) {
                     <td class="bold">
                       {signedMemberIds.has(m.id) && <span class="convention-signed" title="Convention signée">✓</span>}
                       {[m.nom, m.prenom].filter(Boolean).join(' ') || '—'}
+                      {m.structure && <div class="row-structure">{m.structure}</div>}
                     </td>
                     <td class="muted">{m.email}</td>
                     <td class="muted">{fmtDate(dateAdhesion)}</td>
@@ -278,6 +279,7 @@ function fmtDateTime(iso: string | null) {
   .right { text-align: right; }
   .bold { font-weight: 600; }
   .muted { color: var(--color-muted); }
+  .row-structure { font-size: 0.8rem; font-weight: 400; color: var(--color-muted); margin-top: 2px; }
 
   .badge { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 600; }
   .badge-membre { background: var(--badge-membre-bg); color: var(--badge-membre-text); }
