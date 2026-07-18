@@ -41,9 +41,11 @@ export const PUT: APIRoute = async ({ request }) => {
   const body = await request.json().catch(() => null);
   if (!body) return new Response('Invalid JSON', { status: 400 });
 
-  const { id, nom, prenom, email, address, zip_code, city, country, date_naissance, ville_naissance, departement_naissance } = body;
+  const { id, nom, prenom, email, structure, role, address, zip_code, city, country, date_naissance, ville_naissance, departement_naissance } = body;
   if (!id) return new Response('Missing id', { status: 400 });
   if (email !== undefined && !email?.trim()) return new Response('Email invalide', { status: 400 });
+  if (role !== undefined && !['membre', 'admin'].includes(role))
+    return new Response('Rôle invalide', { status: 400 });
 
   const supabase = createAdminClient();
 
@@ -53,6 +55,8 @@ export const PUT: APIRoute = async ({ request }) => {
       ...(nom     !== undefined && { nom:      nom     || null }),
       ...(prenom  !== undefined && { prenom:   prenom  || null }),
       ...(email   !== undefined && { email:    email.trim().toLowerCase() }),
+      ...(structure !== undefined && { structure: structure || null }),
+      ...(role    !== undefined && { role }),
       ...(address !== undefined && { address:  address || null }),
       ...(zip_code !== undefined && { zip_code: zip_code || null }),
       ...(city    !== undefined && { city:     city    || null }),
