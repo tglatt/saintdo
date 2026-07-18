@@ -952,16 +952,33 @@ const paiementLabel: Record<string, string> = {
 
   // ── Envoyer convention ────────────────────────────────────────────────────────
   const btnConvention = document.getElementById('btn-send-convention');
+
+  async function sendConventionEmail(force) {
+    const res = await fetch('/api/admin/send-convention', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ membre_id: membreId, force }),
+    });
+    return res;
+  }
+
   btnConvention?.addEventListener('click', async () => {
     const label = btnConvention.textContent;
     btnConvention.disabled = true;
     btnConvention.textContent = 'Envoi…';
 
-    const res = await fetch('/api/admin/send-convention', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ membre_id: membreId }),
-    });
+    let res = await sendConventionEmail(false);
+
+    if (res.status === 429) {
+      const confirmed = confirm('Un email a déjà été envoyé dans les dernières 24h. Forcer l\'envoi quand même ?');
+      if (confirmed) {
+        res = await sendConventionEmail(true);
+      } else {
+        btnConvention.textContent = label;
+        btnConvention.disabled = false;
+        return;
+      }
+    }
 
     if (!res.ok) {
       alert(`Erreur : ${await res.text()}`);

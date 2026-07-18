@@ -16,7 +16,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   if (!membre) return new Response('Membre introuvable', { status: 404 });
 
-  if (membre.convention_email_sent_at) {
+  if (membre.convention_email_sent_at && !body.force) {
     const sentAt = new Date(membre.convention_email_sent_at).getTime();
     if (Date.now() - sentAt < 24 * 60 * 60 * 1000) {
       return new Response('Un email a déjà été envoyé dans les dernières 24h', { status: 429 });
