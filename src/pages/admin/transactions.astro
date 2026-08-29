@@ -1,5 +1,5 @@
 ---
-import { createAdminClient } from '../../lib/supabase';
+import { createAdminClient, fetchAll } from '../../lib/supabase';
 import AdminNav from '../../components/AdminNav.astro';
 import '../../styles/theme.css';
 
@@ -8,10 +8,11 @@ if (!user) return Astro.redirect('/login');
 
 const supabase = createAdminClient();
 
-const { data: transactions } = await supabase
+const transactions = await fetchAll(() => supabase
   .from('transactions')
   .select('id, type, montant, date, paiement, helloasso_order_id, membres(nom, prenom, email, structure)')
-  .order('date', { ascending: false });
+  .order('date', { ascending: false })
+  .order('id', { ascending: true }));
 
 const typeLabel: Record<string, string> = {
   adhesion: 'Adhésion',

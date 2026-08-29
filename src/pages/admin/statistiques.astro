@@ -1,5 +1,5 @@
 ---
-import { createAdminClient } from '../../lib/supabase';
+import { createAdminClient, fetchAll } from '../../lib/supabase';
 import AdminNav from '../../components/AdminNav.astro';
 import '../../styles/theme.css';
 
@@ -9,10 +9,10 @@ if (!user) return Astro.redirect('/login');
 const supabase = createAdminClient();
 
 const [
-  txRes,
+  txs,
   lastSyncRes,
 ] = await Promise.all([
-  supabase.from('transactions').select('type, montant, date'),
+  fetchAll(() => supabase.from('transactions').select('type, montant, date').order('id', { ascending: true })),
   supabase.from('syncs')
     .select('ended_at, status, nb_membres, nb_transactions, message')
     .order('started_at', { ascending: false })
@@ -20,7 +20,6 @@ const [
     .single(),
 ]);
 
-const txs = txRes.data ?? [];
 const lastSync = lastSyncRes.data;
 
 const totalAdhesion       = txs.filter(t => t.type === 'adhesion').reduce((s, t) => s + t.montant, 0);

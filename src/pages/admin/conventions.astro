@@ -1,5 +1,5 @@
 ---
-import { createAdminClient } from '../../lib/supabase';
+import { createAdminClient, fetchAll } from '../../lib/supabase';
 import AdminNav from '../../components/AdminNav.astro';
 import '../../styles/theme.css';
 
@@ -8,29 +8,32 @@ if (!user) return Astro.redirect('/login');
 
 const supabase = createAdminClient();
 
-const { data: membres } = await supabase
+const membres = await fetchAll(() => supabase
   .from('membres')
   .select('id, email, nom, prenom, structure, convention_email_sent_at')
-  .order('nom', { ascending: true });
+  .order('nom', { ascending: true })
+  .order('id', { ascending: true }));
 
-const { data: transactions } = await supabase
+const transactions = await fetchAll(() => supabase
   .from('transactions')
-  .select('membre_id, type, montant');
+  .select('membre_id, type, montant')
+  .order('id', { ascending: true }));
 
-const { data: signedConventions } = await supabase
+const signedConventions = await fetchAll(() => supabase
   .from('conventions')
-  .select('membre_id');
+  .select('membre_id')
+  .order('id', { ascending: true }));
 
-const signedMemberIds = new Set(signedConventions?.map(c => c.membre_id) ?? []);
+const signedMemberIds = new Set(signedConventions.map(c => c.membre_id));
 
 const apportByMembre = new Map<string, number>();
-for (const tx of transactions ?? []) {
+for (const tx of transactions) {
   if (tx.type === 'apport_associatif') {
     apportByMembre.set(tx.membre_id, (apportByMembre.get(tx.membre_id) ?? 0) + tx.montant);
   }
 }
 
-const membresEnAttente = (membres ?? []).filter(
+const membresEnAttente = membres.filter(
   m => apportByMembre.has(m.id) && !signedMemberIds.has(m.id)
 );
 

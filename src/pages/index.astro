@@ -1,5 +1,5 @@
 ---
-import { createAdminClient } from '../lib/supabase';
+import { createAdminClient, fetchAll } from '../lib/supabase';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
 import ContactSection from '../components/ContactSection.astro';
@@ -12,12 +12,13 @@ const OBJECTIF = 300000;
 const SUBVENTIONS = 25000;
 
 const supabase = createAdminClient();
-const { data: transactions } = await supabase
+const transactions = await fetchAll(() => supabase
   .from('transactions')
-  .select('type, montant');
+  .select('type, montant')
+  .order('id', { ascending: true }));
 
-const don = (transactions?.filter(t => t.type === 'adhesion' || t.type === 'don' || t.type === 'don_defiscalise').reduce((s, t) => s + t.montant, 0) ?? 0);
-const apport = transactions?.filter(t => t.type === 'apport_associatif').reduce((s, t) => s + t.montant, 0) ?? 0;
+const don = transactions.filter(t => t.type === 'adhesion' || t.type === 'don' || t.type === 'don_defiscalise').reduce((s, t) => s + t.montant, 0);
+const apport = transactions.filter(t => t.type === 'apport_associatif').reduce((s, t) => s + t.montant, 0);
 
 const { count: participantsCount } = await supabase
   .from('membres')

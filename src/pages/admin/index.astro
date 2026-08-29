@@ -1,5 +1,5 @@
 ---
-import { createAdminClient } from '../../lib/supabase';
+import { createAdminClient, fetchAll } from '../../lib/supabase';
 import AdminNav from '../../components/AdminNav.astro';
 import '../../styles/theme.css';
 
@@ -8,14 +8,16 @@ if (!user) return Astro.redirect('/login');
 
 const supabase = createAdminClient();
 
-const { data: membres } = await supabase
+const membres = await fetchAll(() => supabase
   .from('membres')
   .select('id, email, nom, prenom, structure, role, created_at, convention_email_sent_at')
-  .order('nom', { ascending: true });
+  .order('nom', { ascending: true })
+  .order('id', { ascending: true }));
 
-const { data: transactions } = await supabase
+const transactions = await fetchAll(() => supabase
   .from('transactions')
-  .select('membre_id, type, montant, date');
+  .select('membre_id, type, montant, date')
+  .order('id', { ascending: true }));
 
 const { data: lastSync } = await supabase
   .from('syncs')
@@ -24,10 +26,11 @@ const { data: lastSync } = await supabase
   .limit(1)
   .single();
 
-const { data: signedConventions } = await supabase
+const signedConventions = await fetchAll(() => supabase
   .from('conventions')
-  .select('membre_id');
-const signedMemberIds = new Set(signedConventions?.map(c => c.membre_id) ?? []);
+  .select('membre_id')
+  .order('id', { ascending: true }));
+const signedMemberIds = new Set(signedConventions.map(c => c.membre_id));
 
 
 

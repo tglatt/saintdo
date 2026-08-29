@@ -1,24 +1,26 @@
 import type { APIRoute } from 'astro';
-import { createAdminClient } from '../../../lib/supabase';
+import { createAdminClient, fetchAll } from '../../../lib/supabase';
 import { sendConventionEmail } from '../../../lib/send-convention-email';
 
 export const POST: APIRoute = async ({ request }) => {
   const supabase = createAdminClient();
 
-  const { data: apportTxs } = await supabase
+  const apportTxs = await fetchAll(() => supabase
     .from('transactions')
     .select('membre_id')
-    .eq('type', 'apport_associatif');
+    .eq('type', 'apport_associatif')
+    .order('id', { ascending: true }));
 
-  const apportIds = [...new Set(apportTxs?.map(t => t.membre_id) ?? [])];
+  const apportIds = [...new Set(apportTxs.map(t => t.membre_id))];
   if (apportIds.length === 0) {
     return new Response(JSON.stringify({ sent: 0, errors: [] }), { headers: { 'Content-Type': 'application/json' } });
   }
 
-  const { data: signed } = await supabase
+  const signed = await fetchAll(() => supabase
     .from('conventions')
-    .select('membre_id');
-  const signedIds = new Set(signed?.map(c => c.membre_id) ?? []);
+    .select('membre_id')
+    .order('id', { ascending: true }));
+  const signedIds = new Set(signed.map(c => c.membre_id));
 
   const pendingIds = apportIds.filter(id => !signedIds.has(id));
   if (pendingIds.length === 0) {

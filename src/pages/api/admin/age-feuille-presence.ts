@@ -1,6 +1,6 @@
 import type { APIRoute } from 'astro';
 import { PDFDocument, StandardFonts, rgb, type PDFPage, type PDFFont } from 'pdf-lib';
-import { createAdminClient } from '../../../lib/supabase';
+import { createAdminClient, fetchAll } from '../../../lib/supabase';
 import { sanitize } from '../../../lib/convention-pdf';
 
 const COL_X    = [36, 61, 226, 316, 436];
@@ -56,23 +56,23 @@ function drawHeader(page: PDFPage, y: number, bold: PDFFont) {
 export const GET: APIRoute = async () => {
   const supabase = createAdminClient();
 
-  const [{ data: membres }, { data: reponses }, { data: transactions }] = await Promise.all([
-    supabase.from('membres').select('id, nom, prenom').order('nom', { ascending: true }),
-    supabase.from('age_reponses').select('membre_id, pouvoir_a, presence'),
-    supabase.from('transactions').select('membre_id, date').eq('type', 'adhesion').order('date', { ascending: true }),
+  const [membres, reponses, transactions] = await Promise.all([
+    fetchAll(() => supabase.from('membres').select('id, nom, prenom').order('nom', { ascending: true }).order('id', { ascending: true })),
+    fetchAll(() => supabase.from('age_reponses').select('membre_id, pouvoir_a, presence').order('id', { ascending: true })),
+    fetchAll(() => supabase.from('transactions').select('membre_id, date').eq('type', 'adhesion').order('date', { ascending: true }).order('id', { ascending: true })),
   ]);
 
   const pouvoirMap = new Map<string, string>();
-  for (const r of reponses ?? []) {
+  for (const r of reponses) {
     if (r.membre_id && !r.presence && r.pouvoir_a) pouvoirMap.set(r.membre_id, r.pouvoir_a);
   }
 
   const adhesionMap = new Map<string, string>();
-  for (const t of transactions ?? []) {
+  for (const t of transactions) {
     if (t.membre_id && !adhesionMap.has(t.membre_id)) adhesionMap.set(t.membre_id, t.date);
   }
 
-  const rows = (membres ?? []).map((m, i) => ({
+  const rows = membres.map((m, i) => ({
     num:      String(i + 1),
     nomPrenom: `${m.nom ? m.nom.toUpperCase() : '—'} ${m.prenom ?? '—'}`,
     adhesion:  adhesionMap.has(m.id) ? fmtDateShort(adhesionMap.get(m.id)!) : '—',

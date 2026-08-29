@@ -1,4 +1,4 @@
-import { createAdminClient } from './supabase';
+import { createAdminClient, fetchAll } from './supabase';
 
 const API_BASE = 'https://api.helloasso.com/v5';
 const ORG = 'le-saint-domingue';
@@ -192,12 +192,14 @@ export async function syncMembers(): Promise<{ ok: boolean; message: string }> {
 
     // Récupérer les IDs des membres pour les FK
     const emails = [...membresMap.keys()];
-    const { data: membresData, error: fetchError } = await supabase
-      .from('membres')
-      .select('id, email')
-      .in('email', emails);
-
-    if (fetchError || !membresData) {
+    let membresData: { id: string; email: string }[];
+    try {
+      membresData = await fetchAll(() => supabase
+        .from('membres')
+        .select('id, email')
+        .in('email', emails)
+        .order('id', { ascending: true }));
+    } catch (fetchError: any) {
       return finalize(false, `Erreur fetch membres: ${fetchError?.message}`);
     }
 

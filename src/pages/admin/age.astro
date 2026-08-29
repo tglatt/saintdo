@@ -1,5 +1,5 @@
 ---
-import { createAdminClient } from '../../lib/supabase';
+import { createAdminClient, fetchAll } from '../../lib/supabase';
 import AdminNav from '../../components/AdminNav.astro';
 import '../../styles/theme.css';
 
@@ -8,30 +8,32 @@ if (!user) return Astro.redirect('/login');
 
 const supabase = createAdminClient();
 
-const { data: reponses } = await supabase
+const reponses = await fetchAll(() => supabase
   .from('age_reponses')
   .select('email, membre_id, presence, pouvoir_a, signature, updated_at, membres(nom, prenom)')
-  .order('updated_at', { ascending: false });
+  .order('updated_at', { ascending: false })
+  .order('id', { ascending: true }));
 
 const { data: membres } = await supabase
   .from('membres')
   .select('id', { count: 'exact' });
 
 const threshold = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-const repondusIds = reponses?.map(r => (r as any).membre_id).filter(Boolean) ?? [];
+const repondusIds = reponses.map(r => (r as any).membre_id).filter(Boolean);
 
 let membresAEnvoyerQuery = supabase
   .from('membres')
   .select('id')
-  .or(`age_email_sent_at.is.null,age_email_sent_at.lt.${threshold}`);
+  .or(`age_email_sent_at.is.null,age_email_sent_at.lt.${threshold}`)
+  .order('id', { ascending: true });
 
 if (repondusIds.length > 0) {
   membresAEnvoyerQuery = membresAEnvoyerQuery.not('id', 'in', `(${repondusIds.join(',')})`);
 }
 
-const { data: membresAEnvoyer } = await membresAEnvoyerQuery;
+const membresAEnvoyer = await fetchAll(() => membresAEnvoyerQuery);
 
-const totalAEnvoyer = membresAEnvoyer?.length ?? 0;
+const totalAEnvoyer = membresAEnvoyer.length;
 const canSend = totalAEnvoyer > 0;
 
 let nextSendAt: Date | null = null;

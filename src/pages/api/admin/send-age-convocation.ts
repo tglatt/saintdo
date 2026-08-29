@@ -1,7 +1,7 @@
 import type { APIRoute } from 'astro';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { createAdminClient } from '../../../lib/supabase';
+import { createAdminClient, fetchAll } from '../../../lib/supabase';
 import { sendAgeEmail } from '../../../lib/send-age-email';
 
 export const POST: APIRoute = async ({ request }) => {
@@ -9,26 +9,28 @@ export const POST: APIRoute = async ({ request }) => {
 
   const threshold = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-  const { data: reponses } = await supabase
+  const reponses = await fetchAll(() => supabase
     .from('age_reponses')
     .select('membre_id')
-    .not('membre_id', 'is', null);
+    .not('membre_id', 'is', null)
+    .order('id', { ascending: true }));
 
-  const repondusIds = reponses?.map(r => r.membre_id).filter(Boolean) ?? [];
+  const repondusIds = reponses.map(r => r.membre_id).filter(Boolean);
 
   let query = supabase
     .from('membres')
     .select('id, email, nom, prenom')
     .or(`age_email_sent_at.is.null,age_email_sent_at.lt.${threshold}`)
-    .order('nom', { ascending: true });
+    .order('nom', { ascending: true })
+    .order('id', { ascending: true });
 
   if (repondusIds.length > 0) {
     query = query.not('id', 'in', `(${repondusIds.join(',')})`);
   }
 
-  const { data: membres } = await query;
+  const membres = await fetchAll(() => query);
 
-  if (!membres || membres.length === 0) {
+  if (membres.length === 0) {
     return new Response(JSON.stringify({ sent: 0, errors: [] }), {
       headers: { 'Content-Type': 'application/json' },
     });

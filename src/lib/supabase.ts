@@ -14,6 +14,28 @@ export function createAdminClient() {
   });
 }
 
+// PostgREST plafonne chaque réponse à 1000 lignes. Pour les lectures de table
+// entière (transactions, membres…), il faut donc paginer explicitement, sinon les
+// enregistrements au-delà du millier disparaissent silencieusement des totaux.
+// La requête passée doit se terminer par un tri stable (`.order('id')` en dernier
+// critère) : sans lui, l'ordre des pages n'est pas garanti et des lignes peuvent
+// être dupliquées ou omises.
+const PAGE_SIZE = 1000;
+
+export async function fetchAll<T = any>(
+  buildQuery: () => any,
+): Promise<T[]> {
+  const rows: T[] = [];
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await buildQuery().range(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    if (!data?.length) break;
+    rows.push(...(data as T[]));
+    if (data.length < PAGE_SIZE) break;
+  }
+  return rows;
+}
+
 export type Membre = {
   id: string;
   email: string;
