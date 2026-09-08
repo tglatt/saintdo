@@ -102,6 +102,7 @@ function fmtDateTime(iso: string | null) {
           <h2>Membres ({totalMembres})</h2>
           <div class="section-header-right">
             <input type="text" id="search" placeholder="Rechercher par nom ou email…" autocomplete="off" />
+            <a href="/api/admin/export-membres" class="btn-create btn-create--secondary" download>Exporter en CSV</a>
             <button id="btn-create-membre" class="btn-create">+ Nouveau membre</button>
           </div>
         </div>
@@ -312,6 +313,7 @@ function fmtDateTime(iso: string | null) {
     white-space: nowrap;
   }
   .btn-create:hover { background: var(--color-primary); }
+  a.btn-create { text-decoration: none; display: inline-block; }
   .btn-create--secondary {
     background: white;
     color: var(--color-primary-mid);
