@@ -125,12 +125,11 @@ function euros(n: number) {
             <span class="gauge-flag-check">✓</span>
             <span>
               <strong>{dernierAtteint.annonce}</strong>
-              {prochain
-                ? ` Les ${euros(dernierAtteint.montant)} sont réunis — prochain palier : ${prochain.label} à ${euros(prochain.montant)}.`
-                : ` L'objectif de ${euros(OBJECTIF)} est atteint. Merci !`}
+              {prochain ? ` Objectif suivant : ${prochain.label}.` : ' Merci à toutes et tous !'}
             </span>
           </div>
         )}
+        <p class="gauge-collecte-title">Collecté à ce jour</p>
         <div class="gauge-amounts">
           <div class="gauge-total">{euros(totalAvecSubventions)}</div>
           <div class="gauge-amounts-right">
@@ -146,15 +145,6 @@ function euros(n: number) {
             <div class="gauge-marker" style={`left: ${p.pct}%`}></div>
           ))}
         </div>
-        <div class="gauge-paliers">
-          {paliers.map(p => (
-            <span class:list={['gauge-palier', { 'gauge-palier--done': p.atteint, 'gauge-palier--next': p === prochain }]}>
-              <span class="gauge-palier-dot">{p.atteint ? '✓' : ''}</span>
-              <strong>{euros(p.montant)}</strong>
-              <em>{p.label}</em>
-            </span>
-          ))}
-        </div>
         <div class="gauge-details">
           <span><strong style="color: #8E8BC4">{euros(SUBVENTIONS)}</strong><em>subventions</em></span>
           <span><strong style="color: #B0ADD4">{euros(stats.apport)}</strong><em>apports associatifs</em></span>
@@ -162,6 +152,19 @@ function euros(n: number) {
         </div>
         <div class="gauge-participants">
           <strong>{stats.participants}</strong> participant{stats.participants > 1 ? 's' : ''}
+        </div>
+        <div class="gauge-steps">
+          <p class="gauge-steps-title">Les paliers de la collecte</p>
+          <ul class="gauge-paliers">
+            {paliers.map(p => (
+              <li class:list={['gauge-palier', { 'gauge-palier--done': p.atteint, 'gauge-palier--next': p === prochain }]}>
+                <span class="gauge-palier-dot">{p.atteint ? '✓' : ''}</span>
+                <strong>{euros(p.montant)}</strong>
+                <em>{p.label}</em>
+                <span class="gauge-palier-etat">{p.atteint ? 'atteint' : p === prochain ? 'en cours' : 'à venir'}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
 
@@ -754,7 +757,7 @@ function euros(n: number) {
     background: rgba(255,255,255,0.15);
     border-radius: 99px;
     overflow: hidden;
-    margin-bottom: 8px;
+    margin-bottom: 14px;
     display: flex;
   }
   .gauge-fill {
@@ -776,48 +779,77 @@ function euros(n: number) {
     background: white;
     box-shadow: 0 0 6px rgba(0,0,0,0.45);
   }
+  /* Les paliers (objectifs) — en bas, séparés des montants réellement collectés */
+  .gauge-steps {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.15);
+  }
+  .gauge-steps-title,
+  .gauge-collecte-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 10px;
+  }
+  .gauge-collecte-title { margin-bottom: 6px; }
   .gauge-paliers {
+    list-style: none;
     display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 6px 14px;
-    margin-bottom: 14px;
-    font-size: 0.78rem;
+    flex-direction: column;
+    gap: 7px;
+    font-size: 0.85rem;
     color: rgba(255,255,255,0.45);
   }
   .gauge-palier {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 8px;
   }
-  .gauge-palier strong { color: rgba(255,255,255,0.6); font-weight: 600; }
+  .gauge-palier strong {
+    min-width: 5.5em;
+    color: rgba(255,255,255,0.6);
+    font-weight: 600;
+  }
   .gauge-palier em { font-style: normal; }
+  .gauge-palier-etat {
+    margin-left: auto;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
   .gauge-palier-dot {
     flex: none;
     display: grid;
     place-items: center;
-    width: 15px;
-    height: 15px;
+    width: 16px;
+    height: 16px;
     border-radius: 50%;
     border: 1.5px solid currentColor;
-    font-size: 0.6rem;
+    font-size: 0.62rem;
     line-height: 1;
   }
   /* Palier franchi */
-  .gauge-palier--done { color: rgba(223,200,90,0.9); }
-  .gauge-palier--done strong { color: #DFC85A; font-weight: 700; }
+  .gauge-palier--done { color: rgba(255,255,255,0.75); }
+  .gauge-palier--done strong { color: white; font-weight: 700; }
   .gauge-palier--done .gauge-palier-dot {
-    background: #DFC85A;
-    border-color: #DFC85A;
+    background: white;
+    border-color: white;
     color: var(--green-dark);
     font-weight: 700;
   }
   /* Palier en cours */
-  .gauge-palier--next { color: rgba(255,255,255,0.8); }
+  .gauge-palier--next { color: rgba(255,255,255,0.75); }
   .gauge-palier--next strong { color: white; font-weight: 700; }
-  .gauge-palier--next .gauge-palier-dot { border-color: white; }
+  .gauge-palier--next .gauge-palier-dot {
+    border-color: white;
+    box-shadow: inset 0 0 0 3px rgba(255,255,255,0.35);
+  }
   @media (max-width: 480px) {
-    .gauge-paliers { flex-direction: column; align-items: flex-start; gap: 4px; font-size: 0.75rem; }
+    .gauge-palier { font-size: 0.8rem; gap: 6px; }
+    .gauge-palier strong { min-width: 4.8em; }
   }
   .gauge-details {
     display: flex;
@@ -844,7 +876,7 @@ function euros(n: number) {
   }
   .gauge-participants {
     text-align: center;
-    margin-top: 6px;
+    margin-top: 10px;
     font-size: 0.82rem;
     color: rgba(255,255,255,0.6);
   }
