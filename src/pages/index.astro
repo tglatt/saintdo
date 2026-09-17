@@ -8,8 +8,14 @@ const ctaAdhesion = "https://www.helloasso.com/associations/le-saint-domingue/ad
 const ctaDon = "https://www.helloasso.com/associations/graine-de-moutarde-fonds-de-dotation/collectes/rehabilitation-de-l-hotel-saint-domingue";
 const ctaApport = "https://www.helloasso.com/associations/le-saint-domingue/boutiques/apports-associatifs";
 
-const OBJECTIF = 300000;
-const SUBVENTIONS = 25000;
+// Paliers successifs de la collecte, en montants cumulés.
+const PALIERS = [
+  { montant: 300000, label: 'acquisition', annonce: "L'acquisition est financée !" },
+  { montant: 360000, label: 'expérimentation', annonce: "L'expérimentation est financée !" },
+  { montant: 500000, label: 'premiers travaux', annonce: 'Les premiers travaux sont financés !' },
+];
+const OBJECTIF = PALIERS[PALIERS.length - 1].montant;
+const SUBVENTIONS = 35000;
 
 const supabase = createAdminClient();
 const transactions = await fetchAll(() => supabase
@@ -31,6 +37,13 @@ const pct = Math.min(Math.round((totalAvecSubventions / OBJECTIF) * 100), 100);
 const pctDon = Math.min(Math.round((stats.don / OBJECTIF) * 100), 100);
 const pctApport = Math.min(Math.round((stats.apport / OBJECTIF) * 100), 100);
 const pctSubventions = Math.min(Math.round((SUBVENTIONS / OBJECTIF) * 100), 100);
+const paliers = PALIERS.map(p => ({
+  ...p,
+  pct: Math.round((p.montant / OBJECTIF) * 100),
+  atteint: totalAvecSubventions >= p.montant,
+}));
+const dernierAtteint = [...paliers].reverse().find(p => p.atteint);
+const prochain = paliers.find(p => !p.atteint);
 
 function euros(n: number) {
   return n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });
@@ -107,6 +120,17 @@ function euros(n: number) {
 
       <!-- JAUGE -->
       <div class="gauge">
+        {dernierAtteint && (
+          <div class="gauge-flag">
+            <span class="gauge-flag-check">✓</span>
+            <span>
+              <strong>{dernierAtteint.annonce}</strong>
+              {prochain
+                ? ` Les ${euros(dernierAtteint.montant)} sont réunis — prochain palier : ${prochain.label} à ${euros(prochain.montant)}.`
+                : ` L'objectif de ${euros(OBJECTIF)} est atteint. Merci !`}
+            </span>
+          </div>
+        )}
         <div class="gauge-amounts">
           <div class="gauge-total">{euros(totalAvecSubventions)}</div>
           <div class="gauge-amounts-right">
@@ -118,6 +142,18 @@ function euros(n: number) {
           <div class="gauge-fill gauge-fill--subvention" style={`width: ${pctSubventions}%`}></div>
           <div class="gauge-fill gauge-fill--apport" style={`width: ${pctApport}%`}></div>
           <div class="gauge-fill gauge-fill--don" style={`width: ${pctDon}%`}></div>
+          {paliers.slice(0, -1).map(p => (
+            <div class="gauge-marker" style={`left: ${p.pct}%`}></div>
+          ))}
+        </div>
+        <div class="gauge-paliers">
+          {paliers.map(p => (
+            <span class:list={['gauge-palier', { 'gauge-palier--done': p.atteint, 'gauge-palier--next': p === prochain }]}>
+              <span class="gauge-palier-dot">{p.atteint ? '✓' : ''}</span>
+              <strong>{euros(p.montant)}</strong>
+              <em>{p.label}</em>
+            </span>
+          ))}
         </div>
         <div class="gauge-details">
           <span><strong style="color: #8E8BC4">{euros(SUBVENTIONS)}</strong><em>subventions</em></span>
@@ -658,6 +694,36 @@ function euros(n: number) {
     margin-bottom: 20px;
     backdrop-filter: blur(8px);
   }
+  /* Bandeau de victoire : le 1er palier (acquisition) est financé */
+  .gauge-flag {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+    padding: 10px 14px;
+    border-radius: 99px;
+    background: rgba(223,200,90,0.16);
+    border: 1px solid rgba(223,200,90,0.45);
+    font-size: 0.88rem;
+    line-height: 1.35;
+    color: rgba(255,255,255,0.85);
+  }
+  .gauge-flag strong { color: #DFC85A; font-weight: 700; }
+  .gauge-flag-check {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #DFC85A;
+    color: var(--green-dark);
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+  @media (max-width: 480px) {
+    .gauge-flag { border-radius: var(--radius); font-size: 0.8rem; padding: 10px 12px; }
+  }
   .gauge-amounts {
     display: flex;
     align-items: center;
@@ -682,12 +748,13 @@ function euros(n: number) {
     color: rgba(255,255,255,0.6);
   }
   .gauge-bar {
+    position: relative;
     width: 100%;
     height: 10px;
     background: rgba(255,255,255,0.15);
     border-radius: 99px;
     overflow: hidden;
-    margin-bottom: 14px;
+    margin-bottom: 8px;
     display: flex;
   }
   .gauge-fill {
@@ -699,6 +766,59 @@ function euros(n: number) {
   .gauge-fill--subvention { background: #5A579E; }
   .gauge-fill--apport    { background: #8E8BC4; }
   .gauge-fill--don       { background: #DFC85A; }
+  /* Repère du 1er palier (acquisition) sur la jauge en deux parties */
+  .gauge-marker {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    margin-left: -1.5px;
+    background: white;
+    box-shadow: 0 0 6px rgba(0,0,0,0.45);
+  }
+  .gauge-paliers {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 6px 14px;
+    margin-bottom: 14px;
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.45);
+  }
+  .gauge-palier {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .gauge-palier strong { color: rgba(255,255,255,0.6); font-weight: 600; }
+  .gauge-palier em { font-style: normal; }
+  .gauge-palier-dot {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    border: 1.5px solid currentColor;
+    font-size: 0.6rem;
+    line-height: 1;
+  }
+  /* Palier franchi */
+  .gauge-palier--done { color: rgba(223,200,90,0.9); }
+  .gauge-palier--done strong { color: #DFC85A; font-weight: 700; }
+  .gauge-palier--done .gauge-palier-dot {
+    background: #DFC85A;
+    border-color: #DFC85A;
+    color: var(--green-dark);
+    font-weight: 700;
+  }
+  /* Palier en cours */
+  .gauge-palier--next { color: rgba(255,255,255,0.8); }
+  .gauge-palier--next strong { color: white; font-weight: 700; }
+  .gauge-palier--next .gauge-palier-dot { border-color: white; }
+  @media (max-width: 480px) {
+    .gauge-paliers { flex-direction: column; align-items: flex-start; gap: 4px; font-size: 0.75rem; }
+  }
   .gauge-details {
     display: flex;
     justify-content: space-between;
