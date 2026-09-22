@@ -15,7 +15,7 @@ const PALIERS = [
   { montant: 500000, label: 'premiers travaux', annonce: 'Les premiers travaux sont financés !' },
 ];
 const OBJECTIF = PALIERS[PALIERS.length - 1].montant;
-const SUBVENTIONS = 35000;
+const SUBVENTIONS = 30000;
 
 const supabase = createAdminClient();
 const transactions = await fetchAll(() => supabase
