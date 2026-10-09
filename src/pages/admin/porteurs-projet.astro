@@ -49,6 +49,9 @@ const stadeLabel: Record<string, string> = {
       <section class="section">
         <div class="section-header">
           <h2>Candidatures ({candidatures?.length ?? 0})</h2>
+          {candidatures && candidatures.length > 0 && (
+            <a href="/api/admin/export-porteurs-projet" class="btn-export" download>Exporter en CSV</a>
+          )}
         </div>
 
         {candidatures && candidatures.length > 0 ? (
@@ -194,6 +197,21 @@ const stadeLabel: Record<string, string> = {
     font-size: 1.3rem;
     color: var(--color-primary);
   }
+
+  .btn-export {
+    padding: 8px 16px;
+    background: white;
+    color: var(--color-primary-mid);
+    border: 1.5px solid var(--color-primary-mid);
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    font-family: inherit;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background 0.2s;
+  }
+  .btn-export:hover { background: var(--color-success-bg); }
 
   .table-wrapper { overflow-x: auto; }
   table {
