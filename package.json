@@ -6,7 +6,8 @@
     "dev": "astro dev",
     "start": "astro dev",
     "build": "astro build",
-    "preview": "astro preview"
+    "preview": "astro preview",
+    "backup": "node --env-file=.env scripts/backup-db.mjs"
   },
   "dependencies": {
     "@astrojs/vercel": "^8.0.0",

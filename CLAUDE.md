@@ -8,6 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 npm run dev      # Serveur de développement → http://localhost:4321
 npm run build    # Build de production
 npm run preview  # Prévisualiser le build
+npm run backup   # Sauvegarde des tables Supabase (JSON local + archive .gz sur Framaspace)
 ```
 
 Il n'y a pas de tests automatisés ni de linter configurés.
