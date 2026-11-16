@@ -1,5 +1,5 @@
 ---
-import { createAdminClient, fetchAll } from '../lib/supabase';
+import { getCollecte } from '../lib/collecte';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
 import ContactSection from '../components/ContactSection.astro';
@@ -8,42 +8,13 @@ const ctaAdhesion = "https://www.helloasso.com/associations/le-saint-domingue/ad
 const ctaDon = "https://www.helloasso.com/associations/graine-de-moutarde-fonds-de-dotation/collectes/rehabilitation-de-l-hotel-saint-domingue";
 const ctaApport = "https://www.helloasso.com/associations/le-saint-domingue/boutiques/apports-associatifs";
 
-// Paliers successifs de la collecte, en montants cumulés.
-const PALIERS = [
-  { montant: 300000, label: 'acquisition', annonce: "L'acquisition est financée !" },
-  { montant: 360000, label: 'expérimentation', annonce: "L'expérimentation est financée !" },
-  { montant: 500000, label: 'premiers travaux', annonce: 'Les premiers travaux sont financés !' },
-];
-const OBJECTIF = PALIERS[PALIERS.length - 1].montant;
-const SUBVENTIONS = 30000 + 45000;
-
-const supabase = createAdminClient();
-const transactions = await fetchAll(() => supabase
-  .from('transactions')
-  .select('type, montant')
-  .order('id', { ascending: true }));
-
-const don = transactions.filter(t => t.type === 'adhesion' || t.type === 'don' || t.type === 'don_defiscalise').reduce((s, t) => s + t.montant, 0);
-const apport = transactions.filter(t => t.type === 'apport_associatif').reduce((s, t) => s + t.montant, 0);
-
-const { count: participantsCount } = await supabase
-  .from('membres')
-  .select('id', { count: 'exact', head: true });
-
-const stats = { don, apport, participants: participantsCount ?? 0 };
-const total = stats.don + stats.apport;
-const totalAvecSubventions = total + SUBVENTIONS;
-const pct = Math.min(Math.round((totalAvecSubventions / OBJECTIF) * 100), 100);
-const pctDon = Math.min(Math.round((stats.don / OBJECTIF) * 100), 100);
-const pctApport = Math.min(Math.round((stats.apport / OBJECTIF) * 100), 100);
-const pctSubventions = Math.min(Math.round((SUBVENTIONS / OBJECTIF) * 100), 100);
-const paliers = PALIERS.map(p => ({
-  ...p,
-  pct: Math.round((p.montant / OBJECTIF) * 100),
-  atteint: totalAvecSubventions >= p.montant,
-}));
-const dernierAtteint = [...paliers].reverse().find(p => p.atteint);
-const prochain = paliers.find(p => !p.atteint);
+// Montants, pourcentages et paliers de la collecte (logique partagée avec
+// la route JSON /api/public/collecte utilisée par le site WordPress).
+const {
+  objectif: OBJECTIF, subventions: SUBVENTIONS, totalAvecSubventions,
+  pct, pctDon, pctApport, pctSubventions, paliers, dernierAtteint, prochain,
+  ...stats
+} = await getCollecte();
 
 function euros(n: number) {
   return n.toLocaleString('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 });

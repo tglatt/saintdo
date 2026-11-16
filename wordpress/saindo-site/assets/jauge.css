@@ -1,0 +1,202 @@
+/* Jauge de collecte — portée depuis src/pages/index.astro (application Astro). */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap');
+
+.saindo-gauge {
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 20px;
+  backdrop-filter: blur(8px);
+}
+/* Bandeau de victoire : le 1er palier (acquisition) est financé */
+.saindo-gauge .gauge-flag {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding: 10px 14px;
+  border-radius: 99px;
+  background: rgba(223,200,90,0.16);
+  border: 1px solid rgba(223,200,90,0.45);
+  font-size: 0.88rem;
+  line-height: 1.35;
+  color: rgba(255,255,255,0.85);
+}
+.saindo-gauge .gauge-flag strong { color: #DFC85A; font-weight: 700; }
+.saindo-gauge .gauge-flag-check {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #DFC85A;
+  color: #2D2A68;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+@media (max-width: 480px) {
+  .saindo-gauge .gauge-flag { border-radius: 12px; font-size: 0.8rem; padding: 10px 12px; }
+}
+.saindo-gauge .gauge-amounts {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.saindo-gauge .gauge-amounts-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.saindo-gauge .gauge-total {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: white;
+  line-height: 1;
+}
+.saindo-gauge .gauge-goal {
+  font-size: 1rem;
+  color: rgba(255,255,255,0.6);
+}
+.saindo-gauge .gauge-bar {
+  position: relative;
+  width: 100%;
+  height: 10px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 14px;
+  display: flex;
+}
+.saindo-gauge .gauge-fill {
+  height: 100%;
+  background: #B0ADD4;
+  transition: width 1.2s ease;
+  min-width: 4px;
+}
+.saindo-gauge .gauge-fill--subvention { background: #5A579E; }
+.saindo-gauge .gauge-fill--apport    { background: #8E8BC4; }
+.saindo-gauge .gauge-fill--don       { background: #DFC85A; }
+/* Repère du 1er palier (acquisition) sur la jauge en deux parties */
+.saindo-gauge .gauge-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  margin-left: -1.5px;
+  background: white;
+  box-shadow: 0 0 6px rgba(0,0,0,0.45);
+}
+/* Les paliers (objectifs) — en bas, séparés des montants réellement collectés */
+.saindo-gauge .gauge-steps {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255,255,255,0.15);
+}
+.saindo-gauge .gauge-steps-title,
+.saindo-gauge .gauge-collecte-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.5);
+  margin-bottom: 10px;
+}
+.saindo-gauge .gauge-collecte-title { margin-bottom: 6px; }
+.saindo-gauge .gauge-paliers {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 0.85rem;
+  color: rgba(255,255,255,0.45);
+}
+.saindo-gauge .gauge-palier {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.saindo-gauge .gauge-palier strong {
+  min-width: 5.5em;
+  color: rgba(255,255,255,0.6);
+  font-weight: 600;
+}
+.saindo-gauge .gauge-palier em { font-style: normal; }
+.saindo-gauge .gauge-palier-etat {
+  margin-left: auto;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.saindo-gauge .gauge-palier-dot {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid currentColor;
+  font-size: 0.62rem;
+  line-height: 1;
+}
+/* Palier franchi */
+.saindo-gauge .gauge-palier--done { color: rgba(255,255,255,0.75); }
+.saindo-gauge .gauge-palier--done strong { color: white; font-weight: 700; }
+.saindo-gauge .gauge-palier--done .saindo-gauge .gauge-palier-dot {
+  background: white;
+  border-color: white;
+  color: #2D2A68;
+  font-weight: 700;
+}
+/* Palier en cours */
+.saindo-gauge .gauge-palier--next { color: rgba(255,255,255,0.75); }
+.saindo-gauge .gauge-palier--next strong { color: white; font-weight: 700; }
+.saindo-gauge .gauge-palier--next .saindo-gauge .gauge-palier-dot {
+  border-color: white;
+  box-shadow: inset 0 0 0 3px rgba(255,255,255,0.35);
+}
+@media (max-width: 480px) {
+  .saindo-gauge .gauge-palier { font-size: 0.8rem; gap: 6px; }
+  .saindo-gauge .gauge-palier strong { min-width: 4.8em; }
+}
+.saindo-gauge .gauge-details {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.6);
+}
+.saindo-gauge .gauge-details em { font-style: normal; margin-left: 4px; }
+@media (max-width: 480px) {
+  .saindo-gauge .gauge-details span {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .saindo-gauge .gauge-details em { margin-left: 0; font-size: 0.75rem; text-align: center; }
+  .saindo-gauge .gauge-details strong { font-size: 0.88rem; }
+}
+.saindo-gauge .gauge-pct {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #B0ADD4;
+  line-height: 1;
+}
+.saindo-gauge .gauge-participants {
+  text-align: center;
+  margin-top: 10px;
+  font-size: 0.82rem;
+  color: rgba(255,255,255,0.6);
+}
+.saindo-gauge .gauge-participants strong { color: white; }
+
+
+.saindo-gauge { font-family: 'Inter', system-ui, sans-serif; color: rgba(255,255,255,0.85); line-height: 1.5; }
+.saindo-gauge * { box-sizing: border-box; }
+.saindo-gauge p, .saindo-gauge ul { margin: 0; padding: 0; }
+.saindo-gauge--empty { text-align: center; }
+/* Fond sombre attendu : à placer dans un bloc de couleur #2D2A68 (ou équivalent) côté WordPress. */

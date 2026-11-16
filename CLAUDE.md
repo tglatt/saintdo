@@ -65,6 +65,16 @@ Les pages `.astro` font leurs requêtes Supabase directement dans le frontmatter
 
 **`syncs`** — journal des synchronisations (démarrage, fin, statut, compteurs).
 
+### Site vitrine WordPress
+
+Les pages publiques (accueil, je-contribue, j-ai-un-projet, questionnaire, FAQ, qui-sommes-nous) migrent vers un WordPress hébergé à part, sur `saindo.org` ; l'application Astro passe sur `app.saindo.org`. Le plugin WordPress et la procédure de bascule sont dans `wordpress/`.
+
+L'application expose pour WordPress :
+- `GET /api/public/collecte` — chiffres de la jauge (logique partagée avec l'accueil dans `src/lib/collecte.ts`)
+- `POST /api/newsletter` et `POST /api/candidature-projet` — formulaires, appelés en cross-origin
+
+Ces trois routes renvoient des en-têtes CORS (`src/lib/cors.ts`) pour les origines listées dans `CORS_ORIGINS` (défaut : `https://saindo.org,https://www.saindo.org`).
+
 ### Styles
 
 Un seul fichier de tokens CSS partagé : `src/styles/theme.css`. Il définit toutes les variables CSS (couleurs, badges, statuts). À importer en tête de chaque page avec `import '../../styles/theme.css'`. Les styles de composants sont écrits inline dans chaque fichier `.astro`.
@@ -78,6 +88,8 @@ CRON_SECRET=
 PUBLIC_SUPABASE_URL=
 PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+PUBLIC_SITE_URL=          # origine de l'application, utilisée dans les liens des emails
+CORS_ORIGINS=             # origines autorisées sur les API publiques (défaut : saindo.org)
 ```
 
 ## Déploiement

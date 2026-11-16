@@ -1,21 +1,25 @@
 import type { APIRoute } from 'astro';
 import { createAdminClient } from '../../lib/supabase';
 import { sendProjetConfirmationEmail } from '../../lib/send-projet-confirmation-email';
+import { corsHeaders, corsPreflight } from '../../lib/cors';
+
+export const OPTIONS: APIRoute = corsPreflight;
 
 export const POST: APIRoute = async ({ request, url }) => {
+  const cors = corsHeaders(request);
   const body = await request.json().catch(() => null);
-  if (!body) return new Response('Requête invalide', { status: 400 });
+  if (!body) return new Response('Requête invalide', { status: 400, headers: cors });
 
   // Honeypot anti-spam : un bot remplit ce champ caché, un humain ne le voit jamais.
   if (body.website) {
     return new Response(JSON.stringify({ ok: true }), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...cors },
     });
   }
 
   const email = String(body.email ?? '').trim().toLowerCase();
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return new Response('Email invalide', { status: 400 });
+    return new Response('Email invalide', { status: 400, headers: cors });
   }
 
   const nom = String(body.nom ?? '').trim();
@@ -43,7 +47,7 @@ export const POST: APIRoute = async ({ request, url }) => {
 
   if (error) {
     console.error('[candidature-projet]', error);
-    return new Response("Erreur lors de l'enregistrement", { status: 500 });
+    return new Response("Erreur lors de l'enregistrement", { status: 500, headers: cors });
   }
 
   const siteUrl = import.meta.env.PUBLIC_SITE_URL ?? url.origin;
@@ -56,6 +60,6 @@ export const POST: APIRoute = async ({ request, url }) => {
   }
 
   return new Response(JSON.stringify({ ok: true }), {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...cors },
   });
 };

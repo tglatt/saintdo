@@ -1,0 +1,122 @@
+/* Questionnaire porteur·se de projet — porté depuis src/pages/questionnaire-projet.astro. */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap');
+
+.saindo-questionnaire { font-family: 'Inter', system-ui, sans-serif; color: #1C1C1E; line-height: 1.65; max-width: 680px; margin: 0 auto; }
+.saindo-questionnaire *, .saindo-questionnaire *::before, .saindo-questionnaire *::after { box-sizing: border-box; }
+.saindo-questionnaire fieldset { padding: 0; margin: 0; min-width: 0; }
+.saindo-questionnaire h1, .saindo-questionnaire h2, .saindo-questionnaire p { margin-top: 0; }
+.saindo-questionnaire .sq-container { max-width: 680px; margin: 0 auto; }
+
+.saindo-questionnaire .page-header { margin-bottom: 32px; }
+.saindo-questionnaire .section-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #A07C10;
+  margin-bottom: 12px;
+}
+.saindo-questionnaire h1 {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(1.8rem, 4vw, 2.4rem);
+  color: #2D2A68;
+  line-height: 1.25;
+  margin-bottom: 16px;
+}
+.saindo-questionnaire h2 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.4rem;
+  color: #2D2A68;
+  margin-bottom: 24px;
+}
+.saindo-questionnaire .intro { font-size: 1rem; color: #5C5C6B; line-height: 1.75; margin-bottom: 12px; }
+.saindo-questionnaire .section-intro {
+  font-size: 0.9rem;
+  color: #5C5C6B;
+  line-height: 1.7;
+  background: #EEEDF6;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 28px;
+}
+
+.saindo-questionnaire .progress { margin-bottom: 40px; }
+.saindo-questionnaire .progress-bar { height: 4px; background: #EEEDF6; border-radius: 2px; overflow: hidden; }
+.saindo-questionnaire .progress-bar-fill { height: 100%; background: #6663A0; transition: width 0.2s; }
+.saindo-questionnaire .progress-label { font-size: 0.8rem; color: #5C5C6B; margin-top: 8px; }
+
+.saindo-questionnaire .step { display: none; border: none; }
+.saindo-questionnaire .step.active { display: block; }
+
+.saindo-questionnaire .field { margin-bottom: 24px; }
+.saindo-questionnaire .field-label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #1C1C1E;
+  margin-bottom: 10px;
+}
+.saindo-questionnaire .field-label--sub { font-weight: 500; font-size: 0.85rem; color: #5C5C6B; margin-top: 16px; }
+
+.saindo-questionnaire .field-row { display: flex; gap: 10px; margin-bottom: 10px; }
+.saindo-questionnaire .field-row input { flex: 1; }
+
+.saindo-questionnaire input[type="text"], .saindo-questionnaire input[type="email"], .saindo-questionnaire input[type="tel"], .saindo-questionnaire textarea {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid rgba(0,0,0,0.12);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  background: white;
+  color: #1C1C1E;
+}
+.saindo-questionnaire input:focus, .saindo-questionnaire textarea:focus { outline: none; border-color: #6663A0; }
+.saindo-questionnaire textarea { min-height: 90px; resize: vertical; }
+
+.saindo-questionnaire .autre-input { margin-top: 10px; }
+
+.saindo-questionnaire .choice-group { display: flex; flex-direction: column; gap: 8px; }
+.saindo-questionnaire .choice-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border: 1px solid rgba(0,0,0,0.1);
+  border-radius: 8px;
+  background: white;
+  cursor: pointer;
+  font-size: 0.92rem;
+  color: #1C1C1E;
+  transition: border-color 0.15s;
+}
+.saindo-questionnaire .choice-option:hover { border-color: #6663A0; }
+.saindo-questionnaire .choice-option input { margin-top: 3px; flex-shrink: 0; }
+
+.saindo-questionnaire .honeypot { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+
+.saindo-questionnaire .error-msg { font-size: 0.85rem; color: #B91C1C; margin-top: 8px; }
+
+.saindo-questionnaire .step-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 40px; }
+.saindo-questionnaire .btn {
+  display: inline-block;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  background: #6663A0;
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: inherit;
+}
+.saindo-questionnaire .btn:hover { background: #2D2A68; }
+.saindo-questionnaire .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.saindo-questionnaire .btn-outline { background: transparent; color: #6663A0; border: 1.5px solid #6663A0; }
+.saindo-questionnaire .btn-outline:hover { background: #EEEDF6; color: #2D2A68; }
+
+.saindo-questionnaire #sq-thank-you { text-align: center; padding: 40px 0; }
+.saindo-questionnaire #sq-thank-you .btn { margin-top: 24px; }
+.saindo-questionnaire #sq-thank-you a:not(.btn) { color: #6663A0; }
