@@ -100,7 +100,7 @@ export async function sendProjetConfirmationEmail(reponses: Reponses, siteUrl: s
   <p>À ce jour, comme vous le savez peut-être, toute notre énergie est dédiée à la levée de fonds citoyenne pour acheter le bâtiment et rendre ce projet possible. C'est pourquoi nous reprendrons contact avec vous seulement après avoir sécurisé l'achat, mais rassurez-vous, nous ne vous oublions pas !</p>
   <p>D'ici là, la meilleure manière de nous soutenir c'est d'en parler autour de vous, on compte sur vous !</p>
   <p style="font-size: 0.9rem; color: #666;">
-    PS : n'oubliez pas d'<a href="${siteUrl}/je-contribue" style="color: #6663A0;">adhérer à l'association</a> si ce n'est pas déjà fait, ou de vous <a href="${siteUrl}/#newsletter-form" style="color: #6663A0;">inscrire à la newsletter</a>.
+    PS : n'oubliez pas d'<a href="https://saindo.org/je-contribue" style="color: #6663A0;">adhérer à l'association</a> si ce n'est pas déjà fait, ou de vous <a href="https://saindo.org/#saindo-newsletter" style="color: #6663A0;">inscrire à la newsletter</a>.
   </p>
   <hr style="border: none; border-top: 1px solid #eee; margin: 32px 0;" />
   <p style="font-size: 0.85rem; color: #888;">Récapitulatif de vos réponses</p>

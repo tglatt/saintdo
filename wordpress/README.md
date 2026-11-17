@@ -4,7 +4,11 @@ Le site public (`saindo.org`) est hébergé sur WordPress. L'application (espace
 admin, API, cron HelloAsso) reste sur Astro/Vercel, sur le sous-domaine `app.saindo.org`.
 
 Le dossier `saindo-site/` est un plugin WordPress à installer tel quel
-(zip du dossier → Extensions → Ajouter → Téléverser).
+(zip du dossier → Extensions → Ajouter → Téléverser), ou à déposer par FTP dans
+`wp-content/plugins/saindo-site/`.
+
+Hébergement : Privianet. Le FTP répond sur `mut7.privianet.com` (utilisateur `saindoo1`),
+pas sur `ftp.saindo.org` qui coupe les connexions. WordPress est à la racine du compte FTP.
 
 ## Ce que fait le plugin
 
@@ -22,7 +26,14 @@ Le dossier `saindo-site/` est un plugin WordPress à installer tel quel
     (POST `{app}/api/candidature-projet`). Le questionnaire reste enregistré dans Supabase
     et visible dans l'admin de l'application, l'email de confirmation est envoyé par l'application.
 
-## Pages à recréer
+## Génération des pages
+
+`tools/build-pages.py` a produit les gabarits nav/contact/footer du plugin et le contenu des six
+pages (JSON pour l'API REST) à partir des anciennes pages Astro. Celles-ci ont été supprimées du
+dépôt après la bascule : pour relancer le script, se placer sur le commit `1b5d9b1`.
+Les pages vivent désormais dans WordPress, modifiables depuis l'éditeur (bloc HTML).
+
+## Pages recréées
 
 | Ancienne page Astro          | URL WordPress           | Contenu                                   |
 |------------------------------|-------------------------|-------------------------------------------|
@@ -56,6 +67,5 @@ Images à importer dans la médiathèque : `public/hotel.jpg`, `public/schema-sc
 4. Repasser Réglages → Saindo sur `https://app.saindo.org`.
 5. DNS : pointer `saindo.org` (et `www`) vers l'hébergeur WordPress. Retirer `saindo.org` du
    projet Vercel une fois la propagation faite.
-6. Nettoyage de l'application Astro (après bascule seulement) : supprimer les six pages
-   publiques, `public/sitemap.xml`, `public/robots.txt`, les images devenues inutiles, et faire
-   de `/` une redirection vers `/login`.
+6. Nettoyage de l'application Astro : fait (pages publiques, composants, sitemap, robots et
+   images supprimés ; `/` redirige vers `/login`).

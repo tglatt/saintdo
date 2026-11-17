@@ -67,7 +67,7 @@ Les pages `.astro` font leurs requêtes Supabase directement dans le frontmatter
 
 ### Site vitrine WordPress
 
-Les pages publiques (accueil, je-contribue, j-ai-un-projet, questionnaire, FAQ, qui-sommes-nous) migrent vers un WordPress hébergé à part, sur `saindo.org` ; l'application Astro passe sur `app.saindo.org`. Le plugin WordPress et la procédure de bascule sont dans `wordpress/`.
+Les pages publiques (accueil, je-contribue, j-ai-un-projet, questionnaire, FAQ, qui-sommes-nous) sont sur un WordPress hébergé chez Privianet, sur `saindo.org`. L'application Astro ne sert que l'espace membre, l'admin et les API, sur `app.saindo.org` ; sa racine `/` redirige vers `/login`. Le plugin WordPress, le générateur de pages et la procédure sont dans `wordpress/`. Les anciennes pages Astro restent consultables dans l'historique git (commit `1b5d9b1`).
 
 L'application expose pour WordPress :
 - `GET /api/public/collecte` — chiffres de la jauge (logique partagée avec l'accueil dans `src/lib/collecte.ts`)

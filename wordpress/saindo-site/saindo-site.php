@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Saindo — site vitrine
  * Description: Relie le site WordPress à l'application Saindo (Astro/Vercel) : jauge de collecte, formulaires newsletter et porteur·se de projet, redirections vers l'espace membre.
- * Version: 1.0.0
+ * Version: 1.1.0
  * Author: Le Saint-Domingue
  * Requires PHP: 8.0
  * Text Domain: saindo
@@ -71,10 +71,20 @@ add_action('template_redirect', function () {
  * ---------------------------------------------------------------------- */
 
 add_action('wp_enqueue_scripts', function () {
+    // Styles et scripts du site vitrine (polices, menu, contact, pied de page, formulaires).
+    wp_enqueue_style('saindo-site', SAINDO_PLUGIN_URL . 'assets/site.css', [], '1.1.0');
+    wp_enqueue_script('saindo-site', SAINDO_PLUGIN_URL . 'assets/site.js', [], '1.1.0', true);
     wp_register_style('saindo-jauge', SAINDO_PLUGIN_URL . 'assets/jauge.css', [], '1.0.0');
     wp_register_style('saindo-questionnaire', SAINDO_PLUGIN_URL . 'assets/questionnaire.css', [], '1.0.0');
     wp_register_script('saindo-forms', SAINDO_PLUGIN_URL . 'assets/forms.js', [], '1.0.0', true);
     wp_localize_script('saindo-forms', 'SAINDO', ['appUrl' => saindo_app_url()]);
+    wp_enqueue_script('saindo-forms'); // le formulaire newsletter est dans le pied de page de toutes les pages
+});
+
+// Le questionnaire ne doit pas être indexé (comme sur l'ancien site).
+add_filter('wp_robots', function (array $robots) {
+    if (is_page('questionnaire-projet')) { $robots['noindex'] = true; $robots['follow'] = true; }
+    return $robots;
 });
 
 /* -------------------------------------------------------------------------
@@ -108,7 +118,31 @@ function saindo_euros(int|float $n): string {
  *   [saindo_jauge]          jauge de collecte
  *   [saindo_newsletter]     formulaire d'inscription newsletter
  *   [saindo_questionnaire]  questionnaire porteur·se de projet
+ *   [saindo_nav]            barre de navigation (en-tête du thème)
+ *   [saindo_contact]        section « Nous contacter »
+ *   [saindo_footer]         pied de page avec inscription newsletter
  * ---------------------------------------------------------------------- */
+
+add_shortcode('saindo_nav', function () {
+    $active = '';
+    if (is_front_page()) $active = 'home';
+    elseif (is_page()) { $o = get_queried_object(); $active = $o->post_name ?? ''; }
+    ob_start();
+    include SAINDO_PLUGIN_DIR . 'templates/nav.php';
+    return ob_get_clean();
+});
+
+add_shortcode('saindo_contact', function () {
+    ob_start();
+    include SAINDO_PLUGIN_DIR . 'templates/contact.php';
+    return ob_get_clean();
+});
+
+add_shortcode('saindo_footer', function () {
+    ob_start();
+    include SAINDO_PLUGIN_DIR . 'templates/footer.php';
+    return ob_get_clean();
+});
 
 add_shortcode('saindo_jauge', function () {
     wp_enqueue_style('saindo-jauge');
