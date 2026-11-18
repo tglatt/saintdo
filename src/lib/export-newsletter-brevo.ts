@@ -13,7 +13,22 @@ const BREVO_CONTACTS_URL = 'https://api.brevo.com/v3/contacts';
 // Garde-fou : une exécution ne traite pas plus de contacts que ce que la fonction peut
 // envoyer dans son temps imparti. Le reste part au passage suivant.
 const MAX_PAR_EXECUTION = 500;
-const ENVOIS_SIMULTANES = 5;
+
+// Brevo limite le débit de son API contacts et répond 429 au-delà. On envoie donc par petits
+// groupes, au plus un groupe par seconde, et un envoi refusé pour cause de débit est retenté
+// après l'attente indiquée par Brevo.
+const ENVOIS_PAR_SECONDE = 5;
+const TENTATIVES_429 = 4;
+const ATTENTE_429_MAX_MS = 15_000;
+
+const attendre = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Délai demandé par Brevo avant de réessayer (en-têtes en secondes), borné pour ne pas bloquer l'export.
+function delaiApres429(res: Response, tentative: number): number {
+  const secondes = Number(res.headers.get('retry-after') ?? res.headers.get('x-sib-ratelimit-reset'));
+  const ms = Number.isFinite(secondes) && secondes > 0 ? secondes * 1000 : 1000 * 2 ** tentative;
+  return Math.min(ms + 250, ATTENTE_429_MAX_MS);
+}
 
 type Inscription = { id: string; email: string };
 
@@ -30,16 +45,22 @@ function env(name: string): string | undefined {
 }
 
 async function envoyerContact(email: string, apiKey: string, listId: number): Promise<string | null> {
-  const res = await fetch(BREVO_CONTACTS_URL, {
-    method: 'POST',
-    headers: { 'api-key': apiKey, 'Content-Type': 'application/json', Accept: 'application/json' },
-    // updateEnabled : si le contact existe déjà dans Brevo, il est simplement ajouté à la liste.
-    // On ne transmet pas emailBlacklisted : une personne désinscrite dans Brevo le reste.
-    body: JSON.stringify({ email, listIds: [listId], updateEnabled: true }),
-  });
-  if (res.ok) return null;
-  const detail = await res.text().catch(() => '');
-  return `HTTP ${res.status} ${detail.slice(0, 200)}`;
+  for (let tentative = 0; ; tentative++) {
+    const res = await fetch(BREVO_CONTACTS_URL, {
+      method: 'POST',
+      headers: { 'api-key': apiKey, 'Content-Type': 'application/json', Accept: 'application/json' },
+      // updateEnabled : si le contact existe déjà dans Brevo, il est simplement ajouté à la liste.
+      // On ne transmet pas emailBlacklisted : une personne désinscrite dans Brevo le reste.
+      body: JSON.stringify({ email, listIds: [listId], updateEnabled: true }),
+    });
+    if (res.ok) return null;
+    if (res.status === 429 && tentative < TENTATIVES_429 - 1) {
+      await attendre(delaiApres429(res, tentative));
+      continue;
+    }
+    const detail = await res.text().catch(() => '');
+    return `HTTP ${res.status} ${detail.slice(0, 200)}`;
+  }
 }
 
 export async function exportNewsletterToBrevo(): Promise<ExportNewsletterResult> {
@@ -63,10 +84,9 @@ export async function exportNewsletterToBrevo(): Promise<ExportNewsletterResult>
   const echecs: ExportNewsletterResult['echecs'] = [];
   const exportes: string[] = [];
 
-  // Envois par petits groupes en parallèle : assez rapide pour quelques centaines de contacts,
-  // tout en restant sous la limite de débit de l'API Brevo.
-  for (let i = 0; i < lot.length; i += ENVOIS_SIMULTANES) {
-    await Promise.all(lot.slice(i, i + ENVOIS_SIMULTANES).map(async (inscription) => {
+  for (let i = 0; i < lot.length; i += ENVOIS_PAR_SECONDE) {
+    const debut = Date.now();
+    await Promise.all(lot.slice(i, i + ENVOIS_PAR_SECONDE).map(async (inscription) => {
       try {
         const erreur = await envoyerContact(inscription.email, apiKey, listId);
         if (erreur) echecs.push({ email: inscription.email, detail: erreur });
@@ -75,6 +95,9 @@ export async function exportNewsletterToBrevo(): Promise<ExportNewsletterResult>
         echecs.push({ email: inscription.email, detail: err?.message ?? String(err) });
       }
     }));
+    // Pas plus d'un groupe par seconde.
+    const ecoule = Date.now() - debut;
+    if (i + ENVOIS_PAR_SECONDE < lot.length && ecoule < 1000) await attendre(1000 - ecoule);
   }
 
   // Marquage par paquets : une liste de plusieurs centaines d'identifiants dépasserait la taille d'URL acceptée.
