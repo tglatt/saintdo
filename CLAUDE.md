@@ -93,7 +93,7 @@ Un seul fichier de tokens CSS partagé : `src/styles/theme.css`. Il définit tou
 ```env
 HELLOASSO_CLIENT_ID=
 HELLOASSO_CLIENT_SECRET=
-CRON_SECRET=
+CRON_SECRET=              # obligatoire : sans elle, les routes /api/cron/* refusent tout appel
 PUBLIC_SUPABASE_URL=
 PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=

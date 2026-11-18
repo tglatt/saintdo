@@ -1,15 +1,11 @@
 import type { APIRoute } from 'astro';
 import { exportNewsletterToBrevo } from '../../../lib/export-newsletter-brevo';
+import { refusCron } from '../../../lib/cron-auth';
 
 // Export quotidien des inscriptions newsletter vers Brevo (Vercel Cron, voir vercel.json).
 export const GET: APIRoute = async ({ request }) => {
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret) {
-    const auth = request.headers.get('authorization');
-    if (auth !== `Bearer ${cronSecret}`) {
-      return new Response('Unauthorized', { status: 401 });
-    }
-  }
+  const refus = refusCron(request);
+  if (refus) return refus;
 
   try {
     const result = await exportNewsletterToBrevo();
