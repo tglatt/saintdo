@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Saindo — site vitrine
  * Description: Relie le site WordPress à l'application Saindo (Astro/Vercel) : jauge de collecte, formulaires newsletter et porteur·se de projet, redirections vers l'espace membre.
- * Version: 1.3.2
+ * Version: 1.3.5
  * Author: Le Saint-Domingue
  * Requires PHP: 8.0
  * Text Domain: saindo
@@ -83,7 +83,7 @@ add_action('wp_enqueue_scripts', function () {
 
 // Styles des pages construites en blocs natifs : chargés sur le site et dans l'éditeur.
 add_action('enqueue_block_assets', function () {
-    wp_enqueue_style('saindo-blocs', SAINDO_PLUGIN_URL . 'assets/blocs.css', [], '1.3.2');
+    wp_enqueue_style('saindo-blocs', SAINDO_PLUGIN_URL . 'assets/blocs.css', [], '1.3.5');
 });
 
 // Le questionnaire ne doit pas être indexé (comme sur l'ancien site).
@@ -128,26 +128,28 @@ function saindo_euros(int|float $n): string {
  *   [saindo_footer]         pied de page avec inscription newsletter
  * ---------------------------------------------------------------------- */
 
+/**
+ * Rend un gabarit du plugin en supprimant les espaces entre balises. Les blocs Shortcode du gabarit
+ * de page appliquent wpautop : avec des retours à la ligne, WordPress insère des <p> et <br> parasites
+ * (cartes de contact dédoublées en blocs blancs, sauts de ligne dans le menu et le pied de page).
+ */
+function saindo_render(string $template, array $vars = []): string {
+    extract($vars);
+    ob_start();
+    include SAINDO_PLUGIN_DIR . 'templates/' . $template . '.php';
+    return preg_replace('/>\s+</', '><', trim(ob_get_clean()));
+}
+
 add_shortcode('saindo_nav', function () {
     $active = '';
     if (is_front_page()) $active = 'home';
     elseif (is_page()) { $o = get_queried_object(); $active = $o->post_name ?? ''; }
-    ob_start();
-    include SAINDO_PLUGIN_DIR . 'templates/nav.php';
-    return ob_get_clean();
+    return saindo_render('nav', ['active' => $active]);
 });
 
-add_shortcode('saindo_contact', function () {
-    ob_start();
-    include SAINDO_PLUGIN_DIR . 'templates/contact.php';
-    return ob_get_clean();
-});
+add_shortcode('saindo_contact', fn() => saindo_render('contact'));
 
-add_shortcode('saindo_footer', function () {
-    ob_start();
-    include SAINDO_PLUGIN_DIR . 'templates/footer.php';
-    return ob_get_clean();
-});
+add_shortcode('saindo_footer', fn() => saindo_render('footer'));
 
 add_shortcode('saindo_jauge', function () {
     wp_enqueue_style('saindo-jauge');
