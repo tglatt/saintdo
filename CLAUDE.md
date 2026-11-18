@@ -25,7 +25,8 @@ curl http://localhost:4321/api/cron/sync-members \
 - **Astro 5** (SSR server-side) avec l'adaptateur **Vercel**
 - **Supabase** — PostgreSQL + Auth (magic link)
 - **HelloAsso** — source des données membres et transactions
-- **Resend** — envoi d'emails (newsletter)
+- **Resend** — envoi d'emails (conventions, convocations, confirmations)
+- **Brevo** — outil de newsletter, alimenté une fois par jour depuis la base
 
 ## Architecture
 
@@ -65,6 +66,12 @@ Les pages `.astro` font leurs requêtes Supabase directement dans le frontmatter
 
 **`syncs`** — journal des synchronisations (démarrage, fin, statut, compteurs).
 
+**`newsletter_inscriptions`** — une ligne par adresse inscrite à la newsletter (`email` unique) ; `brevo_exported_at` reste vide tant que l'adresse n'a pas été envoyée à Brevo. Script de création : `supabase/newsletter_inscriptions.sql`.
+
+### Newsletter
+
+`POST /api/newsletter` enregistre l'adresse dans `newsletter_inscriptions` (une adresse déjà inscrite est ignorée). Une fois par jour, Vercel Cron appelle `GET /api/cron/export-newsletter` (Bearer `CRON_SECRET`) : `src/lib/export-newsletter-brevo.ts` envoie à Brevo les lignes non encore exportées, les ajoute à la liste `BREVO_LIST_ID`, puis renseigne `brevo_exported_at`. Une ligne en échec est retentée au passage suivant.
+
 ### Site vitrine WordPress
 
 Les pages publiques (accueil, je-contribue, j-ai-un-projet, questionnaire, FAQ, qui-sommes-nous) sont sur un WordPress hébergé chez Privianet, sur `saindo.org`. L'application Astro ne sert que l'espace membre, l'admin et les API, sur `app.saindo.org` ; sa racine `/` redirige vers `/login`. Le plugin WordPress, le générateur de pages et la procédure sont dans `wordpress/`. Les anciennes pages Astro restent consultables dans l'historique git (commit `1b5d9b1`).
@@ -90,6 +97,8 @@ PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 PUBLIC_SITE_URL=          # origine de l'application, utilisée dans les liens des emails
 CORS_ORIGINS=             # origines autorisées sur les API publiques (défaut : saindo.org)
+BREVO_API_KEY=            # clé API Brevo (export quotidien de la newsletter)
+BREVO_LIST_ID=            # identifiant numérique de la liste Brevo qui reçoit les inscriptions
 ```
 
 ## Déploiement

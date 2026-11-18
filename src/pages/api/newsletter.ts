@@ -1,8 +1,6 @@
 import type { APIRoute } from 'astro';
-import { Resend } from 'resend';
+import { createAdminClient } from '../../lib/supabase';
 import { corsHeaders, corsPreflight } from '../../lib/cors';
-
-const resend = new Resend(import.meta.env.RESEND_API_KEY);
 
 export const OPTIONS: APIRoute = corsPreflight;
 
@@ -15,20 +13,17 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response('Email invalide', { status: 400, headers: cors });
   }
 
-  const topicId = import.meta.env.RESEND_TOPIC_ID;
-  if (!topicId) {
-    return new Response('Configuration manquante', { status: 500, headers: cors });
-  }
-
-  const { error } = await resend.contacts.create({
-    email,
-    unsubscribed: false,
-    topics: [{ id: topicId, subscription: 'opt_in' as const }],
-  });
+  // La base est la source de vérité des inscriptions. Une adresse déjà inscrite est
+  // ignorée (pas d'erreur côté visiteur, et son état d'export vers Brevo est conservé).
+  // L'export vers Brevo est fait une fois par jour par /api/cron/export-newsletter.
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from('newsletter_inscriptions')
+    .upsert({ email }, { onConflict: 'email', ignoreDuplicates: true });
 
   if (error) {
     console.error('[newsletter]', error);
-    return new Response('Erreur lors de l\'inscription', { status: 500, headers: cors });
+    return new Response("Erreur lors de l'inscription", { status: 500, headers: cors });
   }
 
   return new Response(JSON.stringify({ ok: true }), {

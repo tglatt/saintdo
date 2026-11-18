@@ -25,7 +25,7 @@ import path from 'path';
 import zlib from 'zlib';
 
 // Ordre de restauration : les tables référencées (membres) d'abord.
-const TABLES = ['membres', 'transactions', 'conventions', 'age_reponses', 'porteurs_projet', 'syncs'];
+const TABLES = ['membres', 'transactions', 'conventions', 'age_reponses', 'porteurs_projet', 'newsletter_inscriptions', 'syncs'];
 
 const PAGE_SIZE = 1000;
 const DEFAULT_REMOTE_DIR = 'Dossier partagé/09_SITE WEB/backups';

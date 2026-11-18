@@ -3,7 +3,10 @@
     {
       "path": "/api/cron/sync-members",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/export-newsletter",
+      "schedule": "30 6 * * *"
     }
   ]
 }
-
