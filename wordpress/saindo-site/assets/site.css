@@ -8,6 +8,10 @@
   --white: #FFFFFF; --radius: 12px; --shadow: 0 4px 24px rgba(0,0,0,0.08);
 }
 html { scroll-behavior: smooth; }
+/* Twenty Twenty-Five : pas de marge ni de padding racine, le site gère ses propres largeurs. */
+.wp-site-blocks { padding-left: 0 !important; padding-right: 0 !important; }
+.wp-site-blocks > * { margin-block-start: 0 !important; }
+.wp-site-blocks > .wp-block-group { margin: 0 !important; }
 body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; margin: 0; }
 .saindo-page, .saindo-page *, .saindo-page *::before, .saindo-page *::after,
 .saindo-nav, .saindo-nav *, .saindo-contact, .saindo-contact *, .saindo-footer, .saindo-footer *,

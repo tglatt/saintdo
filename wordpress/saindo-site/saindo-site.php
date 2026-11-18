@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Saindo — site vitrine
  * Description: Relie le site WordPress à l'application Saindo (Astro/Vercel) : jauge de collecte, formulaires newsletter et porteur·se de projet, redirections vers l'espace membre.
- * Version: 1.1.0
+ * Version: 1.3.2
  * Author: Le Saint-Domingue
  * Requires PHP: 8.0
  * Text Domain: saindo
@@ -74,11 +74,16 @@ add_action('wp_enqueue_scripts', function () {
     // Styles et scripts du site vitrine (polices, menu, contact, pied de page, formulaires).
     wp_enqueue_style('saindo-site', SAINDO_PLUGIN_URL . 'assets/site.css', [], '1.1.0');
     wp_enqueue_script('saindo-site', SAINDO_PLUGIN_URL . 'assets/site.js', [], '1.1.0', true);
-    wp_register_style('saindo-jauge', SAINDO_PLUGIN_URL . 'assets/jauge.css', [], '1.0.0');
+    wp_register_style('saindo-jauge', SAINDO_PLUGIN_URL . 'assets/jauge.css', [], '1.0.1');
     wp_register_style('saindo-questionnaire', SAINDO_PLUGIN_URL . 'assets/questionnaire.css', [], '1.0.0');
     wp_register_script('saindo-forms', SAINDO_PLUGIN_URL . 'assets/forms.js', [], '1.0.0', true);
     wp_localize_script('saindo-forms', 'SAINDO', ['appUrl' => saindo_app_url()]);
     wp_enqueue_script('saindo-forms'); // le formulaire newsletter est dans le pied de page de toutes les pages
+});
+
+// Styles des pages construites en blocs natifs : chargés sur le site et dans l'éditeur.
+add_action('enqueue_block_assets', function () {
+    wp_enqueue_style('saindo-blocs', SAINDO_PLUGIN_URL . 'assets/blocs.css', [], '1.3.2');
 });
 
 // Le questionnaire ne doit pas être indexé (comme sur l'ancien site).

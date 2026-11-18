@@ -1,0 +1,334 @@
+/* Styles des pages construites avec les blocs natifs de l'éditeur (Groupe, Titre, Paragraphe, Liste, Boutons).
+ * Chargé sur le site ET dans l'éditeur, pour que l'aperçu d'édition ressemble à la page publiée.
+ * La mise en forme se choisit avec « Avancé → Classe(s) CSS additionnelle(s) » sur chaque bloc :
+ *
+ *   saindo-blocs            Groupe racine de la page (largeur 960 px, marges)
+ *   saindo-surtitre         Paragraphe : petit libellé en capitales au-dessus du titre
+ *   saindo-intro            Paragraphe : chapeau sous le titre
+ *   saindo-cartes           Groupe : grille de 3 cartes colorées
+ *     saindo-carte          Groupe : une carte (Titre + Paragraphe + Bouton) ; toute la carte suit le lien du bouton
+ *   saindo-section          Groupe : encadré blanc dont le premier Titre forme le bandeau
+ *   saindo-encart           Groupe : encart à bordure gauche ; saindo-encart-titre pour son libellé
+ *   saindo-infos            Groupe : bloc séparé par un filet ; saindo-titre-section pour son titre
+ *   saindo-cartes-info      Groupe : grille de 3 cartes blanches
+ *     saindo-carte-info     Groupe : une carte ; saindo-emoji (pictogramme), saindo-adresse, saindo-iban
+ *   saindo-accords          Groupe : encadré gris de fin de page ; saindo-accords-titre
+ *
+ *   saindo-etroit           Sur le Groupe racine : page de texte, largeur 760 px
+ *   saindo-pleine-largeur   Sur le Groupe racine : page en bandes pleine largeur (accueil)
+ *   saindo-partie           Groupe : grande partie d'une page de texte (Titre + paragraphes), séparée par un filet
+ *     saindo-sous-titre     Paragraphe : intertitre en capitales
+ *     saindo-plans          Groupe : plusieurs images de plan côte à côte ; saindo-plan sur chaque Image
+ *     saindo-portraits      Groupe : portraits ronds côte à côte (blocs Image avec légende)
+ *     saindo-appel          Groupe : encadré blanc à bordure gauche (texte + lien)
+ *   saindo-note             Paragraphe : remarque en italique
+ *   saindo-faq              Groupe : questions (Titre) et réponses (Paragraphe, Liste)
+ *   saindo-annonce          Groupe : bandeau d'annonce sombre en haut de l'accueil
+ *   saindo-hero             Bannière : grande image d'en-tête ; saindo-hero-texte, saindo-hero-lien
+ *     saindo-cartes-hero    Groupe : 3 cartes blanches ; saindo-carte-hero pour chacune (un Paragraphe contenant un lien)
+ *   saindo-bande            Groupe : section pleine largeur ; saindo-bande-alt pour le fond gris
+ *     saindo-accent         Paragraphe : phrase mise en avant ; saindo-centre pour centrer un titre
+ *     saindo-schema         Image : grand schéma centré
+ *     saindo-phases         Groupe : liste des phases ; saindo-phase pour chacune
+ *                           (saindo-phase-num, Titre, saindo-phase-budget, saindo-phase-slogan, Tableau à 2 colonnes)
+ *   saindo-video            Bloc HTML de la vidéo (lancée au clic)
+ *
+ *   Icônes (sur saindo-carte, saindo-carte-hero ou saindo-section) : icone-adherents, icone-coeur, icone-pousse, icone-coche
+ *   Flèche vers le bas sur une carte (lien interne à la page) : fleche-bas
+ */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap');
+
+body.editor-styles-wrapper { background: #F7F6FB; }
+
+.saindo-blocs {
+  --green: #6663A0; --green-dark: #2D2A68; --green-light: #B0ADD4;
+  --amber: #A07C10; --amber-dark: #7A5E0A;
+  --bg: #F7F6FB; --bg-alt: #EEEDF6; --text: #1C1C1E; --text-muted: #5C5C6B;
+  --white: #FFFFFF; --radius: 12px; --shadow: 0 4px 24px rgba(0,0,0,0.08);
+  box-sizing: border-box;
+  max-width: 1008px;
+  margin: 0 auto;
+  padding: 64px 24px 96px;
+  font-family: 'Inter', system-ui, sans-serif;
+  color: var(--text);
+  line-height: 1.65;
+}
+/* Remise à zéro : on neutralise les marges automatiques du thème entre les blocs. */
+.saindo-blocs :is(h1, h2, h3, h4, p, ul, ol, li, figure),
+.saindo-blocs :is(div, section, figure):where(.wp-block-group, .wp-block-buttons, .wp-block-button, .wp-block-cover, .wp-block-image, .wp-block-table) { box-sizing: border-box; margin: 0; padding: 0; }
+.saindo-blocs a:not(.wp-block-button__link) { color: var(--green); text-decoration: underline; font-weight: 500; }
+.saindo-blocs a:not(.wp-block-button__link):hover { color: var(--green-dark); }
+.saindo-blocs .wp-block-button__link { font-family: inherit; line-height: inherit; text-decoration: none; }
+
+/* --- En-tête de page --- */
+.saindo-blocs .saindo-surtitre {
+  font-size: 0.8rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--amber); margin-bottom: 12px;
+}
+.saindo-blocs h1 {
+  font-family: 'Playfair Display', serif; font-size: clamp(2rem, 4vw, 2.8rem);
+  color: var(--green-dark); line-height: 1.2; margin-bottom: 20px;
+}
+.saindo-blocs .saindo-intro { font-size: 1.05rem; color: var(--text-muted); max-width: 640px; line-height: 1.7; margin-bottom: 56px; }
+
+/* --- Icônes --- */
+.saindo-blocs .icone-adherents { --saindo-icone: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='13' cy='10' r='4'/%3E%3Cpath d='M4 34c0-8 18-8 18 0'/%3E%3Ccircle cx='28' cy='10' r='4'/%3E%3Cpath d='M19 34c0-8 18-8 18 0'/%3E%3C/svg%3E"); }
+.saindo-blocs .icone-coeur { --saindo-icone: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 32 C20 32 5 22 5 13 C5 9 8 6 12 6 C15.5 6 18 8.5 20 11 C22 8.5 24.5 6 28 6 C32 6 35 9 35 13 C35 22 20 32 20 32Z'/%3E%3Cpath d='M29 7 L31 5M33 10 L35 9M32 14 L34 16'/%3E%3C/svg%3E"); }
+.saindo-blocs .icone-pousse { --saindo-icone: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 35 L20 17'/%3E%3Cpath d='M20 24 C20 24 12 22 9 15 C13 13 19.5 18 20 24Z'/%3E%3Cpath d='M20 19 C20 19 28 17 31 10 C27 8 20.5 13 20 19Z'/%3E%3Cpath d='M11 35 L29 35'/%3E%3C/svg%3E"); }
+.saindo-blocs .icone-coche { --saindo-icone: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 20 L16 26 L30 12'/%3E%3Ccircle cx='20' cy='20' r='16'/%3E%3C/svg%3E"); }
+
+/* --- Cartes colorées --- */
+.saindo-blocs .saindo-cartes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 40px; }
+.saindo-blocs .saindo-carte {
+  background: linear-gradient(135deg, var(--green-dark), var(--green));
+  border-radius: var(--radius); padding: 28px; color: white;
+  display: flex; flex-direction: column; gap: 10px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 6px 24px rgba(45,42,104,0.2);
+  position: relative;
+}
+.saindo-blocs .saindo-carte:hover { transform: translateY(-4px); box-shadow: 0 12px 36px rgba(45,42,104,0.3); }
+.saindo-blocs .saindo-carte::before {
+  content: ''; display: block; width: 40px; height: 40px; flex-shrink: 0;
+  background-color: rgba(255,255,255,0.9);
+  -webkit-mask: var(--saindo-icone, none) center / contain no-repeat; mask: var(--saindo-icone, none) center / contain no-repeat;
+}
+.saindo-blocs .saindo-carte::after {
+  content: '→'; position: absolute; top: 28px; right: 28px; font-size: 1.1rem; opacity: 0.4;
+  transition: opacity 0.2s, transform 0.2s; pointer-events: none;
+}
+.saindo-blocs .saindo-carte.fleche-bas::after { content: '↓'; }
+.saindo-blocs .saindo-carte:hover::after { opacity: 1; transform: translateX(3px); }
+.saindo-blocs .saindo-carte :is(h2, h3) { font-family: 'Playfair Display', serif; font-size: 1.15rem; font-weight: 700; color: white; line-height: 1.3; }
+.saindo-blocs .saindo-carte p { font-size: 0.88rem; color: rgba(255,255,255,0.75); line-height: 1.6; flex: 1; }
+.saindo-blocs .saindo-carte .wp-block-buttons { display: block; margin-top: 8px; }
+.saindo-blocs .saindo-carte .wp-block-button { display: block; width: 100%; }
+.saindo-blocs .saindo-carte .wp-block-button__link {
+  display: block; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+  border-radius: 8px; padding: 9px 16px; font-size: 0.82rem; font-weight: 600; color: white;
+  text-align: center; transition: background 0.2s;
+}
+.saindo-blocs .saindo-carte:hover .wp-block-button__link { background: rgba(255,255,255,0.25); }
+/* Sur le site (pas dans l'éditeur), toute la carte est cliquable : le lien du bouton recouvre la carte. */
+body:not(.editor-styles-wrapper) .saindo-blocs .saindo-carte a.wp-block-button__link::after { content: ''; position: absolute; inset: 0; border-radius: var(--radius); }
+
+/* --- Sections détaillées --- */
+.saindo-blocs .saindo-section {
+  background: white; border-radius: var(--radius); box-shadow: var(--shadow);
+  margin-bottom: 24px; overflow: hidden; scroll-margin-top: 80px;
+}
+.saindo-blocs .saindo-section > h2 {
+  display: flex; align-items: center; gap: 16px; padding: 24px 32px;
+  border-bottom: 1px solid rgba(0,0,0,0.06); background: var(--bg-alt);
+  font-family: 'Playfair Display', serif; font-size: 1.25rem; color: var(--green-dark);
+}
+.saindo-blocs .saindo-section > h2::before {
+  content: ''; width: 32px; height: 32px; flex-shrink: 0; background-color: var(--green);
+  -webkit-mask: var(--saindo-icone, none) center / contain no-repeat; mask: var(--saindo-icone, none) center / contain no-repeat;
+}
+.saindo-blocs .saindo-section > :not(h2) { margin: 16px 32px 0; }
+.saindo-blocs .saindo-section > h2 + * { margin-top: 28px; }
+.saindo-blocs .saindo-section > :last-child { margin-bottom: 28px; }
+.saindo-blocs .saindo-section p { font-size: 0.95rem; color: var(--text-muted); line-height: 1.75; }
+.saindo-blocs .saindo-section > .wp-block-buttons { margin-top: 20px; }
+.saindo-blocs .saindo-section > .wp-block-buttons .wp-block-button__link {
+  display: inline-block; background: var(--green-dark); color: white; font-weight: 600; font-size: 0.9rem;
+  padding: 12px 22px; border-radius: 8px; border: 0; transition: background 0.2s, transform 0.2s;
+}
+.saindo-blocs .saindo-section > .wp-block-buttons .wp-block-button__link:hover { background: var(--green); transform: translateY(-1px); }
+
+/* --- Encart --- */
+.saindo-blocs .saindo-encart {
+  background: var(--bg-alt); border-left: 4px solid var(--green-light);
+  border-radius: 0 var(--radius) var(--radius) 0; padding: 20px 24px;
+}
+.saindo-blocs .saindo-encart p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 10px; line-height: 1.7; }
+.saindo-blocs .saindo-encart p.saindo-encart-titre { font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+.saindo-blocs .saindo-encart ul { padding-left: 20px; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 12px; }
+.saindo-blocs .saindo-encart li { margin-bottom: 6px; }
+.saindo-blocs .saindo-encart > :last-child { margin-bottom: 0; }
+
+/* --- Informations pratiques --- */
+.saindo-blocs .saindo-infos { border-top: 1px solid rgba(0,0,0,0.07); padding-top: 56px; margin-top: 40px; }
+.saindo-blocs .saindo-titre-section { font-family: 'Playfair Display', serif; font-size: 1.5rem; color: var(--green-dark); margin-bottom: 32px; }
+.saindo-blocs .saindo-cartes-info { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 40px; }
+.saindo-blocs .saindo-carte-info { background: white; border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow); }
+.saindo-blocs .saindo-carte-info h3 { font-family: inherit; font-size: 1rem; font-weight: 600; color: var(--green-dark); margin-bottom: 10px; }
+.saindo-blocs .saindo-carte-info p { font-size: 0.9rem; color: var(--text-muted); line-height: 1.7; margin-bottom: 10px; }
+.saindo-blocs .saindo-carte-info p.saindo-emoji { font-size: 1.8rem; line-height: 1.65; color: inherit; margin-bottom: 14px; }
+.saindo-blocs .saindo-carte-info p.saindo-adresse {
+  background: var(--bg-alt); border-radius: 8px; padding: 10px 14px;
+  font-size: 0.88rem; line-height: 1.6; color: var(--text); margin: 10px 0;
+}
+.saindo-blocs .saindo-iban { background: var(--bg-alt); border-radius: 8px; padding: 12px 14px; margin: 10px 0; display: flex; flex-direction: column; gap: 4px; }
+.saindo-blocs .saindo-iban p { margin: 0; font-size: 0.8rem; line-height: 1.65; }
+.saindo-blocs .saindo-iban p:first-child { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+.saindo-blocs .saindo-iban code {
+  font-family: 'Courier New', monospace; font-size: 0.88rem; color: var(--green-dark); font-weight: 600;
+  letter-spacing: 0.03em; background: none; padding: 0;
+}
+.saindo-blocs .saindo-carte-info > :last-child { margin-bottom: 0; }
+
+/* --- Accords --- */
+.saindo-blocs .saindo-accords { background: var(--bg-alt); border-radius: var(--radius); padding: 28px 32px; }
+.saindo-blocs .saindo-accords-titre { font-size: 0.95rem; font-weight: 600; color: var(--text); margin-bottom: 16px; }
+.saindo-blocs .saindo-accords ul { padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
+.saindo-blocs .saindo-accords li { font-size: 0.9rem; color: var(--text-muted); line-height: 1.6; }
+
+@media (max-width: 768px) {
+  .saindo-blocs .saindo-cartes, .saindo-blocs .saindo-cartes-info { grid-template-columns: 1fr; }
+  .saindo-blocs .saindo-section > h2 { padding: 20px; }
+  .saindo-blocs .saindo-section > :not(h2) { margin-left: 20px; margin-right: 20px; }
+  .saindo-blocs .saindo-section > h2 + * { margin-top: 20px; }
+  .saindo-blocs .saindo-section > :last-child { margin-bottom: 20px; }
+  .saindo-blocs .saindo-section > .wp-block-buttons .wp-block-button { width: 100%; }
+  .saindo-blocs .saindo-section > .wp-block-buttons .wp-block-button__link { display: block; text-align: center; }
+}
+
+/* ==========================================================================
+ * Largeurs de page
+ * ======================================================================= */
+.saindo-blocs.saindo-etroit { max-width: 808px; }
+.saindo-blocs.saindo-pleine-largeur { max-width: none; padding: 0; }
+.saindo-blocs .wp-block-image img { display: block; max-width: 100%; height: auto; }
+.saindo-blocs .has-text-align-center { text-align: center; }
+
+/* ==========================================================================
+ * Pages de texte (J'ai un projet, Qui sommes-nous, FAQ)
+ * ======================================================================= */
+.saindo-blocs.saindo-etroit .saindo-intro { line-height: 1.75; }
+.saindo-blocs .saindo-partie { margin-bottom: 56px; padding-bottom: 56px; border-bottom: 1px solid rgba(0,0,0,0.08); }
+.saindo-blocs .saindo-partie:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+.saindo-blocs .saindo-partie > h2 { font-family: 'Playfair Display', serif; font-size: 1.6rem; color: var(--green-dark); margin-bottom: 28px; }
+.saindo-blocs .saindo-partie > p { color: var(--text-muted); font-size: 0.97rem; line-height: 1.75; margin-bottom: 14px; }
+.saindo-blocs .saindo-partie > p:last-child { margin-bottom: 28px; }
+.saindo-blocs .saindo-partie > p strong { color: var(--text); }
+.saindo-blocs .saindo-partie > p.saindo-sous-titre {
+  font-size: 0.8rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--green); line-height: 1.65; margin: 46px 0 16px;
+}
+.saindo-blocs .saindo-partie > h2 + p.saindo-sous-titre { margin-top: 0; }
+.saindo-blocs .saindo-partie > .wp-block-image,
+.saindo-blocs .saindo-partie > .saindo-plans,
+.saindo-blocs .saindo-partie > .saindo-portraits { margin: 28px 0; }
+.saindo-blocs .saindo-partie > p.saindo-sous-titre + :is(.wp-block-image, .saindo-plans, .saindo-portraits) { margin-top: 0; }
+.saindo-blocs .saindo-partie > :is(.wp-block-image, .saindo-plans, .saindo-portraits) + p.saindo-sous-titre { margin-top: 32px; }
+.saindo-blocs .saindo-plan { max-width: 420px; }
+.saindo-blocs .saindo-plan img { width: 100%; border-radius: var(--radius); box-shadow: var(--shadow); transition: opacity 0.15s; }
+.saindo-blocs .saindo-plan:hover img { opacity: 0.85; }
+.saindo-blocs .saindo-plans { display: flex; flex-wrap: wrap; gap: 20px; }
+.saindo-blocs .saindo-plans .saindo-plan { flex: 1 1 220px; margin: 0; }
+.saindo-blocs .saindo-portraits { display: flex; flex-wrap: wrap; gap: 24px; }
+.saindo-blocs .saindo-portraits .wp-block-image { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 110px; margin: 0; }
+.saindo-blocs .saindo-portraits .wp-block-image img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; }
+.saindo-blocs .saindo-portraits figcaption { margin: 0; font-size: 0.82rem; color: var(--text-muted); text-align: center; line-height: 1.3; font-weight: 500; }
+.saindo-blocs .saindo-appel {
+  background: white; border-left: 3px solid var(--green); border-radius: 0 8px 8px 0;
+  padding: 20px 24px; display: flex; flex-direction: column; gap: 10px; margin-top: 28px;
+}
+.saindo-blocs .saindo-appel p { font-size: 0.97rem; color: var(--text-muted); line-height: 1.7; }
+.saindo-blocs .saindo-appel a { font-size: 0.9rem; font-weight: 600; text-decoration: none; }
+.saindo-blocs .saindo-appel a:hover { text-decoration: underline; }
+.saindo-blocs .saindo-note { font-style: italic; color: var(--text-muted); margin: 28px 0 40px; }
+
+.saindo-blocs .saindo-faq :is(h2, h3) {
+  font-family: 'Playfair Display', serif; font-size: 1.15rem; color: var(--green-dark);
+  margin: 0; padding: 28px 0 12px; border-top: 1px solid rgba(0,0,0,0.08); line-height: 1.4;
+}
+.saindo-blocs .saindo-faq > :is(h2, h3):first-child { border-top: none; padding-top: 0; }
+.saindo-blocs .saindo-faq p { color: var(--text-muted); font-size: 0.97rem; margin: 0 0 8px; line-height: 1.75; }
+.saindo-blocs .saindo-faq :is(ul, ol) { padding-left: 20px; color: var(--text-muted); font-size: 0.97rem; margin-bottom: 12px; }
+.saindo-blocs .saindo-faq li { margin-bottom: 6px; line-height: 1.65; }
+.saindo-blocs .saindo-faq :is(p, li) strong { color: var(--text); }
+.saindo-blocs .saindo-faq a { font-weight: inherit; }
+.saindo-blocs .saindo-faq blockquote { border-left: 3px solid var(--green-light); padding: 8px 16px; margin: 8px 0 16px; color: var(--text-muted); font-style: italic; }
+
+/* ==========================================================================
+ * Accueil
+ * ======================================================================= */
+.saindo-blocs .saindo-annonce {
+  display: flex; align-items: center; justify-content: center; gap: 12px; padding: 12px 24px;
+  background: #2D2A68; color: rgba(255,255,255,0.88); font-size: 0.95rem; line-height: 1.4;
+}
+.saindo-blocs .saindo-annonce::before {
+  content: '✓'; flex-shrink: 0; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; background: #DFC85A; color: #2D2A68; font-size: 0.8rem; font-weight: 700;
+}
+.saindo-blocs .saindo-annonce strong { color: #DFC85A; font-weight: 700; margin-right: 6px; }
+
+.saindo-blocs .saindo-hero { min-height: 88vh; padding: 80px 24px; overflow: hidden; align-items: center; justify-content: center; }
+.saindo-blocs .saindo-hero .wp-block-cover__inner-container { max-width: 700px; width: 100%; margin: 0 auto; color: var(--white); }
+.saindo-blocs .saindo-hero h1 { font-size: clamp(2rem, 5vw, 3.2rem); color: var(--white); margin-bottom: 24px; }
+.saindo-blocs .saindo-hero .saindo-hero-texte { font-size: 1.15rem; color: rgba(255,255,255,0.85); max-width: 580px; margin-bottom: 40px; }
+.saindo-blocs .saindo-cartes-hero { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 40px; }
+.saindo-blocs .saindo-carte-hero {
+  background: white; border: 2px solid white; border-radius: var(--radius); padding: 20px; color: var(--green-dark);
+  display: flex; flex-direction: column; gap: 6px; transition: all 0.2s; position: relative; box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+.saindo-blocs .saindo-carte-hero:hover { background: var(--green-light); border-color: var(--green-light); transform: translateY(-3px); box-shadow: 0 8px 28px rgba(0,0,0,0.28); }
+.saindo-blocs .saindo-carte-hero::before {
+  content: ''; display: block; width: 36px; height: 36px; flex-shrink: 0; background-color: var(--green-dark);
+  -webkit-mask: var(--saindo-icone, none) center / contain no-repeat; mask: var(--saindo-icone, none) center / contain no-repeat;
+}
+.saindo-blocs .saindo-carte-hero::after { content: '→'; position: absolute; top: 16px; right: 16px; font-size: 1rem; opacity: 0.4; pointer-events: none; }
+.saindo-blocs .saindo-hero .saindo-carte-hero p { font-weight: 700; font-size: 0.95rem; line-height: 1.3; color: var(--green-dark); }
+.saindo-blocs .saindo-hero .saindo-carte-hero a { color: inherit; font-weight: inherit; text-decoration: none; }
+body:not(.editor-styles-wrapper) .saindo-blocs .saindo-carte-hero a::after { content: ''; position: absolute; inset: -2px; border-radius: var(--radius); }
+.saindo-blocs .saindo-hero .saindo-hero-lien { margin-top: 24px; font-size: 0.875rem; }
+.saindo-blocs .saindo-hero .saindo-hero-lien a { color: rgba(255,255,255,0.55); font-weight: 400; text-decoration: none; transition: color 0.2s; }
+.saindo-blocs .saindo-hero .saindo-hero-lien a:hover { color: rgba(255,255,255,0.9); }
+
+.saindo-blocs .saindo-bande { padding: 96px 24px; scroll-margin-top: 60px; }
+.saindo-blocs .saindo-bande.saindo-bande-alt { background: var(--bg-alt); }
+.saindo-blocs .saindo-bande > * { max-width: 1100px; margin-left: auto; margin-right: auto; }
+.saindo-blocs .saindo-bande > h2 {
+  font-family: 'Playfair Display', serif; font-size: clamp(1.6rem, 3vw, 2.2rem); line-height: 1.25;
+  color: var(--green-dark); margin-bottom: 24px;
+}
+.saindo-blocs .saindo-bande > p { color: var(--text-muted); margin-bottom: 16px; }
+.saindo-blocs .saindo-bande > p.saindo-surtitre { color: var(--amber); margin-bottom: 12px; text-align: center; }
+.saindo-blocs .saindo-centre { text-align: center; }
+.saindo-blocs .saindo-bande > p.saindo-accent { font-weight: 600; color: var(--green); font-size: 1.05rem; }
+.saindo-blocs .saindo-bande > .saindo-schema { margin-top: 56px; text-align: center; }
+.saindo-blocs .saindo-bande > .saindo-schema img { display: inline-block; border-radius: var(--radius); box-shadow: var(--shadow); }
+
+.saindo-blocs .saindo-video { position: relative; max-width: 800px; margin: 40px auto 0; aspect-ratio: 16 / 9; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); background: #000; }
+.saindo-blocs .saindo-video .video-facade { position: absolute; inset: 0; width: 100%; height: 100%; border: none; padding: 0; cursor: pointer; background: none; }
+.saindo-blocs .saindo-video .video-poster { width: 100%; height: 100%; object-fit: cover; filter: brightness(0.75); }
+.saindo-blocs .saindo-video .video-play {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 72px; height: 72px; border-radius: 50%;
+  background: rgba(255,255,255,0.92); color: var(--green-dark); font-size: 1.4rem; display: flex; align-items: center; justify-content: center;
+  transition: transform 0.2s, background 0.2s;
+}
+.saindo-blocs .saindo-video .video-facade:hover .video-play { transform: translate(-50%, -50%) scale(1.08); background: white; }
+.saindo-blocs .saindo-video iframe { width: 100%; height: 100%; border: 0; display: block; }
+
+.saindo-blocs .saindo-phases { display: flex; flex-direction: column; gap: 48px; margin-top: 48px; }
+.saindo-blocs .saindo-phase { display: grid; grid-template-columns: auto 1fr; column-gap: 20px; border-left: 3px solid var(--amber); padding-left: 28px; }
+.saindo-blocs .saindo-phase > * { grid-column: 1 / -1; }
+.saindo-blocs .saindo-phase > .saindo-phase-num {
+  grid-column: 1; grid-row: 1 / span 2; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--amber); white-space: nowrap; padding-top: 4px;
+}
+.saindo-blocs .saindo-phase > h3 { grid-column: 2; font-family: 'Playfair Display', serif; font-size: 1.2rem; color: var(--green-dark); margin-bottom: 4px; }
+.saindo-blocs .saindo-phase > .saindo-phase-budget { grid-column: 2; font-size: 0.9rem; font-weight: 700; color: var(--green); }
+.saindo-blocs .saindo-phase > .saindo-phase-slogan { font-style: italic; color: var(--text-muted); margin: 8px 0 20px; font-size: 0.95rem; }
+.saindo-blocs .saindo-phase .wp-block-table { margin: 0; overflow: visible; }
+.saindo-blocs .saindo-phase table { width: 100%; border-collapse: collapse; border: 0; table-layout: auto; }
+.saindo-blocs .saindo-phase td {
+  border: 0; border-bottom: 1px dashed rgba(0,0,0,0.08); padding: 0 0 10px; vertical-align: baseline;
+  font-size: 0.92rem; color: var(--text-muted); line-height: 1.65; word-break: normal;
+}
+.saindo-blocs .saindo-phase tr + tr td { padding-top: 10px; }
+.saindo-blocs .saindo-phase td:last-child { padding-left: 16px; text-align: right; font-weight: 600; color: var(--text); white-space: nowrap; width: 1%; }
+
+@media (max-width: 768px) {
+  .saindo-blocs .saindo-cartes-hero { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .saindo-blocs .saindo-annonce { align-items: flex-start; font-size: 0.88rem; padding: 12px 16px; }
+  .saindo-blocs .saindo-annonce strong { display: block; margin-right: 0; }
+}
+
+/* Page ne contenant qu'un formulaire (questionnaire) : le formulaire gère sa propre largeur. */
+.saindo-blocs.saindo-zone-formulaire { padding: 64px 24px 96px; }

@@ -31,7 +31,11 @@ pas sur `ftp.saindo.org` qui coupe les connexions. WordPress est à la racine du
 `tools/build-pages.py` a produit les gabarits nav/contact/footer du plugin et le contenu des six
 pages (JSON pour l'API REST) à partir des anciennes pages Astro. Celles-ci ont été supprimées du
 dépôt après la bascule : pour relancer le script, se placer sur le commit `1b5d9b1`.
-Les pages vivent désormais dans WordPress, modifiables depuis l'éditeur (bloc HTML).
+Les pages vivent désormais dans WordPress et sont construites en blocs natifs (Groupe, Titre,
+Paragraphe, Liste, Image, Boutons, Bannière, Tableau) : le contenu se modifie directement dans
+l'éditeur. La mise en forme vient de `saindo-site/assets/blocs.css`, chargée sur le site et dans
+l'éditeur, et se choisit avec « Avancé → Classe(s) CSS additionnelle(s) » sur chaque bloc ; la
+liste des classes est en tête de ce fichier. Seule la vidéo de l'accueil reste un bloc HTML.
 
 ## Pages recréées
 

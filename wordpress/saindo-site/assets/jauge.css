@@ -146,7 +146,7 @@
 /* Palier franchi */
 .saindo-gauge .gauge-palier--done { color: rgba(255,255,255,0.75); }
 .saindo-gauge .gauge-palier--done strong { color: white; font-weight: 700; }
-.saindo-gauge .gauge-palier--done .saindo-gauge .gauge-palier-dot {
+.saindo-gauge .gauge-palier--done .gauge-palier-dot {
   background: white;
   border-color: white;
   color: #2D2A68;
@@ -155,7 +155,7 @@
 /* Palier en cours */
 .saindo-gauge .gauge-palier--next { color: rgba(255,255,255,0.75); }
 .saindo-gauge .gauge-palier--next strong { color: white; font-weight: 700; }
-.saindo-gauge .gauge-palier--next .saindo-gauge .gauge-palier-dot {
+.saindo-gauge .gauge-palier--next .gauge-palier-dot {
   border-color: white;
   box-shadow: inset 0 0 0 3px rgba(255,255,255,0.35);
 }
