@@ -13,6 +13,7 @@ const BREVO_CONTACTS_URL = 'https://api.brevo.com/v3/contacts';
 // Garde-fou : une exécution ne traite pas plus de contacts que ce que la fonction peut
 // envoyer dans son temps imparti. Le reste part au passage suivant.
 const MAX_PAR_EXECUTION = 500;
+const ENVOIS_SIMULTANES = 5;
 
 type Inscription = { id: string; email: string };
 
@@ -62,21 +63,27 @@ export async function exportNewsletterToBrevo(): Promise<ExportNewsletterResult>
   const echecs: ExportNewsletterResult['echecs'] = [];
   const exportes: string[] = [];
 
-  for (const inscription of lot) {
-    try {
-      const erreur = await envoyerContact(inscription.email, apiKey, listId);
-      if (erreur) echecs.push({ email: inscription.email, detail: erreur });
-      else exportes.push(inscription.id);
-    } catch (err: any) {
-      echecs.push({ email: inscription.email, detail: err?.message ?? String(err) });
-    }
+  // Envois par petits groupes en parallèle : assez rapide pour quelques centaines de contacts,
+  // tout en restant sous la limite de débit de l'API Brevo.
+  for (let i = 0; i < lot.length; i += ENVOIS_SIMULTANES) {
+    await Promise.all(lot.slice(i, i + ENVOIS_SIMULTANES).map(async (inscription) => {
+      try {
+        const erreur = await envoyerContact(inscription.email, apiKey, listId);
+        if (erreur) echecs.push({ email: inscription.email, detail: erreur });
+        else exportes.push(inscription.id);
+      } catch (err: any) {
+        echecs.push({ email: inscription.email, detail: err?.message ?? String(err) });
+      }
+    }));
   }
 
-  if (exportes.length) {
+  // Marquage par paquets : une liste de plusieurs centaines d'identifiants dépasserait la taille d'URL acceptée.
+  const exporteLe = new Date().toISOString();
+  for (let i = 0; i < exportes.length; i += 100) {
     const { error } = await supabase
       .from('newsletter_inscriptions')
-      .update({ brevo_exported_at: new Date().toISOString() })
-      .in('id', exportes);
+      .update({ brevo_exported_at: exporteLe })
+      .in('id', exportes.slice(i, i + 100));
     if (error) {
       // Les contacts sont bien dans Brevo ; ils seront renvoyés au prochain passage (sans effet, updateEnabled).
       return {

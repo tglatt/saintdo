@@ -72,6 +72,8 @@ Les pages `.astro` font leurs requêtes Supabase directement dans le frontmatter
 
 `POST /api/newsletter` enregistre l'adresse dans `newsletter_inscriptions` (une adresse déjà inscrite est ignorée). Une fois par jour, Vercel Cron appelle `GET /api/cron/export-newsletter` (Bearer `CRON_SECRET`) : `src/lib/export-newsletter-brevo.ts` envoie à Brevo les lignes non encore exportées, les ajoute à la liste `BREVO_LIST_ID`, puis renseigne `brevo_exported_at`. Une ligne en échec est retentée au passage suivant.
 
+La page `/admin/newsletter` liste les inscriptions avec leur état d'export et permet de lancer le même export à la demande (`POST /api/admin/export-newsletter`, réservé aux admins). Un export traite au plus 500 adresses.
+
 ### Site vitrine WordPress
 
 Les pages publiques (accueil, je-contribue, j-ai-un-projet, questionnaire, FAQ, qui-sommes-nous) sont sur un WordPress hébergé chez Privianet, sur `saindo.org`. L'application Astro ne sert que l'espace membre, l'admin et les API, sur `app.saindo.org` ; sa racine `/` redirige vers `/login`. Le plugin WordPress, le générateur de pages et la procédure sont dans `wordpress/`. Les anciennes pages Astro restent consultables dans l'historique git (commit `1b5d9b1`).

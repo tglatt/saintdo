@@ -1,0 +1,441 @@
+---
+import { createAdminClient, fetchAll } from '../../lib/supabase';
+import AdminNav from '../../components/AdminNav.astro';
+import '../../styles/theme.css';
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/login');
+
+const supabase = createAdminClient();
+
+type Inscription = { id: string; email: string; created_at: string; brevo_exported_at: string | null };
+
+const inscriptions = await fetchAll<Inscription>(() =>
+  supabase
+    .from('newsletter_inscriptions')
+    .select('id, email, created_at, brevo_exported_at')
+    .order('created_at', { ascending: false })
+    .order('id'),
+);
+
+const enAttente = inscriptions.filter(i => !i.brevo_exported_at).length;
+const exportees = inscriptions.length - enAttente;
+
+// Même plafond que l'export (src/lib/export-newsletter-brevo.ts) : au-delà, il faut relancer.
+const PAR_EXPORT = 500;
+const aEnvoyer = Math.min(enAttente, PAR_EXPORT);
+
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Paris' });
+}
+---
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Newsletter — Admin Saint Domingue</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <AdminNav activePage="newsletter" userEmail={user.email} />
+
+  <main>
+    <div class="container">
+
+      <header class="page-header">
+        <h1>Newsletter</h1>
+        <p class="sub">Adresses inscrites depuis le site. Elles sont envoyées à Brevo une fois par jour, ou à la demande avec le bouton ci-dessous.</p>
+      </header>
+
+      <div class="stats">
+        <div class="stat"><span class="stat-value">{inscriptions.length}</span><span class="stat-label">Inscrits</span></div>
+        <div class="stat"><span class="stat-value">{exportees}</span><span class="stat-label">Dans Brevo</span></div>
+        <div class="stat"><span class="stat-value">{enAttente}</span><span class="stat-label">En attente d'export</span></div>
+      </div>
+
+      <section class="section">
+        <div class="section-header">
+          <h2>Inscriptions ({inscriptions.length})</h2>
+          <div class="section-actions">
+            {inscriptions.length > 0 && (
+              <input type="search" id="search" class="search" placeholder="Rechercher une adresse…" aria-label="Rechercher une adresse" />
+            )}
+            <button type="button" id="export-open" class="btn-primary" disabled={enAttente === 0}>
+              Exporter vers Brevo
+            </button>
+          </div>
+        </div>
+
+        {inscriptions.length > 0 ? (
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Email</th>
+                  <th>Inscription</th>
+                  <th>Brevo</th>
+                </tr>
+              </thead>
+              <tbody id="rows">
+                {inscriptions.map(i => (
+                  <tr data-email={i.email}>
+                    <td class="bold">{i.email}</td>
+                    <td class="muted">{fmtDate(i.created_at)}</td>
+                    <td>
+                      {i.brevo_exported_at
+                        ? <span class="badge badge--ok">Exportée le {fmtDate(i.brevo_exported_at)}</span>
+                        : <span class="badge badge--wait">En attente</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p id="no-result" class="empty hidden">Aucune adresse ne correspond à la recherche.</p>
+          </div>
+        ) : (
+          <p class="empty">Aucune inscription pour le moment.</p>
+        )}
+      </section>
+
+    </div>
+  </main>
+
+  <!-- MODAL EXPORT BREVO -->
+  <div id="export-overlay" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="export-title">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="export-title">Exporter vers Brevo</h2>
+        <button type="button" class="modal-close" data-modal-close aria-label="Fermer">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="export-confirm-view">
+          <p class="modal-desc">
+            <strong>{aEnvoyer} adresse{aEnvoyer > 1 ? 's' : ''}</strong> en attente {aEnvoyer > 1 ? 'vont être envoyées' : 'va être envoyée'} à Brevo
+            et {aEnvoyer > 1 ? 'ajoutées' : 'ajoutée'} à la liste de la newsletter.
+            Les personnes désinscrites dans Brevo ne sont pas réabonnées.
+          </p>
+          {enAttente > PAR_EXPORT && (
+            <p class="modal-desc modal-note">
+              Un export traite au plus {PAR_EXPORT} adresses : il restera {enAttente - PAR_EXPORT} adresse{enAttente - PAR_EXPORT > 1 ? 's' : ''} à exporter en relançant l'export.
+            </p>
+          )}
+          <p id="export-error" class="form-error hidden"></p>
+          <div class="form-actions">
+            <button type="button" data-modal-close>Annuler</button>
+            <button type="button" id="export-confirm" class="btn-action-primary">Exporter</button>
+          </div>
+        </div>
+        <div id="export-result-view" class="hidden">
+          <p id="export-result" class="modal-desc"></p>
+          <ul id="export-failures" class="failures hidden"></ul>
+          <div class="form-actions">
+            <button type="button" id="export-done" class="btn-action-primary">Fermer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
+
+<script>
+  const overlay     = document.getElementById('export-overlay');
+  const openBtn     = document.getElementById('export-open');
+  const confirmBtn  = document.getElementById('export-confirm');
+  const errorEl     = document.getElementById('export-error');
+  const confirmView = document.getElementById('export-confirm-view');
+  const resultView  = document.getElementById('export-result-view');
+  const resultEl    = document.getElementById('export-result');
+  const failuresEl  = document.getElementById('export-failures');
+  const doneBtn     = document.getElementById('export-done');
+  let enCours = false;
+  let termine = false;
+
+  // Après un export, la liste doit refléter le nouvel état : fermer la fenêtre recharge la page.
+  function closeModal() {
+    if (enCours) return;
+    if (termine) { window.location.reload(); return; }
+    overlay.classList.add('hidden');
+  }
+
+  openBtn?.addEventListener('click', () => {
+    errorEl.classList.add('hidden');
+    overlay.classList.remove('hidden');
+    confirmBtn.focus();
+  });
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+  overlay.querySelectorAll('[data-modal-close]').forEach(el => el.addEventListener('click', closeModal));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && !overlay.classList.contains('hidden')) closeModal(); });
+  doneBtn.addEventListener('click', closeModal);
+
+  confirmBtn.addEventListener('click', async () => {
+    enCours = true;
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Export en cours…';
+    errorEl.classList.add('hidden');
+
+    let data = null;
+    let status = 0;
+    try {
+      const res = await fetch('/api/admin/export-newsletter', { method: 'POST' });
+      status = res.status;
+      data = await res.json().catch(() => null);
+    } catch (err) {
+      data = null;
+    }
+    enCours = false;
+
+    // Rien n'est parti (session expirée, configuration Brevo manquante, panne réseau) : on reste sur la confirmation.
+    if (!data || (!data.ok && !data.exportes && !(data.echecs && data.echecs.length))) {
+      errorEl.textContent = status === 401
+        ? 'Session expirée : reconnectez-vous puis relancez l\'export.'
+        : (data && data.message) || 'L\'export n\'a pas pu être lancé. Réessayez dans un instant.';
+      errorEl.classList.remove('hidden');
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = 'Exporter';
+      return;
+    }
+
+    termine = true;
+    resultEl.textContent = data.message + (data.echecs.length ? ` — ${data.echecs.length} en échec, elles seront retentées au prochain export.` : '.');
+    if (data.echecs.length) {
+      failuresEl.replaceChildren(...data.echecs.slice(0, 20).map(f => {
+        const li = document.createElement('li');
+        li.textContent = `${f.email} : ${f.detail}`;
+        return li;
+      }));
+      failuresEl.classList.remove('hidden');
+    }
+    confirmView.classList.add('hidden');
+    resultView.classList.remove('hidden');
+    doneBtn.focus();
+  });
+
+  // Recherche dans la liste
+  const search = document.getElementById('search');
+  const rows = [...document.querySelectorAll('#rows tr')];
+  const noResult = document.getElementById('no-result');
+  search?.addEventListener('input', () => {
+    const q = search.value.trim().toLowerCase();
+    let visibles = 0;
+    rows.forEach(tr => {
+      const ok = !q || tr.dataset.email.includes(q);
+      tr.classList.toggle('hidden', !ok);
+      if (ok) visibles++;
+    });
+    noResult.classList.toggle('hidden', visibles > 0);
+  });
+</script>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: var(--color-bg);
+    color: var(--color-text);
+    min-height: 100vh;
+  }
+
+  main { padding: 48px 24px; }
+  .container { max-width: 1200px; margin: 0 auto; }
+  .hidden { display: none !important; }
+
+  .page-header { margin-bottom: 32px; }
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    color: var(--color-primary);
+    margin-bottom: 8px;
+  }
+  .sub { color: var(--color-muted); max-width: 720px; line-height: 1.6; }
+
+  .stats { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 40px; }
+  .stat {
+    background: white;
+    border-radius: 12px;
+    padding: 18px 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 170px;
+  }
+  .stat-value { font-family: 'Playfair Display', serif; font-size: 1.8rem; color: var(--color-primary); line-height: 1.1; }
+  .stat-label { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-muted); }
+
+  .section { margin-bottom: 40px; }
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .section-header h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    color: var(--color-primary);
+  }
+  .section-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+
+  .search {
+    padding: 8px 14px;
+    border: 1.5px solid var(--color-border);
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-family: inherit;
+    background: white;
+    color: var(--color-text);
+    min-width: 240px;
+  }
+  .search:focus { outline: none; border-color: var(--color-primary-mid); }
+
+  .btn-primary {
+    padding: 9px 18px;
+    background: var(--color-primary-mid);
+    color: white;
+    border: 1.5px solid var(--color-primary-mid);
+    border-radius: 8px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    font-family: inherit;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .btn-primary:hover:not(:disabled) { background: var(--color-primary); border-color: var(--color-primary); }
+  .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  .table-wrapper { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    min-width: 560px;
+  }
+  th {
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-muted);
+    background: var(--color-bg);
+    border-bottom: 1px solid var(--color-border);
+  }
+  td {
+    padding: 12px 16px;
+    font-size: 0.88rem;
+    border-bottom: 1px solid var(--color-border-light);
+  }
+  tr:last-child td { border-bottom: none; }
+  .bold { font-weight: 600; overflow-wrap: anywhere; }
+  .muted { color: var(--color-muted); white-space: nowrap; }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+  .badge--ok   { background: var(--badge-don-bg);    color: var(--badge-don-text); }
+  .badge--wait { background: var(--badge-apport-bg); color: var(--badge-apport-text); }
+
+  .empty { color: var(--color-muted); font-size: 0.9rem; padding: 24px 0; }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .modal {
+    background: white;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 460px;
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    box-shadow: 0 8px 48px rgba(0,0,0,0.18);
+  }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 28px 28px 20px;
+    border-bottom: 1px solid var(--color-border-light);
+  }
+  .modal-header h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    color: var(--color-primary);
+  }
+  .modal-close { background: none; border: none; font-size: 1.1rem; color: var(--color-subtle); cursor: pointer; padding: 4px 8px; }
+  .modal-close:hover { color: var(--color-text); }
+  .modal-body { padding: 24px 28px; }
+  .modal-desc { font-size: 0.9rem; color: var(--color-text); line-height: 1.6; margin-bottom: 20px; }
+  .modal-note { color: var(--color-muted); }
+  .form-error {
+    font-size: 0.85rem;
+    color: var(--color-error-text);
+    background: var(--color-error-bg);
+    border: 1px solid var(--color-error-border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 16px;
+  }
+  .failures {
+    list-style: none;
+    font-size: 0.8rem;
+    color: var(--color-error-text);
+    background: var(--color-error-bg);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 20px;
+    max-height: 180px;
+    overflow-y: auto;
+    overflow-wrap: anywhere;
+  }
+  .failures li + li { margin-top: 6px; }
+  .form-actions { display: flex; gap: 12px; justify-content: flex-end; }
+  .form-actions button {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+    background: var(--color-bg);
+    color: var(--color-muted);
+    transition: all 0.2s;
+  }
+  .form-actions button:hover { background: var(--color-border); }
+  .form-actions .btn-action-primary { background: var(--color-primary-mid); color: white; }
+  .form-actions .btn-action-primary:hover { background: var(--color-primary); }
+  .form-actions .btn-action-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  @media (max-width: 600px) {
+    .search { min-width: 0; flex: 1; }
+    .stat { flex: 1; min-width: 130px; }
+  }
+</style>
