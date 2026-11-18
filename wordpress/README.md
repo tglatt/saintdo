@@ -37,6 +37,10 @@ l'éditeur. La mise en forme vient de `saindo-site/assets/blocs.css`, chargée s
 l'éditeur, et se choisit avec « Avancé → Classe(s) CSS additionnelle(s) » sur chaque bloc ; la
 liste des classes est en tête de ce fichier. Seule la vidéo de l'accueil reste un bloc HTML.
 
+La section « Nous contacter » affichée sous chaque page est une composition synchronisée
+(Apparence → Éditeur → Compositions → « Nous contacter »), référencée par le modèle de page
+« Saindo (site vitrine) » : email, téléphone et adresse s'y modifient directement.
+
 ## Pages recréées
 
 | Ancienne page Astro          | URL WordPress           | Contenu                                   |

@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Saindo — site vitrine
  * Description: Relie le site WordPress à l'application Saindo (Astro/Vercel) : jauge de collecte, formulaires newsletter et porteur·se de projet, redirections vers l'espace membre.
- * Version: 1.3.5
+ * Version: 1.4.1
  * Author: Le Saint-Domingue
  * Requires PHP: 8.0
  * Text Domain: saindo
@@ -72,7 +72,7 @@ add_action('template_redirect', function () {
 
 add_action('wp_enqueue_scripts', function () {
     // Styles et scripts du site vitrine (polices, menu, contact, pied de page, formulaires).
-    wp_enqueue_style('saindo-site', SAINDO_PLUGIN_URL . 'assets/site.css', [], '1.1.0');
+    wp_enqueue_style('saindo-site', SAINDO_PLUGIN_URL . 'assets/site.css', [], '1.4.1');
     wp_enqueue_script('saindo-site', SAINDO_PLUGIN_URL . 'assets/site.js', [], '1.1.0', true);
     wp_register_style('saindo-jauge', SAINDO_PLUGIN_URL . 'assets/jauge.css', [], '1.0.1');
     wp_register_style('saindo-questionnaire', SAINDO_PLUGIN_URL . 'assets/questionnaire.css', [], '1.0.0');
@@ -83,7 +83,7 @@ add_action('wp_enqueue_scripts', function () {
 
 // Styles des pages construites en blocs natifs : chargés sur le site et dans l'éditeur.
 add_action('enqueue_block_assets', function () {
-    wp_enqueue_style('saindo-blocs', SAINDO_PLUGIN_URL . 'assets/blocs.css', [], '1.3.5');
+    wp_enqueue_style('saindo-blocs', SAINDO_PLUGIN_URL . 'assets/blocs.css', [], '1.4.1');
 });
 
 // Le questionnaire ne doit pas être indexé (comme sur l'ancien site).
@@ -124,14 +124,13 @@ function saindo_euros(int|float $n): string {
  *   [saindo_newsletter]     formulaire d'inscription newsletter
  *   [saindo_questionnaire]  questionnaire porteur·se de projet
  *   [saindo_nav]            barre de navigation (en-tête du thème)
- *   [saindo_contact]        section « Nous contacter »
  *   [saindo_footer]         pied de page avec inscription newsletter
  * ---------------------------------------------------------------------- */
 
 /**
  * Rend un gabarit du plugin en supprimant les espaces entre balises. Les blocs Shortcode du gabarit
  * de page appliquent wpautop : avec des retours à la ligne, WordPress insère des <p> et <br> parasites
- * (cartes de contact dédoublées en blocs blancs, sauts de ligne dans le menu et le pied de page).
+ * (sauts de ligne dans le menu et le pied de page).
  */
 function saindo_render(string $template, array $vars = []): string {
     extract($vars);
@@ -146,8 +145,6 @@ add_shortcode('saindo_nav', function () {
     elseif (is_page()) { $o = get_queried_object(); $active = $o->post_name ?? ''; }
     return saindo_render('nav', ['active' => $active]);
 });
-
-add_shortcode('saindo_contact', fn() => saindo_render('contact'));
 
 add_shortcode('saindo_footer', fn() => saindo_render('footer'));
 
